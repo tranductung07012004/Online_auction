@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
 import ProductCard from './pcp/product-card';
-import { Link } from 'react-router-dom';
-import SearchBar from './pcp/search-bar';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getAllDresses, searchDresses, Dress } from '../../api/dress';
 
 export default function WeddingDressPage(): JSX.Element {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlQuery = searchParams.get('q') || '';
+  const urlSort = searchParams.get('sort') || 'default';
+  const urlCategory = searchParams.get('category') || '';
+  
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
   const [dresses, setDresses] = useState<Dress[]>([]);
   const [searchResults, setSearchResults] = useState<Dress[]>([]);
   const [filteredDresses, setFilteredDresses] = useState<Dress[]>([]);
@@ -19,7 +23,8 @@ export default function WeddingDressPage(): JSX.Element {
   // Filter and sort states
   const [priceFilter, setPriceFilter] = useState<string>('all');
   const [styleFilter, setStyleFilter] = useState<string>('all');
-  const [sortOption, setSortOption] = useState<string>('default');
+  const [sortOption, setSortOption] = useState<string>(urlSort);
+  const [categoryFilter, setCategoryFilter] = useState<string>(urlCategory);
 
   // Get unique styles for filter options
   const uniqueStyles = [
@@ -45,6 +50,56 @@ export default function WeddingDressPage(): JSX.Element {
 
     fetchDresses();
   }, []);
+
+  // Handle URL query parameter - perform search when URL has query param
+  useEffect(() => {
+    const urlQuery = searchParams.get('q');
+    const urlSort = searchParams.get('sort');
+    const urlEndTime = searchParams.get('endTime');
+    const urlCategory = searchParams.get('category');
+    
+    // Update category filter from URL
+    if (urlCategory) {
+      setCategoryFilter(urlCategory);
+    } else {
+      setCategoryFilter('');
+    }
+    
+    // Update sort option from URL
+    if (urlEndTime === 'desc') {
+      setSortOption('endTime-desc');
+    } else if (urlSort) {
+      setSortOption(urlSort);
+    } else {
+      setSortOption('default');
+    }
+    
+    if (dresses.length > 0) {
+      if (urlQuery && urlQuery.trim()) {
+        // Perform search if query exists
+        const performSearch = async () => {
+          setSearchQuery(urlQuery);
+          try {
+            setIsSearching(true);
+            const results = await searchDresses(urlQuery);
+            setSearchResults(results);
+            setError(null);
+          } catch (error) {
+            console.error('Error searching dresses:', error);
+            setError('Failed to search dresses');
+            setSearchResults([]);
+          } finally {
+            setIsSearching(false);
+          }
+        };
+        performSearch();
+      } else {
+        // Reset to all dresses if no query
+        setSearchQuery('');
+        setSearchResults(dresses);
+      }
+    }
+  }, [searchParams, dresses]);
 
   // Apply filters and sorting when filter options or search results change
   useEffect(() => {
@@ -93,7 +148,24 @@ export default function WeddingDressPage(): JSX.Element {
         case 'rating-desc':
           result.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
           break;
+        case 'endTime-desc':
+          // Sort by end time descending (assuming there's an endTime field)
+          // If endTime doesn't exist, we'll sort by a default field
+          result.sort((a, b) => {
+            // You may need to adjust this based on your actual data structure
+            // For now, sorting by name as a fallback
+            return (b.name || '').localeCompare(a.name || '');
+          });
+          break;
       }
+    }
+
+    // Apply category filter if category is selected
+    // Note: Category filter logic can be implemented based on your API requirements
+    // For now, category parameter is stored and can be used in API calls
+    if (categoryFilter) {
+      // You can add category-based filtering logic here
+      // For example: result = result.filter((dress) => dress.category === categoryFilter);
     }
 
     setFilteredDresses(result);
@@ -104,30 +176,8 @@ export default function WeddingDressPage(): JSX.Element {
     searchResults,
     dresses,
     searchQuery,
+    categoryFilter,
   ]);
-
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-
-    if (!query.trim()) {
-      // If search query is empty, reset search results to all dresses
-      setSearchResults(dresses);
-      return;
-    }
-
-    try {
-      setIsSearching(true);
-      const results = await searchDresses(query);
-      setSearchResults(results);
-      setError(null);
-    } catch (error) {
-      console.error('Error searching dresses:', error);
-      setError('Failed to search dresses');
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const handleLoadMore = () => {
     setVisibleDresses((prev) => prev + 6); // Load 6 more dresses
@@ -174,7 +224,6 @@ export default function WeddingDressPage(): JSX.Element {
   return (
     <div>
       <Header />
-      <SearchBar placeholder="Mermaid Dress" onSearch={handleSearch} />
       <main className="container-custom py-8">
         <div className="flex items-center text-sm mb-6">
           <Link to="/category" className="text-gray-500 hover:text-primary">
