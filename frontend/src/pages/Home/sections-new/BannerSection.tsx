@@ -2,27 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
-const FamilyBannerSection: React.FC = () => {
-  // Danh sách các ảnh slideshow
+const BannerSection: React.FC = () => {
   const slides = [
     {
       id: 1,
-      image: 'https://via.placeholder.com/1920x600/E3F2FD/1976D2?text=Banner+1+-+Family+Winter+Collection',
+      image: '../../../public/banner1.webp',
       alt: 'Banner 1',
     },
     {
       id: 2,
-      image: 'https://via.placeholder.com/1920x600/FFE0B2/FF6F00?text=Banner+2+-+Flash+Sale+50%',
+      image: '../../../public/banner2.webp',
       alt: 'Banner 2',
     },
     {
       id: 3,
-      image: 'https://via.placeholder.com/1920x600/F3E5F5/7B1FA2?text=Banner+3+-+New+Arrivals',
+      image: '../../../public/banner3.webp',
       alt: 'Banner 3',
     },
     {
       id: 4,
-      image: 'https://via.placeholder.com/1920x600/E8F5E9/388E3C?text=Banner+4+-+Special+Offers',
+      image: '../../../public/banner4.webp',
       alt: 'Banner 4',
     },
   ];
@@ -44,7 +43,7 @@ const FamilyBannerSection: React.FC = () => {
     setCurrentSlide(index);
   };
 
-  // Auto-play slideshow (optional - uncomment to enable)
+  // Auto-play slideshow
   useEffect(() => {
     const interval = setInterval(() => {
       nextSlide();
@@ -186,7 +185,7 @@ const FamilyBannerSection: React.FC = () => {
         </Box>
 
         {/* Slide Counter (optional) */}
-        <Box
+        {/* <Box
           sx={{
             position: 'absolute',
             top: { xs: 16, md: 24 },
@@ -202,10 +201,10 @@ const FamilyBannerSection: React.FC = () => {
           }}
         >
           {currentSlide + 1} / {slides.length}
-        </Box>
+        </Box> */}
       </Box>
     </Box>
   );
 };
 
-export default FamilyBannerSection;
+export default BannerSection;

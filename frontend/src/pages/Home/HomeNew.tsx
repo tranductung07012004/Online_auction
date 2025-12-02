@@ -1,18 +1,18 @@
 import React from 'react';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
-import FamilyBannerSection from './sections-new/FamilyBannerSection';
+import BannerSection from './sections-new/BannerSection';
 import FlashSaleSection from './sections-new/FlashSaleSection';
 import WinterJacketSection from './sections-new/WinterJacketSection';
 import HeatRetainingSection from './sections-new/HeatRetainingSection';
 
 const HomeNew: React.FC = () => {
   return (
-    <div className="relative flex flex-col min-h-screen bg-gray-50">
-      <Header isSticky={true} />
+    <div className="relative flex flex-col min-h-screen">
+      <Header /*isSticky={true}*/ />
 
-      {/* Family Banner Section */}
-      <FamilyBannerSection />
+      {/* Banner Section - Full Width Slideshow */}
+      <BannerSection />
 
       {/* Flash Sale Section */}
       <FlashSaleSection />
