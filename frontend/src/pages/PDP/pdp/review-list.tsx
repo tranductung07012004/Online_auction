@@ -188,7 +188,7 @@ export default function ReviewList({ dressId, reviews, onRefresh }: ReviewListPr
   if (reviews.length === 0) {
     return (
       <div className="text-gray-500 italic text-center py-4">
-        No reviews yet. Be the first to leave a review!
+        No questions yet. Be the first to leave a question!
       </div>
     );
   }
