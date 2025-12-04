@@ -76,12 +76,8 @@ export default function ProfilePage() {
 
   // Format userData to match the ProfileForm expected structure
   const profileData = {
-    firstName: userData.firstName || '',
-    lastName: userData.lastName || '',
+    fullName: userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || '',
     email: userData.email || '',
-    phone: userData.phone || '',
-    dateOfBirth: userData.dateOfBirth || '',
-    username: userData.username || '',
     password: '********',  // For display purposes only
     profileImageUrl: userData.profileImageUrl || '',
   };
@@ -95,10 +91,10 @@ export default function ProfilePage() {
           <div className="md:col-span-1">
             <ProfileSidebar
               activeTab="profile"
-              userName={userData.username}
+              userName={userData.email}
               userImage={userData.profileImageUrl}
               onImageUpdate={handleImageUpdate}
-              fullName={`${userData.firstName} ${userData.lastName}`}
+              fullName={userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim()}
             />
           </div>
 

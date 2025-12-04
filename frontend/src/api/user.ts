@@ -20,12 +20,13 @@ export interface UserSettings {
 
 export interface UserProfile {
   _id: string;
-  username: string;
+  username?: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  dateOfBirth: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  phone?: string;
+  dateOfBirth?: string;
   role: string;
   isVerified: boolean;
   profileImageUrl?: string;
@@ -35,10 +36,7 @@ export interface UserProfile {
 }
 
 export interface UpdateProfileData {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  dateOfBirth?: string;
+  fullName?: string;
 }
 
 export interface UpdatePasswordData {
@@ -60,12 +58,8 @@ const generateFakeUserProfile = (): UserProfile => {
   
   return {
     _id: 'fake_user_id_123',
-    username: 'johndoe',
     email: 'john.doe@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    phone: '+84 912 345 678',
-    dateOfBirth: '1995-05-15',
+    fullName: 'John Doe',
     role: 'user',
     isVerified: true,
     profileImageUrl: '/placeholder-user.jpg',

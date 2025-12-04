@@ -26,6 +26,7 @@ import {
   Book as BookIcon,
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
+  Store as StoreIcon,
 } from '@mui/icons-material';
 import logo from '../../public/LOGO.png';
 import { useNavigate } from 'react-router-dom';
@@ -349,6 +350,11 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
       path: '/'
     },
     { 
+      text: 'All Products', 
+      icon: <StoreIcon />, 
+      path: '/pcp'
+    },
+    { 
       text: 'Smartphone', 
       icon: <SmartPhoneIcon />, 
       path: '/pcp',
@@ -433,6 +439,14 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
         logo={logo}
         menuItems={menuItems}
         onMenuItemClick={(path, subcategory) => {
+          // If "All Products" is clicked, navigate directly to /pcp without query params
+          const allProductsItem = menuItems.find(item => item.text === 'All Products' && item.path === path);
+          if (allProductsItem) {
+            navigate('/pcp');
+            setDrawerOpen(false);
+            return;
+          }
+          
           // Build URL with category and subcategory if provided
           const params = new URLSearchParams();
           const categoryName = path.replace(/^\//, '') || 'home';
