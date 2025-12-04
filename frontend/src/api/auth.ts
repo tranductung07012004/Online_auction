@@ -94,13 +94,30 @@ export const logout = async (): Promise<void> => {
   }
 }
 
+// Generate fake auth data for development
+const generateFakeAuthData = () => {
+  return {
+    userId: 'fake_user_id_123',
+    id: 'fake_user_id_123',
+    username: 'johndoe',
+    email: 'john.doe@example.com',
+    role: 'user',
+    isVerified: true,
+  };
+};
+
 export const getRoleAPI = async () => {
   try {
     console.log('Checking user role...');
-  const response = await API.get('/auth/me'); 
+    const response = await API.get('/auth/me'); 
     console.log('Role API response:', response.data);
-  return response.data;
+    return response.data;
   } catch (error: any) {
+    // If it's a network error (backend not running), return fake data
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.warn('Backend not available, using fake auth data for development');
+      return generateFakeAuthData();
+    }
     console.error('Error checking role:', error);
     throw new Error(error.response?.data?.message || 'Failed to get user role');
   }

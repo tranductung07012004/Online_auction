@@ -1,61 +1,172 @@
 import { useState, useEffect } from 'react';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
-import ProductCard from './pcp/product-card';
+import ProductCard from '../../components/ProductCard';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getAllDresses, searchDresses, Dress } from '../../api/dress';
+// TODO: Uncomment when backend is ready
+// import { getAllProducts, searchProducts, Product } from '../../api/product';
+import { PCPSearchBar } from './pcp/PCPSearchBar';
+import {
+  Box,
+  Container,
+  Typography,
+  Breadcrumbs,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Button,
+  CircularProgress,
+  Alert,
+  Paper,
+} from '@mui/material';
+import { NavigateNext } from '@mui/icons-material';
+import { useSearchSync } from '../../hooks/useSearchSync';
 
-export default function WeddingDressPage(): JSX.Element {
+// Fake data interface matching ProductProps
+interface FakeProduct {
+  id: number;
+  product_name: string;
+  thumpnail_url: string;
+  seller: {
+    id: number;
+    avatar: string;
+    fullname: string;
+  };
+  buy_now_price: number | null;
+  minimum_bid_step: number;
+  start_at: string | Date;
+  end_at: string | Date;
+  current_price: number;
+  highest_bidder: {
+    id: number;
+    avatar: string;
+    fullname: string;
+  } | null;
+  created_at?: string | Date;
+  posted_at?: string | Date;
+  bid_count: number;
+}
+
+// Generate fake products data
+const generateFakeProducts = (): FakeProduct[] => {
+  const now = new Date();
+  const sellers = [
+    { id: 1, avatar: '/placeholder-user.jpg', fullname: 'Nguyễn Văn A' },
+    { id: 2, avatar: '/placeholder-user.jpg', fullname: 'Trần Thị B' },
+    { id: 3, avatar: '/placeholder-user.jpg', fullname: 'Lê Văn C' },
+    { id: 4, avatar: '/placeholder-user.jpg', fullname: 'Phạm Thị D' },
+    { id: 5, avatar: '/placeholder-user.jpg', fullname: 'Hoàng Văn E' },
+  ];
+
+  const productNames = [
+    'Tranh the ki trong',
+    'De tam de che',
+    'Da hoi ao dai',
+    'Thang canh ky phong',
+    'Thanh guom cua vua Louis III',
+    'Chen thanh',
+    'Ke huy diet',
+    'Hung thu tiec tan',
+    'Tranh cua picasso',
+    'Nguoi dep to lua',
+    'Mot ngay nang',
+    'Berserk',
+  ];
+
+  const bidders = [
+    { id: 6, avatar: '/placeholder-user.jpg', fullname: 'Lý Văn F' },
+    { id: 7, avatar: '/placeholder-user.jpg', fullname: 'Đỗ Thị G' },
+    { id: 8, avatar: '/placeholder-user.jpg', fullname: 'Bùi Văn H' },
+    { id: 9, avatar: '/placeholder-user.jpg', fullname: 'Vũ Thị I' },
+    { id: 10, avatar: '/placeholder-user.jpg', fullname: 'Đinh Văn J' },
+  ];
+
+  return productNames.map((name, index) => {
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 7));
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 14) + 7);
+    
+    const buyNowPrice = Math.floor(Math.random() * 5000000) + 1000000; // 1M - 6M VND
+    const minBidStep = Math.floor(buyNowPrice * 0.05); // 5% of buy now price
+    const currentPrice = Math.floor(buyNowPrice * (0.6 + Math.random() * 0.3)); // 60-90% of buy now price
+    const bidCount = Math.floor(Math.random() * 50) + 1; // 1-50 bids
+    const hasHighestBidder = Math.random() > 0.2; // 80% chance of having a bidder
+    const postedDate = new Date(startDate);
+    postedDate.setDate(postedDate.getDate() - Math.floor(Math.random() * 3)); // Posted 0-3 days before start
+
+    return {
+      id: index + 1,
+      product_name: name,
+      thumpnail_url: '/placeholder.svg',
+      seller: sellers[Math.floor(Math.random() * sellers.length)],
+      buy_now_price: Math.random() > 0.1 ? buyNowPrice : null, // 90% have buy now price
+      minimum_bid_step: minBidStep,
+      start_at: startDate.toISOString(),
+      end_at: endDate.toISOString(),
+      current_price: currentPrice,
+      highest_bidder: hasHighestBidder ? bidders[Math.floor(Math.random() * bidders.length)] : null,
+      created_at: postedDate.toISOString(),
+      bid_count: bidCount,
+    };
+  });
+};
+
+export default function ProductPage(): JSX.Element {
   const [searchParams] = useSearchParams();
+  
+  // Sync search store with URL
+  useSearchSync();
+  
   const urlQuery = searchParams.get('q') || '';
-  const urlSort = searchParams.get('sort') || 'default';
   const urlCategory = searchParams.get('category') || '';
   
   const [searchQuery, setSearchQuery] = useState(urlQuery);
-  const [dresses, setDresses] = useState<Dress[]>([]);
-  const [searchResults, setSearchResults] = useState<Dress[]>([]);
-  const [filteredDresses, setFilteredDresses] = useState<Dress[]>([]);
+  const [products, setProducts] = useState<FakeProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<FakeProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visibleDresses, setVisibleDresses] = useState<number>(6); // Number of dresses to show initially
+  const [visibleProducts, setVisibleProducts] = useState<number>(6); // Number of products to show initially
   const [isSearching, setIsSearching] = useState(false);
 
-  // Filter and sort states
+  // Filter states
   const [priceFilter, setPriceFilter] = useState<string>('all');
-  const [styleFilter, setStyleFilter] = useState<string>('all');
-  const [sortOption, setSortOption] = useState<string>(urlSort);
   const [categoryFilter, setCategoryFilter] = useState<string>(urlCategory);
 
-  // Get unique styles for filter options
-  const uniqueStyles = [
-    ...new Set(dresses.map((dress) => dress.style).filter(Boolean)),
-  ];
-
+  // Initialize with fake data
   useEffect(() => {
-    const fetchDresses = async () => {
+    const loadFakeData = () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const dressesData = await getAllDresses();
-        setDresses(dressesData);
-        setSearchResults(dressesData);
-        setFilteredDresses(dressesData);
+        // TODO: Replace with actual API call when backend is ready
+        // const productsData = await getAllProducts();
+        // setProducts(productsData);
+        
+        // Using fake data for now
+        const fakeData = generateFakeProducts();
+        setProducts(fakeData);
+        setFilteredProducts(fakeData);
         setError(null);
       } catch (error) {
-        console.error('Error fetching dresses:', error);
-        setError('Failed to load dresses');
+        console.error('Error loading products:', error);
+        setError('Failed to load products');
+        // Fallback to fake data even on error
+        const fakeData = generateFakeProducts();
+        setProducts(fakeData);
+        setFilteredProducts(fakeData);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDresses();
+    loadFakeData();
   }, []);
 
   // Handle URL query parameter - perform search when URL has query param
   useEffect(() => {
     const urlQuery = searchParams.get('q');
-    const urlSort = searchParams.get('sort');
-    const urlEndTime = searchParams.get('endTime');
     const urlCategory = searchParams.get('category');
     
     // Update category filter from URL
@@ -65,325 +176,239 @@ export default function WeddingDressPage(): JSX.Element {
       setCategoryFilter('');
     }
     
-    // Update sort option from URL
-    if (urlEndTime === 'desc') {
-      setSortOption('endTime-desc');
-    } else if (urlSort) {
-      setSortOption(urlSort);
-    } else {
-      setSortOption('default');
-    }
-    
-    if (dresses.length > 0) {
+    if (products.length > 0) {
       if (urlQuery && urlQuery.trim()) {
         // Perform search if query exists
-        const performSearch = async () => {
-          setSearchQuery(urlQuery);
-          try {
-            setIsSearching(true);
-            const results = await searchDresses(urlQuery);
-            setSearchResults(results);
-            setError(null);
-          } catch (error) {
-            console.error('Error searching dresses:', error);
-            setError('Failed to search dresses');
-            setSearchResults([]);
-          } finally {
-            setIsSearching(false);
-          }
-        };
-        performSearch();
+        setSearchQuery(urlQuery);
+        setIsSearching(true);
+        // TODO: Replace with actual API search when backend is ready
+        // const results = await searchProducts(urlQuery);
+        // Filter fake data by search query
+        const filtered = products.filter((product) =>
+          product.product_name.toLowerCase().includes(urlQuery.toLowerCase()) ||
+          product.seller.fullname.toLowerCase().includes(urlQuery.toLowerCase())
+        );
+        setFilteredProducts(filtered);
+        setIsSearching(false);
       } else {
-        // Reset to all dresses if no query
+        // Reset to all products if no query
         setSearchQuery('');
-        setSearchResults(dresses);
+        setFilteredProducts(products);
       }
     }
-  }, [searchParams, dresses]);
+  }, [searchParams, products]);
 
-  // Apply filters and sorting when filter options or search results change
+  // Apply filters and sorting when filter options change
   useEffect(() => {
-    // Start with either search results (if a search was performed) or all dresses
-    const dataToFilter = searchQuery.trim() ? searchResults : dresses;
-    let result = [...dataToFilter];
+    let result = [...products];
 
-    // Apply style filter
-    if (styleFilter !== 'all') {
-      result = result.filter((dress) => dress.style === styleFilter);
+    // Apply search filter
+    if (searchQuery.trim()) {
+      result = result.filter(
+        (product) =>
+          product.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.seller.fullname.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
-    // Apply price filter
+    // Apply price filter (converting VND to approximate USD for filter)
+    // Use buy_now_price if available, otherwise use current_price
     if (priceFilter !== 'all') {
       switch (priceFilter) {
         case 'under50':
-          result = result.filter((dress) => dress.dailyRentalPrice < 50);
+          result = result.filter((product) => {
+            const price = product.buy_now_price ?? product.current_price;
+            return price < 50 * 25000; // ~$50
+          });
           break;
         case '50to100':
-          result = result.filter(
-            (dress) =>
-              dress.dailyRentalPrice >= 50 && dress.dailyRentalPrice <= 100,
-          );
+          result = result.filter((product) => {
+            const price = product.buy_now_price ?? product.current_price;
+            return price >= 50 * 25000 && price <= 100 * 25000;
+          });
           break;
         case '100to200':
-          result = result.filter(
-            (dress) =>
-              dress.dailyRentalPrice > 100 && dress.dailyRentalPrice <= 200,
-          );
+          result = result.filter((product) => {
+            const price = product.buy_now_price ?? product.current_price;
+            return price > 100 * 25000 && price <= 200 * 25000;
+          });
           break;
         case 'above200':
-          result = result.filter((dress) => dress.dailyRentalPrice > 200);
-          break;
-      }
-    }
-
-    // Apply sorting
-    if (sortOption !== 'default') {
-      switch (sortOption) {
-        case 'price-asc':
-          result.sort((a, b) => a.dailyRentalPrice - b.dailyRentalPrice);
-          break;
-        case 'price-desc':
-          result.sort((a, b) => b.dailyRentalPrice - a.dailyRentalPrice);
-          break;
-        case 'rating-desc':
-          result.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
-          break;
-        case 'endTime-desc':
-          // Sort by end time descending (assuming there's an endTime field)
-          // If endTime doesn't exist, we'll sort by a default field
-          result.sort((a, b) => {
-            // You may need to adjust this based on your actual data structure
-            // For now, sorting by name as a fallback
-            return (b.name || '').localeCompare(a.name || '');
+          result = result.filter((product) => {
+            const price = product.buy_now_price ?? product.current_price;
+            return price > 200 * 25000;
           });
           break;
       }
     }
 
     // Apply category filter if category is selected
-    // Note: Category filter logic can be implemented based on your API requirements
-    // For now, category parameter is stored and can be used in API calls
     if (categoryFilter) {
-      // You can add category-based filtering logic here
-      // For example: result = result.filter((dress) => dress.category === categoryFilter);
+      // You can add category-based filtering logic here when category field is available
     }
 
-    setFilteredDresses(result);
+    setFilteredProducts(result);
   }, [
-    styleFilter,
     priceFilter,
-    sortOption,
-    searchResults,
-    dresses,
+    products,
     searchQuery,
     categoryFilter,
   ]);
 
   const handleLoadMore = () => {
-    setVisibleDresses((prev) => prev + 6); // Load 6 more dresses
+    setVisibleProducts((prev) => prev + 6); // Load 6 more products
   };
 
-  // Reset filters
-  const handleResetFilters = () => {
-    setPriceFilter('all');
-    setStyleFilter('all');
-    setSortOption('default');
-  };
-
-  // Map API data to the format expected by ProductCard
-  const mapDressesToCardFormat = (apiDresses: Dress[]) => {
-    return apiDresses.map((dress) => ({
-      id: dress._id,
-      name: dress.name,
-      designer: dress.style || 'Designer',
-      price: dress.dailyRentalPrice,
-      rating: dress.avgRating || 4.5,
-      status: 'Available' as const,
-      mainImage:
-        dress.images && dress.images.length > 0
-          ? dress.images[0]
-          : '/placeholder.svg?height=500&width=400',
-      thumbnails:
-        dress.images && dress.images.length > 0
-          ? dress.images.slice(0, 3).map((img) => img)
-          : [
-              '/placeholder.svg?height=40&width=40',
-              '/placeholder.svg?height=40&width=40',
-              '/placeholder.svg?height=40&width=40',
-            ],
-    }));
-  };
-
-  // Get limited number of dresses to display
-  const displayDresses = mapDressesToCardFormat(filteredDresses).slice(
-    0,
-    visibleDresses,
-  );
-  const hasMoreDresses = filteredDresses.length > visibleDresses;
+  // Get limited number of products to display
+  const displayProducts = filteredProducts.slice(0, visibleProducts);
+  const hasMoreProducts = filteredProducts.length > visibleProducts;
 
   return (
     <div>
       <Header />
-      <main className="container-custom py-8">
-        <div className="flex items-center text-sm mb-6">
-          <Link to="/category" className="text-gray-500 hover:text-primary">
-            Category
-          </Link>
-          <span className="mx-2">&gt;</span>
-          <span>Wedding Dress</span>
-        </div>
+      
+      {/* Search Bar Section */}
+      <Box
+        sx={{
+          bgcolor: 'white',
+          borderBottom: '1px solid #EAEAEA',
+          py: 2,
+          px: { xs: 2, md: 4 },
+          display: 'flex',
+          justifyContent: 'center',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        }}
+      >
+        <PCPSearchBar />
+      </Box>
 
-        <h1 className="text-2xl font-medium mb-8">Wedding Dress</h1>
+      <main>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          {/* Breadcrumbs */}
+          <Breadcrumbs
+            separator={<NavigateNext fontSize="small" />}
+            sx={{ mb: 3 }}
+          >
+            <Link
+              to="/category"
+              style={{
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
+            >
+              <Typography color="text.secondary">Category</Typography>
+            </Link>
+            <Typography color="text.primary">Products</Typography>
+          </Breadcrumbs>
 
-        {/* Filter and Sort UI */}
-        <div className="flex flex-wrap gap-4 mb-8 items-center">
-          <div className="flex items-center space-x-2">
-            <label htmlFor="style-filter" className="text-sm font-medium">
-              Style:
-            </label>
-            <div className="relative">
-              <select
-                id="style-filter"
-                value={styleFilter}
-                onChange={(e) => setStyleFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-md py-2 pl-3 pr-8 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="all">All Styles</option>
-                {uniqueStyles.map((style) => (
-                  <option key={style} value={style}>
-                    {style}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
-            </div>
-          </div>
+          {/* Page Title */}
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 600,
+              mb: 4,
+              fontSize: { xs: '1.75rem', md: '2rem' },
+            }}
+          >
+            Our Products
+          </Typography>
 
-          <div className="flex items-center space-x-2">
-            <label htmlFor="price-filter" className="text-sm font-medium">
-              Price:
-            </label>
-            <div className="relative">
-              <select
+          {/* Price Filter */}
+          <Box sx={{ mb: 4 }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel id="price-filter-label">Price</InputLabel>
+              <Select
+                labelId="price-filter-label"
                 id="price-filter"
                 value={priceFilter}
+                label="Price"
                 onChange={(e) => setPriceFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-md py-2 pl-3 pr-8 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="all">All Prices</option>
-                <option value="under50">Under $50</option>
-                <option value="50to100">$50 - $100</option>
-                <option value="100to200">$100 - $200</option>
-                <option value="above200">Above $200</option>
-              </select>
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
-            </div>
-          </div>
+                <MenuItem value="all">All Prices</MenuItem>
+                <MenuItem value="under50">Under 1.25M VND</MenuItem>
+                <MenuItem value="50to100">1.25M - 2.5M VND</MenuItem>
+                <MenuItem value="100to200">2.5M - 5M VND</MenuItem>
+                <MenuItem value="above200">Above 5M VND</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
 
-          <div className="flex items-center space-x-2 ml-auto">
-            <label htmlFor="sort-option" className="text-sm font-medium">
-              Sort by:
-            </label>
-            <div className="relative">
-              <select
-                id="sort-option"
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-md py-2 pl-3 pr-8 text-sm leading-tight focus:outline-none focus:ring-2 focus:ring-primary/50"
+          {/* Products Grid */}
+          {loading || isSearching ? (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: 400,
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Box sx={{ mb: 4 }}>
+              <Alert severity="error">{error}</Alert>
+            </Box>
+          ) : displayProducts.length === 0 ? (
+            <Paper
+              sx={{
+                p: 4,
+                textAlign: 'center',
+                bgcolor: 'background.default',
+              }}
+            >
+              <Typography variant="body1" color="text.secondary">
+                No products found matching your criteria
+              </Typography>
+            </Paper>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, 1fr)',
+                    md: 'repeat(3, 1fr)',
+                  },
+                  gap: 3,
+                }}
               >
-                <option value="default">Default</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating-desc">Rating: High to Low</option>
-              </select>
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={handleResetFilters}
-            className="text-sm text-primary hover:text-primary-dark"
-          >
-            Reset Filters
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8">
-          <div>
-            {loading || isSearching ? (
-              <div className="flex justify-center items-center h-40">
-                <p>Loading dresses...</p>
-              </div>
-            ) : error ? (
-              <div className="flex justify-center items-center h-40">
-                <p className="text-red-500">{error}</p>
-              </div>
-            ) : displayDresses.length === 0 ? (
-              <div className="flex justify-center items-center h-40">
-                <p>No dresses found matching your criteria</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayDresses.map((dress) => (
-                  <ProductCard key={dress.id} {...dress} />
+                {displayProducts.map((product) => (
+                  <Box key={product.id}>
+                    <ProductCard {...product} />
+                  </Box>
                 ))}
-              </div>
-            )}
+              </Box>
 
-            {hasMoreDresses && (
-              <div className="flex justify-center mt-12">
-                <button
-                  className="border border-gray-300 rounded-md px-6 py-2 text-sm hover:bg-gray-50"
-                  onClick={handleLoadMore}
+              {hasMoreProducts && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    mt: 6,
+                  }}
                 >
-                  Load more
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+                  <Button
+                    variant="outlined"
+                    onClick={handleLoadMore}
+                    sx={{
+                      px: 4,
+                      py: 1.5,
+                      textTransform: 'none',
+                    }}
+                  >
+                    Load More
+                  </Button>
+                </Box>
+              )}
+            </>
+          )}
+        </Container>
       </main>
       <Footer />
     </div>

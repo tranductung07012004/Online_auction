@@ -1,58 +1,142 @@
-import { Heart, ChevronRight, Plus, Minus, Instagram, Send, Mail, CheckCircle2, Truck, AlertCircle } from 'lucide-react';
+import { Heart, ChevronRight } from 'lucide-react';
 import { useEffect, useState, JSX } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ProductGallery from './pdp/product-gallery';
-import ColorSelector from './pdp/color-selector';
-import SizeSelector from './pdp/size-selector';
-import DatePicker from './pdp/date-picker';
-import AccordionSection from './pdp/accordion-section';
-import ReviewItem from './pdp/review-item';
 import ReviewForm from './pdp/review-form';
 import ReviewList from './pdp/review-list';
-import ProductCarousel from './pdp/product-carousel';
+import ProductCard from '../../components/ProductCard';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
-import { getDressById, getSimilarDresses, Dress } from '../../api/dress';
-import { addToCart } from '../../api/cart';
+import { getDressById, Dress } from '../../api/dress';
 import { useAuth } from '../../context/AuthContext';
-import { format } from 'date-fns';
+import { Box, Container, Typography } from '@mui/material';
 import axios from 'axios';
+
+// Interface for similar products matching ProductCard props
+interface SimilarProduct {
+  id: number;
+  product_name: string;
+  thumpnail_url: string;
+  seller: {
+    id: number;
+    avatar: string;
+    fullname: string;
+  };
+  buy_now_price: number | null;
+  minimum_bid_step: number;
+  start_at: string | Date;
+  end_at: string | Date;
+  current_price: number;
+  highest_bidder: {
+    id: number;
+    avatar: string;
+    fullname: string;
+  } | null;
+  created_at?: string | Date;
+  posted_at?: string | Date;
+  bid_count: number;
+}
 
 export default function ProductDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, checkAuthStatus } = useAuth();
   const [dress, setDress] = useState<Dress | null>(null);
-  const [similarDresses, setSimilarDresses] = useState<Dress[]>([]);
+  const [similarProducts, setSimilarProducts] = useState<SimilarProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
   
-  // New states for date selection, variants and quantity
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [showStartDatePicker, setShowStartDatePicker] = useState<boolean>(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
-  const [selectedSize, setSelectedSize] = useState<string>('');
-  const [selectedColor, setSelectedColor] = useState<string>('');
-  const [quantity, setQuantity] = useState<number>(1);
+  // Stock state
   const [availableStock, setAvailableStock] = useState<number | null>(null);
-  
-  // Purchase option state (mua/thuê)
-  const [purchaseOption, setPurchaseOption] = useState<'buy' | 'rent'>('rent');
-  
-  // Ngày giao hàng khi mua sản phẩm
-  const [deliveryDate, setDeliveryDate] = useState<Date | null>(null);
-  const [showDeliveryDatePicker, setShowDeliveryDatePicker] = useState<boolean>(false);
 
   const [refreshReviews, setRefreshReviews] = useState<boolean>(false);
   const [reviews, setReviews] = useState<any[]>([]);
+
+  // Generate fake similar products (same subcategory)
+  const generateSimilarProducts = (currentProductId: string | undefined): SimilarProduct[] => {
+    const now = new Date();
+    const sellers = [
+      { id: 1, avatar: '/placeholder-user.jpg', fullname: 'Nguyễn Văn A' },
+      { id: 2, avatar: '/placeholder-user.jpg', fullname: 'Trần Thị B' },
+      { id: 3, avatar: '/placeholder-user.jpg', fullname: 'Lê Văn C' },
+      { id: 4, avatar: '/placeholder-user.jpg', fullname: 'Phạm Thị D' },
+      { id: 5, avatar: '/placeholder-user.jpg', fullname: 'Hoàng Văn E' },
+    ];
+
+    const bidders = [
+      { id: 6, avatar: '/placeholder-user.jpg', fullname: 'Lý Văn F' },
+      { id: 7, avatar: '/placeholder-user.jpg', fullname: 'Đỗ Thị G' },
+      { id: 8, avatar: '/placeholder-user.jpg', fullname: 'Bùi Văn H' },
+      { id: 9, avatar: '/placeholder-user.jpg', fullname: 'Vũ Thị I' },
+      { id: 10, avatar: '/placeholder-user.jpg', fullname: 'Đinh Văn J' },
+    ];
+
+    const productNames = [
+      'Tranh the ki trong',
+      'De tam de che',
+      'Da hoi ao dai',
+      'Thang canh ky phong',
+      'Thanh guom cua vua Louis III',
+      'Chen thanh',
+      'Ke huy diet',
+      'Hung thu tiec tan',
+      'Tranh cua picasso',
+      'Nguoi dep to lua',
+      'Mot ngay nang',
+      'Berserk',
+    ];
+
+    // Generate 5 similar products, excluding current product
+    // If currentProductId is not a number, just take first 5
+    const filteredNames = currentProductId 
+      ? productNames.filter((_, index) => (index + 1).toString() !== currentProductId)
+      : productNames;
+    
+    return filteredNames
+      .slice(0, 5)
+      .map((name, index) => {
+        const startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 7));
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 14) + 7);
+        
+        const buyNowPrice = Math.floor(Math.random() * 5000000) + 1000000; // 1M - 6M VND
+        const minBidStep = Math.floor(buyNowPrice * 0.05);
+        const currentPrice = Math.floor(buyNowPrice * (0.6 + Math.random() * 0.3)); // 60-90% of buy now price
+        const bidCount = Math.floor(Math.random() * 50) + 1; // 1-50 bids
+        const hasHighestBidder = Math.random() > 0.2; // 80% chance of having a bidder
+        const postedDate = new Date(startDate);
+        postedDate.setDate(postedDate.getDate() - Math.floor(Math.random() * 3)); // Posted 0-3 days before start
+
+        return {
+          id: index + 100, // Use different IDs to avoid conflicts
+          product_name: name,
+          thumpnail_url: '/placeholder.svg',
+          seller: sellers[Math.floor(Math.random() * sellers.length)],
+          buy_now_price: Math.random() > 0.1 ? buyNowPrice : null, // 90% have buy now price
+          minimum_bid_step: minBidStep,
+          start_at: startDate.toISOString(),
+          end_at: endDate.toISOString(),
+          current_price: currentPrice,
+          highest_bidder: hasHighestBidder ? bidders[Math.floor(Math.random() * bidders.length)] : null,
+          created_at: postedDate.toISOString(),
+          bid_count: bidCount,
+        };
+      });
+  };
 
   useEffect(() => {
     const fetchDressData = async () => {
       try {
         setLoading(true);
+        
+        // Always generate similar products first (even if no ID)
+        const fakeSimilarProducts = generateSimilarProducts(id);
+        console.log('Generated similar products:', fakeSimilarProducts);
+        setSimilarProducts(fakeSimilarProducts);
         
         // If no ID provided, use a default dress or redirect
         if (!id) {
@@ -69,16 +153,13 @@ export default function ProductDetailPage(): JSX.Element {
         
         setDress(dressData);
         
-        // Set initial selected variants if available
+        // Set initial available stock if variants available
         if (dressData.variants && dressData.variants.length > 0) {
-          setSelectedSize(dressData.variants[0].size._id);
-          setSelectedColor(dressData.variants[0].color._id);
-          updateAvailableStock(dressData, dressData.variants[0].size._id, dressData.variants[0].color._id);
+          const totalStock = dressData.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+          setAvailableStock(totalStock);
+        } else {
+          setAvailableStock(0);
         }
-        
-        // Fetch similar dresses
-        const similar = await getSimilarDresses(id, 4);
-        setSimilarDresses(similar);
 
         // Fetch reviews (Thêm mới)
         try {
@@ -94,6 +175,10 @@ export default function ProductDetailPage(): JSX.Element {
       } catch (error) {
         console.error('Failed to fetch dress data:', error);
         setError('Failed to load dress details. Please try again later.');
+        // Still generate similar products even on error
+        const fakeSimilarProducts = generateSimilarProducts(id);
+        console.log('Generated similar products (fallback):', fakeSimilarProducts);
+        setSimilarProducts(fakeSimilarProducts);
       } finally {
         setLoading(false);
       }
@@ -102,77 +187,18 @@ export default function ProductDetailPage(): JSX.Element {
     fetchDressData();
   }, [id, refreshReviews]);
   
-  // Update available stock when size or color changes
+  // Update available stock when dress changes
   useEffect(() => {
-    if (dress && selectedSize && selectedColor) {
-      updateAvailableStock(dress, selectedSize, selectedColor);
-    }
-  }, [dress, selectedSize, selectedColor]);
-  
-  // Function to calculate available stock based on selected variants
-  const updateAvailableStock = (dressData: Dress, sizeId: string, colorId: string) => {
-    const variant = dressData.variants.find(
-      v => v.size._id === sizeId && v.color._id === colorId
-    );
-    
-    if (variant) {
-      setAvailableStock(variant.stock);
-      // Adjust quantity based on stock availability
-      if (variant.stock === 0) {
-        // Set quantity to 0 if out of stock
-        setQuantity(0);
-      } else if (quantity > variant.stock || quantity === 0) {
-        // If current quantity exceeds available stock or was previously 0, set to min(1, stock)
-        setQuantity(Math.min(variant.stock, 1));
-      }
+    if (dress && dress.variants && dress.variants.length > 0) {
+      const totalStock = dress.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      setAvailableStock(totalStock);
     } else {
       setAvailableStock(0);
-      setQuantity(0);
     }
-  };
+  }, [dress]);
   
-  // Handle size selection
-  const handleSizeSelect = (sizeId: string) => {
-    setSelectedSize(sizeId);
-  };
-  
-  // Handle color selection
-  const handleColorSelect = (colorId: string) => {
-    setSelectedColor(colorId);
-  };
-  
-  // Handle quantity change
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
-    }
-  };
-  
-  const increaseQuantity = () => {
-    // Only increase if there's stock and current quantity is less than available stock
-    if (availableStock !== null && availableStock > 0 && quantity < availableStock) {
-      setQuantity(quantity + 1);
-    }
-  };
-  
-  // Handle date selection
-  const handleStartDateChange = (date: Date) => {
-    setStartDate(date);
-    setShowStartDatePicker(false);
-  };
-  
-  const handleEndDateChange = (date: Date) => {
-    setEndDate(date);
-    setShowEndDatePicker(false);
-  };
-  
-  const handleDeliveryDateChange = (date: Date) => {
-    setDeliveryDate(date);
-    setShowDeliveryDatePicker(false);
-  };
-
-  // Handle request to book
-  const handleRequestToBook = async () => {
+  // Handle bid
+  const handleBid = async () => {
     try {
       // Check authentication with delay to ensure cookie is correctly set and read
       console.log('PDP: Current auth status:', isAuthenticated);
@@ -188,18 +214,12 @@ export default function ProductDetailPage(): JSX.Element {
         return;
       }
       
-      if (!id || !selectedSize || !selectedColor) {
-        toast.error('Please select size and color');
+      if (!id) {
+        toast.error('Product ID is missing');
         return;
       }
 
-      // Kiểm tra ngày thuê đối với tùy chọn thuê
-      if (purchaseOption === 'rent' && (!startDate || !endDate)) {
-        toast.error('Please select rental dates');
-        return;
-      }
-
-      if (quantity <= 0 || availableStock === 0) {
+      if (availableStock === 0 || availableStock === null) {
         toast.error('Selected item is out of stock');
         return;
       }
@@ -207,55 +227,27 @@ export default function ProductDetailPage(): JSX.Element {
       setIsAddingToCart(true);
       
       let requestData: any = {
-        dressId: id,
-        sizeId: selectedSize,
-        colorId: selectedColor,
-        quantity,
-        purchaseType: purchaseOption
+        productId: id,
+        quantity: 1, // Fixed quantity of 1
+        purchaseType: 'buy'
       };
       
-      // Xử lý ngày bắt đầu và kết thúc dựa vào tùy chọn
-      if (purchaseOption === 'rent' && startDate && endDate) {
-        // Nếu thuê, sử dụng ngày người dùng đã chọn
-        requestData.startDate = format(startDate, 'yyyy-MM-dd');
-        requestData.endDate = format(endDate, 'yyyy-MM-dd');
-      } else if (purchaseOption === 'buy') {
-        // Khi mua, sử dụng ngày giao hàng đã chọn hoặc ngày mặc định
-        
-        // Luôn đặt ngày bắt đầu ít nhất là ngày mai (gộp thêm 1 ngày)
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        // Nếu người dùng đã chọn ngày giao hàng và ngày đó là trong tương lai
-        if (deliveryDate && deliveryDate >= tomorrow) {
-          requestData.startDate = format(deliveryDate, 'yyyy-MM-dd');
-          
-          // Ngày kết thúc là 1 ngày sau ngày giao
-          const endDate = new Date(deliveryDate);
-          endDate.setDate(endDate.getDate() + 1);
-          requestData.endDate = format(endDate, 'yyyy-MM-dd');
-        } else {
-          // Ngày mai
-          requestData.startDate = format(tomorrow, 'yyyy-MM-dd');
-          
-          // Ngày mốt
-          const dayAfterTomorrow = new Date(tomorrow);
-          dayAfterTomorrow.setDate(tomorrow.getDate() + 1);
-          requestData.endDate = format(dayAfterTomorrow, 'yyyy-MM-dd');
-        }
-      }
-      
-      console.log('Adding to cart with params:', requestData);
+      console.log('Placing bid with params:', requestData);
       
       // Wait for a short time to ensure auth cookie is set properly
       // This can help resolve timing issues with cookie setting
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const result = await addToCart(requestData);
+      // TODO: Replace with actual bid API call when backend is ready
+      // const result = await placeBid(requestData);
       
-      console.log('Add to cart successful, result:', result);
-      toast.success('Item added to cart successfully');
-      navigate('/cart');
+      // For now, simulate bid placement
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Bid placed successfully');
+      toast.success('Bid placed successfully');
+      // TODO: Navigate to appropriate page after bid
+      // navigate('/bids');
     } catch (error: any) {
       console.error('Failed to add item to cart:', error);
       console.error('Error details:', error.message);
@@ -269,7 +261,7 @@ export default function ProductDetailPage(): JSX.Element {
         }
       }
       
-      toast.error(error.message || 'Failed to add item to cart');
+      toast.error(error.message || 'Failed to place bid');
     } finally {
       setIsAddingToCart(false);
     }
@@ -280,18 +272,11 @@ export default function ProductDetailPage(): JSX.Element {
     ? dress.ratings.reduce((sum, rating) => sum + rating.rate, 0) / dress.ratings.length 
     : 0;
 
-  // Format rental price as number
-  const rentalPrice = dress?.dailyRentalPrice ? dress.dailyRentalPrice : 0;
-  
-  // Format purchase price (assume purchase price is about 10x rental price if not available)
-  const purchasePrice = dress?.purchasePrice ? dress.purchasePrice : rentalPrice * 10;
+  // Format price
+  const price = dress?.purchasePrice || dress?.dailyRentalPrice || 0;
 
-  // Check if all required fields are filled
-  const isBookingEnabled = 
-    selectedSize && 
-    selectedColor && 
-    (purchaseOption === 'buy' || (purchaseOption === 'rent' && startDate && endDate)) && 
-    quantity > 0 && 
+  // Check if bid can be placed
+  const isBidEnabled = 
     availableStock !== null && 
     availableStock > 0;
 
@@ -371,244 +356,123 @@ export default function ProductDetailPage(): JSX.Element {
               </div>
               <span className="text-sm font-medium text-[#333333]">{avgRating.toFixed(1)}</span>
               <span className="text-sm text-[#868686]">{dress?.reviews?.length || 0} reviews</span>
-              <span className="text-sm text-[#868686]">24 Rented</span>
             </div>
 
-            {/* Purchase Options */}
-            <div className="flex flex-col space-y-2">
-              <h3 className="text-sm font-medium text-[#333333]">Lựa chọn:</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  className={`py-2 px-4 rounded-md border ${
-                    purchaseOption === 'buy' 
-                      ? 'bg-[#ead9c9] border-[#c3937c] text-[#333333]' 
-                      : 'bg-white border-gray-300 text-gray-600'
-                  }`}
-                  onClick={() => setPurchaseOption('buy')}
-                >
-                  Mua sản phẩm
-                </button>
-                <button 
-                  className={`py-2 px-4 rounded-md border ${
-                    purchaseOption === 'rent' 
-                      ? 'bg-[#ead9c9] border-[#c3937c] text-[#333333]' 
-                      : 'bg-white border-gray-300 text-gray-600'
-                  }`}
-                  onClick={() => setPurchaseOption('rent')}
-                >
-                  Thuê sản phẩm
-                </button>
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="text-xl font-medium text-[#333333]">
-              {purchaseOption === 'buy' 
-                ? `$${purchasePrice}` 
-                : `$${rentalPrice}/ per day`}
-            </div>
-
-            {/* Color Selection */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-[#333333]">Color</h3>
-              <ColorSelector 
-                colors={dress?.variants.map(v => v.color) || []}
-                onColorSelect={handleColorSelect}
-              />
-            </div>
-
-            {/* Size Selection */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-medium text-[#333333]">Size</h3>
-                <a href="#" className="text-xs text-[#c3937c] flex items-center">
-                  Size &amp; Fit Guide <ChevronRight className="w-3 h-3 ml-1" />
-                </a>
-              </div>
-              <SizeSelector 
-                sizes={dress?.variants.map(v => v.size) || []}
-                onSizeSelect={handleSizeSelect}
-              />
-              
-              {/* Display available stock */}
-              {availableStock !== null && (
-                <p className="text-sm text-gray-600">
-                  {availableStock > 0 
-                    ? `${availableStock} in stock` 
-                    : "Out of stock"}
-                </p>
-              )}
-            </div>
-            
-            {/* Quantity Selector */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-[#333333]">Quantity</h3>
-              <div className="flex items-center border border-gray-300 rounded-md w-32">
-                <button 
-                  className="px-3 py-2 text-gray-600" 
-                  onClick={decreaseQuantity}
-                  disabled={quantity <= 1 || availableStock === 0}
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <div className="flex-1 text-center">{quantity}</div>
-                <button 
-                  className="px-3 py-2 text-gray-600"
-                  onClick={increaseQuantity}
-                  disabled={availableStock === 0 || (availableStock !== null && quantity >= availableStock)}
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Date Selection - Only show if rental option is selected */}
-            {purchaseOption === 'rent' && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-[#333333]">Rental Period</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <DatePicker
-                      label="Start Date"
-                      selectedDate={startDate}
-                      onDateChange={handleStartDateChange}
-                      showPicker={showStartDatePicker}
-                      onPickerChange={setShowStartDatePicker}
-                      disabled={availableStock === 0}
-                      minDate={new Date()}
-                    />
-                  </div>
-                  <div>
-                    <DatePicker
-                      label="End Date"
-                      selectedDate={endDate}
-                      onDateChange={handleEndDateChange}
-                      showPicker={showEndDatePicker}
-                      onPickerChange={setShowEndDatePicker}
-                      disabled={availableStock === 0 || !startDate}
-                      minDate={startDate || new Date()}
-                    />
-                  </div>
+            {/* Current Price and Buy Now Price */}
+            <div className="space-y-2">
+              <div>
+                <span className="text-sm text-gray-600">Current Price:</span>
+                <div className="text-2xl font-bold text-[#E53935]">
+                  ${price}
                 </div>
               </div>
-            )}
-            
-            {/* Delivery Date Selection - Only show if buy option is selected */}
-            {purchaseOption === 'buy' && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-[#333333]">Ngày giao hàng</h3>
-                <div>
-                  <DatePicker
-                    label="Chọn ngày giao hàng"
-                    selectedDate={deliveryDate}
-                    onDateChange={handleDeliveryDateChange}
-                    showPicker={showDeliveryDatePicker}
-                    onPickerChange={setShowDeliveryDatePicker}
-                    disabled={availableStock === 0}
-                    minDate={(() => {
-                      // Tạo ngày mai
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      return tomorrow;
-                    })()}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Ngày giao hàng phải ít nhất là ngày mai
-                  </p>
+              <div>
+                <span className="text-sm text-gray-600">Buy Now Price:</span>
+                <div className="text-xl font-semibold text-[#333333]">
+                  ${(price * 1.2).toFixed(2)}
                 </div>
               </div>
-            )}
+            </div>
             
-            {purchaseOption === 'rent' && (
-              <div className="text-xs text-[#868686] italic">
-                *Tip to select Start Date, preferably 1 month before you plan to wear it
-              </div>
+            {/* Display available stock */}
+            {availableStock !== null && (
+              <p className="text-sm text-gray-600">
+                {availableStock > 0 
+                  ? `${availableStock} in stock` 
+                  : "Out of stock"}
+              </p>
             )}
 
-            {/* Book Button */}
+            {/* Bid Button */}
             <button 
               className={`w-full py-3 rounded-md flex items-center justify-center ${
-                isBookingEnabled && !isAddingToCart
+                isBidEnabled && !isAddingToCart
                   ? 'bg-[#ead9c9] text-[#333333] hover:bg-[#e0cbb9]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
-              disabled={!isBookingEnabled || isAddingToCart}
-              onClick={handleRequestToBook}
+              disabled={!isBidEnabled || isAddingToCart}
+              onClick={handleBid}
             >
               {isAddingToCart 
-                ? 'Adding to cart...' 
+                ? 'Placing bid...' 
                 : (availableStock === 0 
                   ? 'Out of Stock' 
-                  : purchaseOption === 'buy' 
-                    ? 'Add to Cart' 
-                    : 'Request to Book'
+                  : 'Bid'
                   )
               }
-              {!isAddingToCart && availableStock > 0 && <ChevronRight className="w-4 h-4 ml-1" />}
+              {!isAddingToCart && availableStock !== null && availableStock > 0 && <ChevronRight className="w-4 h-4 ml-1" />}
             </button>
 
-            {/* Accordion Sections */}
-            <div className="space-y-4 mt-8">
-              <AccordionSection 
-                title="Product Details" 
-                defaultOpen={true}
-                icon={<i className="fas fa-plus text-xs"></i>}
-                iconOpen={<i className="fas fa-minus text-xs"></i>}
-              >
-                {dress?.description?.productDetail || "No product details available"}
-              </AccordionSection>
-              <AccordionSection 
-                title="Size & Fit Information" 
-                icon={<i className="fas fa-plus text-xs"></i>}
-                iconOpen={<i className="fas fa-minus text-xs"></i>}
-              >
-                {dress?.description?.sizeAndFit || "No size and fit information available"}
-              </AccordionSection>
-              <AccordionSection 
-                title="Description" 
-                icon={<i className="fas fa-plus text-xs"></i>}
-                iconOpen={<i className="fas fa-minus text-xs"></i>}
-              >
-                {dress?.description?.description || "No description available"}
-              </AccordionSection>
-            </div>
-
-            {/* Reviews */}
-            {dress?.reviews && dress.reviews.length > 0 && (
-              <div className="space-y-4 mt-8">
-                <h3 className="text-xl font-medium">Reviews</h3>
-                <div className="space-y-4">
-                  {dress.reviews.slice(0, 3).map((review, index) => (
-                    <ReviewItem key={index} review={review} />
-                  ))}
-                  {dress.reviews.length > 3 && (
-                    <button className="text-sm text-[#c3937c] hover:underline">
-                      View all {dress.reviews.length} reviews
-                    </button>
-                  )}
+            {/* Seller Information */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h3 className="text-lg font-medium text-[#333333] mb-4">Seller Information</h3>
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="/placeholder-user.jpg" 
+                    alt="Seller" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-[#333333]">Nguyễn Văn A</div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <svg
+                          key={star}
+                          className={`w-4 h-4 ${star <= 4 ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-600">4.5 (128 reviews)</span>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Share */}
-            <div className="flex items-center space-x-4 mt-8">
-              <span className="text-sm text-[#333333]">Share:</span>
-              <button className="text-[#333333] hover:text-[#c3937c]">
-                <Instagram className="w-5 h-5" />
-              </button>
-              <button className="text-[#333333] hover:text-[#c3937c]">
-                <Send className="w-5 h-5" />
-              </button>
-              <button className="text-[#333333] hover:text-[#c3937c]">
-                <Mail className="w-5 h-5" />
-              </button>
+            {/* Highest Bidder Information */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h3 className="text-lg font-medium text-[#333333] mb-4">Highest Bidder</h3>
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="/placeholder-user.jpg" 
+                    alt="Highest Bidder" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-[#333333]">Trần Thị B</div>
+                  <div className="text-sm text-gray-600 mt-1">Current bid: ${(price * 1.1).toFixed(2)}</div>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <svg
+                          key={star}
+                          className={`w-4 h-4 ${star <= 5 ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-600">5.0 (56 reviews)</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Reviews Section */}
         <div className="mt-16">
-          <h2 className="text-2xl font-medium mb-8">Đánh giá & Bình luận</h2>
+          <h2 className="text-2xl font-medium mb-8">Raise a question</h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Review Form */}
@@ -630,14 +494,58 @@ export default function ProductDetailPage(): JSX.Element {
           </div>
         </div>
 
-        {/* Similar Products */}
-        {similarDresses.length > 0 && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-medium text-center mb-8">You might also like</h2>
-            <ProductCarousel products={similarDresses} />
-          </div>
-        )}
       </main>
+
+      {/* Similar Products - Same Subcategory */}
+      {similarProducts.length > 0 && (
+        <Box sx={{ py: 8, bgcolor: '#f9f9f9' }}>
+          <Container maxWidth="lg">
+            <Typography
+              variant="h5"
+              component="h2"
+              sx={{
+                fontWeight: 600,
+                mb: 4,
+                textAlign: 'center',
+                fontSize: { xs: '1.5rem', md: '2rem' },
+              }}
+            >
+              Same products that you may like
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(3, 1fr)',
+                  lg: 'repeat(5, 1fr)',
+                },
+                gap: 3,
+              }}
+            >
+              {similarProducts.map((product) => (
+                <Box
+                  key={product.id}
+                  onClick={() => {
+                    navigate(`/product/${product.id}`);
+                    window.scrollTo(0, 0);
+                  }}
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                    },
+                  }}
+                >
+                  <ProductCard {...product} />
+                </Box>
+              ))}
+            </Box>
+          </Container>
+        </Box>
+      )}
 
       {/* Footer */}
       <Footer />
