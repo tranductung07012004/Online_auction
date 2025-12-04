@@ -7,8 +7,6 @@ import {
   ClipboardList,
   Package,
   MapPin,
-  Settings,
-  HelpCircle,
   Upload,
   AlertCircle,
   Loader2,
@@ -55,21 +53,10 @@ export default function ProfileSidebar({
       icon: <ClipboardList className="h-5 w-5" />,
     },
     {
-      id: 'current-orders',
-      label: 'Current orders',
-      icon: <Package className="h-5 w-5" />,
-    },
-    {
       id: 'address',
       label: 'My Address',
       icon: <MapPin className="h-5 w-5" />,
     },
-    {
-      id: 'settings',
-      label: 'Setting',
-      icon: <Settings className="h-5 w-5" />,
-    },
-    { id: 'help', label: 'Help', icon: <HelpCircle className="h-5 w-5" /> },
   ];
 
   const handleLogout = () => {

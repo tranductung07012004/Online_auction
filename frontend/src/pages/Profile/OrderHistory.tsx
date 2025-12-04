@@ -16,7 +16,7 @@ import { UserProfile } from '../../api/user';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
-type OrderFilterTab = 'current' | 'previous' | 'canceled' | 'all';
+// Removed OrderFilterTab type - now using boolean toggle for current orders
 
 // Map backend status to frontend status
 const mapOrderStatus = (
@@ -63,13 +63,11 @@ const mapPhotographyStatus = (status: string): string => {
 };
 
 export default function OrderHistory(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<OrderFilterTab>('previous');
+  const [showCurrentOrders, setShowCurrentOrders] = useState<boolean>(false);
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const { isAuthenticated } = useAuth();
-  
-  console.log('OrderHistory component rendering with activeTab:', activeTab);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -91,7 +89,7 @@ export default function OrderHistory(): JSX.Element {
       if (!isAuthenticated) return;
 
       console.log('========= ORDER HISTORY DEBUG =========');
-      console.log('Current activeTab in fetchOrders:', activeTab);
+      console.log('Show current orders:', showCurrentOrders);
       
       setLoading(true);
       try {
@@ -110,6 +108,15 @@ export default function OrderHistory(): JSX.Element {
 
             // Map backend status to frontend status
             const mappedStatus = mapOrderStatus(order.status);
+            
+            // Only add non-paid orders (current orders) when showCurrentOrders is true
+            // Otherwise, show all orders (previous orders)
+            if (showCurrentOrders && order.status.toLowerCase() === 'paid') {
+              return; // Skip paid orders when showing current orders
+            }
+            if (!showCurrentOrders && order.status.toLowerCase() !== 'paid') {
+              return; // Skip non-paid orders when showing previous orders
+            }
             
             // Process all items in the order, not just the first one
             order.items.forEach((item, itemIndex) => {
@@ -150,8 +157,19 @@ export default function OrderHistory(): JSX.Element {
           console.log('Photography bookings count:', photographyBookings ? photographyBookings.length : 0);
 
           if (photographyBookings && photographyBookings.length > 0) {
-            // Show all photography bookings, not just ones with payment details
+            // Filter photography bookings based on showCurrentOrders
             photographyBookings.forEach((booking) => {
+              const status = booking.status ? booking.status.toLowerCase() : '';
+              const isCompleted = status === 'completed';
+              
+              // Only show current bookings when toggle is on, or completed bookings when toggle is off
+              if (showCurrentOrders && isCompleted) {
+                return; // Skip completed bookings when showing current orders
+              }
+              if (!showCurrentOrders && !isCompleted) {
+                return; // Skip non-completed bookings when showing previous orders
+              }
+              
               console.log('Processing photography booking:', booking._id, 'with status:', booking.status);
               formattedOrders.push({
                 id: booking._id,
@@ -179,103 +197,106 @@ export default function OrderHistory(): JSX.Element {
           console.error('Error fetching photography bookings:', photoErr);
         }
 
-        // Add photography cart items
-        try {
-          const { getPhotographyCart } = await import('../../api/photographyCart');
-          const photographyCartItems = await getPhotographyCart();
-          console.log('Photography cart items count:', photographyCartItems ? photographyCartItems.length : 0);
-          
-          if (photographyCartItems && photographyCartItems.length > 0) {
-            // Add photography items as cart items with "In Cart" status
-            photographyCartItems.forEach((item) => {
-              console.log('Adding photography cart item:', item.serviceName);
-              formattedOrders.push({
-                id: `photography-cart-item-${item.serviceId}`,
-                name: item.serviceName,
-                image: item.imageUrl,
-                size: item.serviceType,
-                color: item.location || 'Studio',
-                rentalDuration: 'Photography Service',
-                arrivalDate: new Date(item.bookingDate).toLocaleDateString(),
-                returnDate: new Date(item.bookingDate).toLocaleDateString(),
-                status: 'In Cart', // Set status explicitly to "In Cart"
-                isCartItem: true,
-                isPhotographyService: true,
-                purchaseType: 'service'
+        // Only fetch cart items if we need them (when viewing current orders)
+        if (showCurrentOrders) {
+          // Add photography cart items
+          try {
+            const { getPhotographyCart } = await import('../../api/photographyCart');
+            const photographyCartItems = await getPhotographyCart();
+            console.log('Photography cart items count:', photographyCartItems ? photographyCartItems.length : 0);
+            
+            if (photographyCartItems && photographyCartItems.length > 0) {
+              // Add photography items as cart items with "In Cart" status
+              photographyCartItems.forEach((item) => {
+                console.log('Adding photography cart item:', item.serviceName);
+                formattedOrders.push({
+                  id: `photography-cart-item-${item.serviceId}`,
+                  name: item.serviceName,
+                  image: item.imageUrl,
+                  size: item.serviceType,
+                  color: item.location || 'Studio',
+                  rentalDuration: 'Photography Service',
+                  arrivalDate: new Date(item.bookingDate).toLocaleDateString(),
+                  returnDate: new Date(item.bookingDate).toLocaleDateString(),
+                  status: 'In Cart', // Set status explicitly to "In Cart"
+                  isCartItem: true,
+                  isPhotographyService: true,
+                  purchaseType: 'service'
+                });
               });
-            });
-          }
-        } catch (photoCartErr) {
-          console.error('Error fetching photography cart items:', photoCartErr);
-        }
-        
-        // Add dress items from cart
-        try {
-          console.log('Attempting to fetch dress cart items...');
-          // Use the imported getCart function directly
-          const cartResponse = await getCart();
-          console.log('Full cart response:', JSON.stringify(cartResponse, null, 2));
-          
-          // Check different possible structures of the response
-          let cartItems = [];
-          
-          if (cartResponse && cartResponse.items && Array.isArray(cartResponse.items)) {
-            // Standard structure: { items: [...] }
-            cartItems = cartResponse.items;
-            console.log('Found items array in cart response with', cartItems.length, 'items');
-          } else if (cartResponse && Array.isArray(cartResponse)) {
-            // Alternative structure: direct array
-            cartItems = cartResponse;
-            console.log('Cart response is direct array with', cartItems.length, 'items');
-          } else if (cartResponse && cartResponse.data && cartResponse.data.items && Array.isArray(cartResponse.data.items)) {
-            // Nested structure: { data: { items: [...] } }
-            cartItems = cartResponse.data.items;
-            console.log('Found items in nested data structure with', cartItems.length, 'items');
-          } else {
-            console.log('Cart structure not recognized:', typeof cartResponse);
+            }
+          } catch (photoCartErr) {
+            console.error('Error fetching photography cart items:', photoCartErr);
           }
           
-          console.log('Cart items to process:', cartItems.length);
-          
-          if (cartItems.length > 0) {
-            // Add dress items as cart items with "In Cart" status
-            cartItems.forEach((item, index) => {
-              console.log(`Processing dress cart item ${index}:`, item);
-              
-              // Create a safe ID for the cart item
-              const itemId = item._id || `index-${index}`;
-              console.log(`Item ID for cart item ${index}:`, itemId);
-              
-              // Extract necessary fields with fallbacks
-              const name = item.name || 'Unnamed Item';
-              const image = item.image || '/placeholder-dress.jpg';
-              const size = item.size || 'Standard';
-              const color = item.color || 'Default';
-              
-              formattedOrders.push({
-                id: `dress-cart-item-${itemId}`,
-                name,
-                image,
-                size,
-                color,
-                rentalDuration: item.startDate && item.endDate
-                  ? `${Math.ceil((new Date(item.endDate).getTime() - new Date(item.startDate).getTime()) / (1000 * 60 * 60 * 24))} Nights`
-                  : 'N/A',
-                arrivalDate: item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A',
-                returnDate: item.endDate ? new Date(item.endDate).toLocaleDateString() : 'N/A',
-                status: 'In Cart',
-                isCartItem: true,
-                purchaseType: item.purchaseType || 'rent'
+          // Add dress items from cart
+          try {
+            console.log('Attempting to fetch dress cart items...');
+            // Use the imported getCart function directly
+            const cartResponse = await getCart();
+            console.log('Full cart response:', JSON.stringify(cartResponse, null, 2));
+            
+            // Check different possible structures of the response
+            let cartItems = [];
+            
+            if (cartResponse && cartResponse.items && Array.isArray(cartResponse.items)) {
+              // Standard structure: { items: [...] }
+              cartItems = cartResponse.items;
+              console.log('Found items array in cart response with', cartItems.length, 'items');
+            } else if (cartResponse && Array.isArray(cartResponse)) {
+              // Alternative structure: direct array
+              cartItems = cartResponse;
+              console.log('Cart response is direct array with', cartItems.length, 'items');
+            } else if (cartResponse && cartResponse.data && cartResponse.data.items && Array.isArray(cartResponse.data.items)) {
+              // Nested structure: { data: { items: [...] } }
+              cartItems = cartResponse.data.items;
+              console.log('Found items in nested data structure with', cartItems.length, 'items');
+            } else {
+              console.log('Cart structure not recognized:', typeof cartResponse);
+            }
+            
+            console.log('Cart items to process:', cartItems.length);
+            
+            if (cartItems.length > 0) {
+              // Add dress items as cart items with "In Cart" status
+              cartItems.forEach((item, index) => {
+                console.log(`Processing dress cart item ${index}:`, item);
+                
+                // Create a safe ID for the cart item
+                const itemId = item._id || `index-${index}`;
+                console.log(`Item ID for cart item ${index}:`, itemId);
+                
+                // Extract necessary fields with fallbacks
+                const name = item.name || 'Unnamed Item';
+                const image = item.image || '/placeholder-dress.jpg';
+                const size = item.size || 'Standard';
+                const color = item.color || 'Default';
+                
+                formattedOrders.push({
+                  id: `dress-cart-item-${itemId}`,
+                  name,
+                  image,
+                  size,
+                  color,
+                  rentalDuration: item.startDate && item.endDate
+                    ? `${Math.ceil((new Date(item.endDate).getTime() - new Date(item.startDate).getTime()) / (1000 * 60 * 60 * 24))} Nights`
+                    : 'N/A',
+                  arrivalDate: item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A',
+                  returnDate: item.endDate ? new Date(item.endDate).toLocaleDateString() : 'N/A',
+                  status: 'In Cart',
+                  isCartItem: true,
+                  purchaseType: item.purchaseType || 'rent'
+                });
+                
+                console.log(`Added dress cart item ${index} to formatted orders`);
               });
-              
-              console.log(`Added dress cart item ${index} to formatted orders`);
-            });
-          } else {
-            console.log('No dress cart items found or empty array');
+            } else {
+              console.log('No dress cart items found or empty array');
+            }
+          } catch (cartErr) {
+            console.error('Error fetching dress cart items:', cartErr);
+            console.error('Error details:', cartErr instanceof Error ? cartErr.message : String(cartErr));
           }
-        } catch (cartErr) {
-          console.error('Error fetching dress cart items:', cartErr);
-          console.error('Error details:', cartErr instanceof Error ? cartErr.message : String(cartErr));
         }
 
         console.log('Total formatted orders before deduplication:', formattedOrders.length);
@@ -322,73 +343,50 @@ export default function OrderHistory(): JSX.Element {
     };
 
     fetchOrders();
-  }, [isAuthenticated, activeTab]);
+  }, [isAuthenticated, showCurrentOrders]);
 
-  // Filter orders based on active tab
+  // Filter orders based on showCurrentOrders toggle
+  // Orders are already filtered during fetch, but we apply additional filtering here for safety
   const filteredOrders = orders.filter((order) => {
-    // For photography services, debug the status check
+    // For photography services
     if (order.isPhotographyService) {
       const status = order.status ? order.status.toLowerCase() : '';
-      console.log(
-        'Filtering photo order:',
-        order.id,
-        'Status:',
-        order.status,
-        'Tab:',
-        activeTab,
-        'isCartItem:', 
-        order.isCartItem
-      );
-
-      let shouldShow = false;
-      if (activeTab === 'current')
-        shouldShow = status === 'pending' || status === 'confirmed' || status === 'in cart' || order.isCartItem === true;
-      if (activeTab === 'previous') shouldShow = status === 'completed';
-      if (activeTab === 'canceled')
-        shouldShow = status === 'cancelled' || status === 'canceled';
-      if (activeTab === 'all') shouldShow = true;
-
-      console.log('Should show photography order?', shouldShow);
-      return shouldShow;
+      const isCompleted = status === 'completed';
+      
+      if (showCurrentOrders) {
+        // Show pending, confirmed, in cart, or cart items
+        return status === 'pending' || status === 'confirmed' || status === 'in cart' || order.isCartItem === true;
+      } else {
+        // Show completed bookings
+        return isCompleted;
+      }
     }
 
-    // For regular orders, use the existing logic
-    const shouldShow = 
-      (activeTab === 'current' && (
+    // For regular orders and cart items
+    if (showCurrentOrders) {
+      // Show pending, under-review, confirmed, shipped, or cart items
+      return (
         order.status === 'pending' ||
         order.status === 'under-review' ||
         order.status === 'confirmed' ||
         order.status === 'shipped' ||
         order.status === 'In Cart' ||
         order.isCartItem === true
-      )) ||
-      (activeTab === 'previous' && (
+      );
+    } else {
+      // Show done, delivered, returned, or paid orders
+      return (
         order.status === 'done' ||
         order.status === 'delivered' ||
         order.status === 'returned' ||
-        order.isPaid
-      )) ||
-      (activeTab === 'canceled' && (
-        order.status === 'canceled' || 
-        order.status === 'cancelled'
-      )) ||
-      activeTab === 'all';
-    
-    console.log(
-      'Filtering dress order:',
-      order.id,
-      'Name:', order.name,
-      'Status:', order.status,
-      'Tab:', activeTab,
-      'isCartItem:', order.isCartItem,
-      'Should show?', shouldShow
-    );
-    
-    return shouldShow;
+        order.isPaid === true
+      );
+    }
   });
 
   console.log('Final filtered orders count:', filteredOrders.length);
-  console.log('Current tab orders types breakdown:');
+  console.log('Show current orders:', showCurrentOrders);
+  console.log('Orders types breakdown:');
   console.log('- Regular orders:', filteredOrders.filter(o => !o.isPhotographyService && !o.isCartItem).length);
   console.log('- Photography services:', filteredOrders.filter(o => o.isPhotographyService && !o.isCartItem).length);
   console.log('- Photography cart items:', filteredOrders.filter(o => o.isPhotographyService && o.isCartItem).length);
@@ -460,11 +458,11 @@ export default function OrderHistory(): JSX.Element {
           <div className="md:col-span-1">
             <ProfileSidebar
               activeTab="order-history"
-              userName={userData ? userData.username : 'User'}
+              userName={userData ? userData.email : 'User'}
               userImage={userData?.profileImageUrl}
               fullName={
                 userData
-                  ? `${userData.firstName} ${userData.lastName}`
+                  ? userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim()
                   : undefined
               }
             />
@@ -472,8 +470,8 @@ export default function OrderHistory(): JSX.Element {
 
           <div className="md:col-span-2">
             <OrderFilterTabs
-              defaultTab={activeTab}
-              onTabChange={setActiveTab}
+              showCurrentOrders={showCurrentOrders}
+              onToggleChange={setShowCurrentOrders}
             />
 
             <div className="space-y-4">
@@ -491,7 +489,9 @@ export default function OrderHistory(): JSX.Element {
                 ))
               ) : (
                 <div className="bg-white rounded-lg border p-8 text-center">
-                  <p className="text-gray-500">No {activeTab} orders found.</p>
+                  <p className="text-gray-500">
+                    No {showCurrentOrders ? 'current' : 'previous'} orders found.
+                  </p>
                 </div>
               )}
             </div>

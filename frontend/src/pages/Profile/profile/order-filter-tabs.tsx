@@ -1,46 +1,43 @@
-import { JSX, useState } from 'react';
-
-type OrderFilterTab = 'current' | 'previous' | 'canceled';
+import { JSX, useState, useEffect } from 'react';
+import { Box, Switch, FormControlLabel, Typography } from '@mui/material';
 
 interface OrderFilterTabsProps {
-  defaultTab?: OrderFilterTab;
-  onTabChange?: (tab: OrderFilterTab) => void;
+  showCurrentOrders?: boolean;
+  onToggleChange?: (show: boolean) => void;
 }
 
-export function OrderFilterTabs({ defaultTab = 'current', onTabChange }: OrderFilterTabsProps): JSX.Element {
-  const [activeTab, setActiveTab] = useState<OrderFilterTab>(defaultTab);
+export function OrderFilterTabs({ 
+  showCurrentOrders = false, 
+  onToggleChange 
+}: OrderFilterTabsProps): JSX.Element {
+  const [showCurrent, setShowCurrent] = useState<boolean>(showCurrentOrders);
 
-  const handleTabChange = (tab: OrderFilterTab) => {
-    setActiveTab(tab);
-    onTabChange?.(tab);
+  useEffect(() => {
+    setShowCurrent(showCurrentOrders);
+  }, [showCurrentOrders]);
+
+  const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.checked;
+    setShowCurrent(newValue);
+    onToggleChange?.(newValue);
   };
 
   return (
-    <div className="flex space-x-2 mb-6">
-      <button
-        onClick={() => handleTabChange('current')}
-        className={`px-4 py-2 rounded-full text-sm ${
-          activeTab === 'current' ? 'bg-[#c3937c] text-white' : 'bg-white border text-gray-600 hover:bg-gray-50'
-        }`}
-      >
-        Current order
-      </button>
-      <button
-        onClick={() => handleTabChange('previous')}
-        className={`px-4 py-2 rounded-full text-sm ${
-          activeTab === 'previous' ? 'bg-[#c3937c] text-white' : 'bg-white border text-gray-600 hover:bg-gray-50'
-        }`}
-      >
-        Previous order
-      </button>
-      <button
-        onClick={() => handleTabChange('canceled')}
-        className={`px-4 py-2 rounded-full text-sm ${
-          activeTab === 'canceled' ? 'bg-[#c3937c] text-white' : 'bg-white border text-gray-600 hover:bg-gray-50'
-        }`}
-      >
-        Canceled order
-      </button>
-    </div>
+    <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+      <FormControlLabel
+        control={
+          <Switch
+            checked={showCurrent}
+            onChange={handleToggleChange}
+            color="primary"
+          />
+        }
+        label={
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            Current Orders
+          </Typography>
+        }
+      />
+    </Box>
   );
 }

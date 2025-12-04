@@ -258,9 +258,9 @@ const OrderDetailsPage: React.FC = () => {
       if (order.status === 'Completed') {
         return '/order-history';
       } else if (order.status === 'Cancelled') {
-        return '/order-history?tab=canceled';
+        return '/order-history';
       } else {
-        return '/current-orders';
+        return '/order-history';
       }
     }
 
@@ -268,30 +268,17 @@ const OrderDetailsPage: React.FC = () => {
     if (order.status === 'done') {
       return '/order-history';
     } else if (order.status === 'canceled') {
-      return '/order-history?tab=canceled';
+      return '/order-history';
     } else {
-      return '/current-orders';
+      return '/order-history';
     }
   };
 
   const getActiveTab = () => {
     if (!order) return 'order-history';
 
-    // For photography bookings
-    if (order.isPhotographyService) {
-      if (order.status === 'Completed' || order.status === 'Cancelled') {
-        return 'order-history';
-      } else {
-        return 'current-orders';
-      }
-    }
-
-    // For regular orders
-    if (order.status === 'done' || order.status === 'canceled') {
-      return 'order-history';
-    } else {
-      return 'current-orders';
-    }
+    // All orders now go to order-history
+    return 'order-history';
   };
 
   const handleCancelOrder = async () => {
@@ -302,8 +289,8 @@ const OrderDetailsPage: React.FC = () => {
       await cancelOrder(id);
       toast.success('Order canceled successfully');
 
-      // Navigate back to current orders page
-      navigate('/current-orders');
+      // Navigate back to order history page
+      navigate('/order-history');
     } catch (err: any) {
       console.error('Failed to cancel order:', err);
       toast.error(err.message || 'Failed to cancel order');

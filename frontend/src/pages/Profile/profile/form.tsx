@@ -7,12 +7,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { AlertCircle, Camera, Upload } from 'lucide-react';
 
 interface ProfileData {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
-  phone: string;
-  dateOfBirth: string;
-  username: string;
   password: string;
   profileImageUrl?: string;
 }
@@ -35,9 +31,6 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Form validation errors
-  const [dobError, setDobError] = useState<string | null>(null);
-  
   // For password change
   const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
   const [passwordData, setPasswordData] = useState({
@@ -49,13 +42,13 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     confirmPassword: '',
   });
   
-  // For username change
-  const [showUsernameChange, setShowUsernameChange] = useState<boolean>(false);
-  const [usernameData, setUsernameData] = useState({
-    newUsername: '',
+  // For email change
+  const [showEmailChange, setShowEmailChange] = useState<boolean>(false);
+  const [emailData, setEmailData] = useState({
+    newEmail: '',
     password: '',
   });
-  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Trigger the file input click
   const handleUploadClick = () => {
@@ -107,110 +100,9 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     }
   };
 
-  // Format date from yyyy-mm-dd to dd/mm/yyyy for display
-  const formatDateForDisplay = (dateString: string): string => {
-    if (!dateString) return '';
-    
-    // Check if date is already in dd/mm/yyyy format
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-      return dateString;
-    }
-    
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString;
-      
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      
-      return `${day}/${month}/${year}`;
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  // Format date from dd/mm/yyyy to yyyy-mm-dd for input
-  const formatDateForInput = (dateString: string): string => {
-    if (!dateString) return '';
-    
-    // Check if already in yyyy-mm-dd format
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return dateString;
-    }
-    
-    try {
-      // Parse dd/mm/yyyy
-      const parts = dateString.split('/');
-      if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
-        const year = parseInt(parts[2], 10);
-        
-        const date = new Date(year, month, day);
-        if (isNaN(date.getTime())) return '';
-        
-        return date.toISOString().split('T')[0]; // Returns yyyy-mm-dd
-      }
-      return '';
-    } catch (e) {
-      return '';
-    }
-  };
-
-  // Validate date of birth (must be 16+ years old)
-  const validateDateOfBirth = (dateString: string): boolean => {
-    try {
-      let date;
-      
-      // Handle different date formats
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        // Format: yyyy-mm-dd
-        date = new Date(dateString);
-      } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-        // Format: dd/mm/yyyy
-        const parts = dateString.split('/');
-        date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-      } else {
-        return false;
-      }
-      
-      if (isNaN(date.getTime())) return false;
-      
-      // Calculate age
-      const today = new Date();
-      let age = today.getFullYear() - date.getFullYear();
-      const monthDiff = today.getMonth() - date.getMonth();
-      
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
-        age--;
-      }
-      
-      return age >= 16;
-    } catch (e) {
-      return false;
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    
-    if (name === 'dateOfBirth') {
-      // Clear previous error
-      setDobError(null);
-      
-      // If using HTML date input, the value will be in yyyy-mm-dd format
-      const formattedDate = value; // We'll convert when saving
-      
-      // Validate age if a date is entered
-      if (value && !validateDateOfBirth(value)) {
-        setDobError('You must be at least 16 years old');
-      }
-      
-      setFormData(prev => ({ ...prev, [name]: formattedDate }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -235,45 +127,26 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     }
   };
 
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setUsernameData(prev => ({ ...prev, [name]: value }));
+    setEmailData(prev => ({ ...prev, [name]: value }));
     
     // Clear error when user types in the field
-    if (name === 'newUsername') {
-      setUsernameError(null);
+    if (name === 'newEmail') {
+      setEmailError(null);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
-    // Validate date of birth
-    if (formData.dateOfBirth && !validateDateOfBirth(formData.dateOfBirth)) {
-      setDobError('You must be at least 16 years old');
-      return;
-    }
-    
     setIsLoading(true);
     setError(null);
     setSuccess(null);
     
     try {
-      // Format date to dd/mm/yyyy for API
-      let formattedDob = formData.dateOfBirth;
-      if (formData.dateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)) {
-        const date = new Date(formData.dateOfBirth);
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-        formattedDob = `${day}/${month}/${year}`;
-      }
-      
       const updatedData: UpdateProfileData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        dateOfBirth: formattedDob,
+        fullName: formData.fullName,
       };
       
       const response = await updateProfile(updatedData);
@@ -321,31 +194,35 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     }
   };
 
-  const handleUsernameSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setSuccess(null);
-    setUsernameError(null);
+    setEmailError(null);
     
     try {
-      const response = await updateUsername(usernameData);
+      // Map emailData to the format expected by updateUsername API
+      const response = await updateUsername({
+        newUsername: emailData.newEmail,
+        password: emailData.password,
+      });
       
-      // Refresh the token to update the username in the JWT
+      // Refresh the token to update the email in the JWT
       await getRoleFromCookie();
       
-      setSuccess('Username updated successfully');
-      setShowUsernameChange(false);
+      setSuccess('Email updated successfully');
+      setShowEmailChange(false);
       
-      // Update the form data with the new username
-      setFormData(prev => ({ ...prev, username: response.username }));
+      // Update the form data with the new email
+      setFormData(prev => ({ ...prev, email: response.email }));
       
       if (onProfileUpdate) {
-        onProfileUpdate({ username: response.username });
+        onProfileUpdate({ email: response.email });
       }
       
-      setUsernameData({
-        newUsername: '',
+      setEmailData({
+        newEmail: '',
         password: '',
       });
       
@@ -356,7 +233,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
       
     } catch (err: any) {
       // Handle the error inside the modal
-      setUsernameError(err.message || 'Failed to update username');
+      setEmailError(err.message || 'Failed to update email');
       setIsLoading(false);
     }
   };
@@ -364,7 +241,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-medium">Hello {formData.firstName || formData.username}!</h1>
+        <h1 className="text-xl font-medium">Hello {formData.fullName || formData.email}!</h1>
         <p className="text-gray-500 mt-1">You can find all information about your profile</p>
       </div>
 
@@ -397,27 +274,14 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* First name */}
+            {/* Full name */}
             <div className="space-y-2">
-              <Label htmlFor="firstName">First name</Label>
+              <Label htmlFor="fullName">Full name</Label>
               <Input
-                id="firstName"
-                name="firstName"
+                id="fullName"
+                name="fullName"
                 type="text"
-                value={formData.firstName}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-            
-            {/* Last name */}
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
-              <Input
-                id="lastName"
-                name="lastName"
-                type="text"
-                value={formData.lastName}
+                value={formData.fullName}
                 onChange={handleChange}
                 disabled={!isEditing}
               />
@@ -426,77 +290,29 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={true}
-              />
-            </div>
-            
-            {/* Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone number</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="text"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-            
-            {/* Date of birth with date picker */}
-            <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">Date of birth</Label>
-              <Input
-                id="dateOfBirth"
-                name="dateOfBirth"
-                type={isEditing ? "date" : "text"}
-                value={isEditing ? formatDateForInput(formData.dateOfBirth) : formatDateForDisplay(formData.dateOfBirth)}
-                onChange={handleChange}
-                disabled={!isEditing}
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]}
-              />
-              {dobError && (
-                <div className="text-red-600 text-sm flex items-center mt-1">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {dobError}
-                </div>
-              )}
-              {isEditing && (
-                <p className="text-xs text-gray-500 mt-1">You must be at least 16 years old</p>
-              )}
+              <div className="flex space-x-2">
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  disabled={true}
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowEmailChange(true)}
+                >
+                  Change
+                </Button>
+              </div>
             </div>
           </div>
 
           <div className="pt-6 border-t">
-            <h2 className="text-rose-500 font-medium mb-4">Your Username and Password</h2>
+            <h2 className="text-rose-500 font-medium mb-4">Your Password</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="username"
-                    name="username"
-                    type="text"
-                    value={formData.username}
-                    disabled={true}
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowUsernameChange(true)}
-                  >
-                    Change
-                  </Button>
-                </div>
-              </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="flex space-x-2">
@@ -525,7 +341,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
               <Button 
                 type="submit" 
                 className="bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
-                disabled={isLoading || !!dobError}
+                disabled={isLoading}
               >
                 {isLoading ? 'Saving...' : 'Save changes'}
               </Button>
@@ -602,29 +418,29 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
           </div>
         )}
         
-        {showUsernameChange && (
+        {showEmailChange && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-medium mb-4">Change Username</h2>
+              <h2 className="text-xl font-medium mb-4">Change Email</h2>
               
-              {usernameError && (
+              {emailError && (
                 <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-md flex items-start">
                   <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>{usernameError}</span>
+                  <span>{emailError}</span>
                 </div>
               )}
               
-              <form onSubmit={handleUsernameSubmit} className="space-y-4">
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="newUsername">New Username</Label>
+                  <Label htmlFor="newEmail">New Email</Label>
                   <Input
-                    id="newUsername"
-                    name="newUsername"
-                    type="text"
-                    value={usernameData.newUsername}
-                    onChange={handleUsernameChange}
+                    id="newEmail"
+                    name="newEmail"
+                    type="email"
+                    value={emailData.newEmail}
+                    onChange={handleEmailChange}
                     required
-                    className={usernameError ? "border-red-500" : ""}
+                    className={emailError ? "border-red-500" : ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -633,8 +449,8 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
                     id="password"
                     name="password"
                     type="password"
-                    value={usernameData.password}
-                    onChange={handleUsernameChange}
+                    value={emailData.password}
+                    onChange={handleEmailChange}
                     required
                   />
                 </div>
@@ -643,8 +459,8 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
                     type="button" 
                     variant="outline" 
                     onClick={() => {
-                      setShowUsernameChange(false);
-                      setUsernameError(null);
+                      setShowEmailChange(false);
+                      setEmailError(null);
                     }}
                   >
                     Cancel
@@ -654,7 +470,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
                     className="bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Saving...' : 'Save Username'}
+                    {isLoading ? 'Saving...' : 'Save Email'}
                   </Button>
                 </div>
               </form>

@@ -12,7 +12,7 @@ export const EmptyCart: React.FC = () => {
         It seems that you haven't added any product to the cart. Keep shopping
         to find your favorite wedding dress.
       </p>
-      <Link to="/products">
+      <Link to="/pcp">
         <button className="bg-[#c3937c] hover:bg-[#a67563] text-white rounded-full px-8 py-3 font-medium">
           Continue shopping
         </button>
