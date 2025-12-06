@@ -38,7 +38,7 @@ interface SearchBarProps {
   onSearchChange: (value: string) => void;
   onSearchSubmit: (e: React.FormEvent) => void;
   menuItems: MenuItem[];
-  onFilterSelect: (filters: { category?: string; subcategory?: string; sort?: string; endTime?: boolean }) => void;
+  onFilterSelect: (filters: { category?: string; sort?: string; endTime?: boolean }) => void;
   placeholder?: string;
   maxWidth?: { xs: string; md: string };
 }
@@ -56,7 +56,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const { filters, resetFilters: resetStoreFilters } = useSearchStore();
   
   const [selectedCategory, setSelectedCategory] = useState<string>(filters.category || '');
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
   const [selectedSort, setSelectedSort] = useState<string>(filters.sort || '');
   const [selectedEndTime, setSelectedEndTime] = useState<boolean>(filters.endTime || false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -65,7 +64,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   useEffect(() => {
     setSelectedCategory(filters.category || '');
-    setSelectedSubCategory(filters.subcategory || '');
     setSelectedSort(filters.sort || '');
     setSelectedEndTime(filters.endTime || false);
   }, [filters]);
@@ -78,31 +76,20 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     setFilterAnchorEl(null);
   };
 
-  const handleCategoryToggle = (path: string) => {
+  const handleCategoryToggle = (itemText: string) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(path)) {
-        newSet.delete(path);
+      if (newSet.has(itemText)) {
+        newSet.delete(itemText);
       } else {
-        newSet.add(path);
+        newSet.add(itemText);
       }
       return newSet;
     });
   };
 
-  const handleCategoryChange = (path: string) => {
-    // If a subcategory is selected, clicking the parent category should select the parent (not toggle)
-    if (selectedSubCategory) {
-      setSelectedCategory(path);
-      setSelectedSubCategory(''); // Reset subcategory when main category changes
-    } else {
-      // Normal toggle behavior when no subcategory is selected
-      setSelectedCategory(selectedCategory === path ? '' : path);
-    }
-  };
-
-  const handleSubCategoryChange = (subCategoryValue: string) => {
-    setSelectedSubCategory(selectedSubCategory === subCategoryValue ? '' : subCategoryValue);
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(selectedCategory === category ? '' : category);
   };
 
   const handleSortChange = (sortType: string) => {
@@ -114,13 +101,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleApplyFilters = () => {
-    const newFilters: { category?: string; subcategory?: string; sort?: string; endTime?: boolean } = {};
-    // Convert path to category name (remove leading slash)
+    const newFilters: { category?: string; sort?: string; endTime?: boolean } = {};
+    
     if (selectedCategory) {
-      newFilters.category = selectedCategory.replace(/^\//, '') || 'home';
-    }
-    if (selectedSubCategory) {
-      newFilters.subcategory = selectedSubCategory;
+      newFilters.category = selectedCategory;
     }
     if (selectedSort) newFilters.sort = selectedSort;
     if (selectedEndTime) newFilters.endTime = true;
@@ -132,7 +116,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleResetFilters = () => {
     setSelectedCategory('');
-    setSelectedSubCategory('');
     setSelectedSort('');
     setSelectedEndTime(false);
     setExpandedCategories(new Set());
@@ -259,16 +242,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {menuItems.map((item) => {
-                  const isExpanded = expandedCategories.has(item.path);
+                  const isExpanded = expandedCategories.has(item.text);
                   const hasSubcategories = item.subcategories && item.subcategories.length > 0;
+                  
+                  // Main category value (smartphone, clothes, book)
+                  const mainCategoryValue = item.text.toLowerCase();
                   
                   return (
                     <Box key={item.text}>
                       <FormControlLabel
                         control={
                           <Radio
-                            checked={selectedCategory === item.path && !selectedSubCategory}
-                            onChange={() => handleCategoryChange(item.path)}
+                            checked={selectedCategory === mainCategoryValue}
+                            onChange={() => handleCategoryChange(mainCategoryValue)}
                             sx={{
                               color: '#C3937C',
                               '&.Mui-checked': {
@@ -300,7 +286,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleCategoryToggle(item.path);
+                                  handleCategoryToggle(item.text);
                                 }}
                                 sx={{
                                   color: '#C3937C',
@@ -333,11 +319,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                                 key={subCat.value}
                                 control={
                                   <Radio
-                                    checked={selectedCategory === item.path && selectedSubCategory === subCat.value}
-                                    onChange={() => {
-                                      setSelectedCategory(item.path);
-                                      handleSubCategoryChange(subCat.value);
-                                    }}
+                                    checked={selectedCategory === subCat.value}
+                                    onChange={() => handleCategoryChange(subCat.value)}
                                     size="small"
                                     sx={{
                                       color: '#C3937C',

@@ -10,6 +10,11 @@ import {
   Upload,
   AlertCircle,
   Loader2,
+  Store,
+  Heart,
+  Gavel,
+  Boxes,
+  PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { LogoutModal } from './logout-modal';
@@ -56,6 +61,31 @@ export default function ProfileSidebar({
       id: 'address',
       label: 'My Address',
       icon: <MapPin className="h-5 w-5" />,
+    },
+    {
+      id: 'become-seller',
+      label: 'Become Seller',
+      icon: <Store className="h-5 w-5" />,
+    },
+    {
+      id: 'watchlist',
+      label: 'Watch List',
+      icon: <Heart className="h-5 w-5" />,
+    },
+    {
+      id: 'my-bids',
+      label: 'My Bids',
+      icon: <Gavel className="h-5 w-5" />,
+    },
+    {
+      id: 'my-products',
+      label: 'My Products',
+      icon: <Boxes className="h-5 w-5" />,
+    },
+    {
+      id: 'create-product',
+      label: 'Create Product',
+      icon: <PlusCircle className="h-5 w-5" />,
     },
   ];
 

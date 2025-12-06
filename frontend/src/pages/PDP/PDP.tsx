@@ -5,6 +5,8 @@ import { toast } from 'react-hot-toast';
 import ProductGallery from './pdp/product-gallery';
 import ReviewForm from './pdp/review-form';
 import ReviewList from './pdp/review-list';
+import TransactionHistory from './pdp/transaction-history';
+import BidDialog from './pdp/bid-dialog';
 import ProductCard from '../../components/ProductCard';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
@@ -41,18 +43,24 @@ interface SimilarProduct {
 export default function ProductDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, checkAuthStatus } = useAuth();
+  const { checkAuthStatus } = useAuth();
   const [dress, setDress] = useState<Dress | null>(null);
   const [similarProducts, setSimilarProducts] = useState<SimilarProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
-  
-  // Stock state
-  const [availableStock, setAvailableStock] = useState<number | null>(null);
 
   const [refreshReviews, setRefreshReviews] = useState<boolean>(false);
   const [reviews, setReviews] = useState<any[]>([]);
+
+  // Bid dialog state
+  const [bidDialogOpen, setBidDialogOpen] = useState<boolean>(false);
+  
+  // Fake data for auction
+  const [fakeAuctionData, setFakeAuctionData] = useState({
+    currentPrice: 1500000,
+    minimumBidStep: 50000,
+    isEnded: false, // For testing, set to false to allow bidding
+  });
 
   // Generate fake similar products (same subcategory)
   const generateSimilarProducts = (currentProductId: string | undefined): SimilarProduct[] => {
@@ -152,14 +160,6 @@ export default function ProductDetailPage(): JSX.Element {
         console.log('Description object:', dressData.description);
         
         setDress(dressData);
-        
-        // Set initial available stock if variants available
-        if (dressData.variants && dressData.variants.length > 0) {
-          const totalStock = dressData.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-          setAvailableStock(totalStock);
-        } else {
-          setAvailableStock(0);
-        }
 
         // Fetch reviews (Thêm mới)
         try {
@@ -187,98 +187,42 @@ export default function ProductDetailPage(): JSX.Element {
     fetchDressData();
   }, [id, refreshReviews]);
   
-  // Update available stock when dress changes
-  useEffect(() => {
-    if (dress && dress.variants && dress.variants.length > 0) {
-      const totalStock = dress.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-      setAvailableStock(totalStock);
-    } else {
-      setAvailableStock(0);
-    }
-  }, [dress]);
-  
-  // Handle bid
+  // Handle bid button click
   const handleBid = async () => {
-    try {
-      // Check authentication with delay to ensure cookie is correctly set and read
-      console.log('PDP: Current auth status:', isAuthenticated);
-      
-      // Force a refresh of authentication status before proceeding
-      const isAuthenticatedNow = await checkAuthStatus();
-      console.log('PDP: Updated auth status:', isAuthenticatedNow);
-      
-      if (!isAuthenticatedNow) {
-        console.error('Not authenticated, redirecting to login');
-        toast.error('Please sign in to add items to your cart');
-        navigate('/signin');
-        return;
-      }
-      
-      if (!id) {
-        toast.error('Product ID is missing');
-        return;
-      }
-
-      if (availableStock === 0 || availableStock === null) {
-        toast.error('Selected item is out of stock');
-        return;
-      }
-
-      setIsAddingToCart(true);
-      
-      let requestData: any = {
-        productId: id,
-        quantity: 1, // Fixed quantity of 1
-        purchaseType: 'buy'
-      };
-      
-      console.log('Placing bid with params:', requestData);
-      
-      // Wait for a short time to ensure auth cookie is set properly
-      // This can help resolve timing issues with cookie setting
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // TODO: Replace with actual bid API call when backend is ready
-      // const result = await placeBid(requestData);
-      
-      // For now, simulate bid placement
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Bid placed successfully');
-      toast.success('Bid placed successfully');
-      // TODO: Navigate to appropriate page after bid
-      // navigate('/bids');
-    } catch (error: any) {
-      console.error('Failed to add item to cart:', error);
-      console.error('Error details:', error.message);
-      
-      if (error.response) {
-        console.error('Error response:', error.response);
-        if (error.response.status === 401) {
-          toast.error('Your session has expired. Please sign in again.');
-          navigate('/signin');
-          return;
-        }
-      }
-      
-      toast.error(error.message || 'Failed to place bid');
-    } finally {
-      setIsAddingToCart(false);
+    // Check authentication
+    const isAuthenticatedNow = await checkAuthStatus();
+    
+    if (!isAuthenticatedNow) {
+      toast.error('Vui lòng đăng nhập để đấu giá');
+      navigate('/signin');
+      return;
     }
+
+    if (fakeAuctionData.isEnded) {
+      toast.error('Phiên đấu giá đã kết thúc');
+      return;
+    }
+
+    // Open bid dialog
+    setBidDialogOpen(true);
   };
 
-  // Calculate average rating
-  const avgRating = dress?.ratings?.length 
-    ? dress.ratings.reduce((sum, rating) => sum + rating.rate, 0) / dress.ratings.length 
-    : 0;
+  // Handle bid confirmation
+  const handleBidConfirm = (bidAmount: number) => {
+    console.log('Bid confirmed:', bidAmount);
+    // Update current price (fake data)
+    setFakeAuctionData(prev => ({
+      ...prev,
+      currentPrice: bidAmount,
+    }));
+    toast.success('Đấu giá thành công!');
+  };
 
   // Format price
   const price = dress?.purchasePrice || dress?.dailyRentalPrice || 0;
 
-  // Check if bid can be placed
-  const isBidEnabled = 
-    availableStock !== null && 
-    availableStock > 0;
+  // Check if bid can be placed - fake data: always enabled unless auction ended
+  const isBidEnabled = !fakeAuctionData.isEnded;
 
   // Handle review submission
   const handleReviewSubmitted = () => {
@@ -340,67 +284,50 @@ export default function ProductDetailPage(): JSX.Element {
               </button>
             </div>
 
-            {/* Rating */}
-            <div className="flex items-center space-x-2">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <svg
-                    key={star}
-                    className={`w-4 h-4 ${star <= Math.round(avgRating) ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                ))}
-              </div>
-              <span className="text-sm font-medium text-[#333333]">{avgRating.toFixed(1)}</span>
-              <span className="text-sm text-[#868686]">{dress?.reviews?.length || 0} reviews</span>
-            </div>
-
             {/* Current Price and Buy Now Price */}
             <div className="space-y-2">
               <div>
-                <span className="text-sm text-gray-600">Current Price:</span>
-                <div className="text-2xl font-bold text-[#E53935]">
-                  ${price}
+                <span className="text-sm text-gray-600">Giá hiện tại:</span>
+                <div className="text-2xl font-bold text-[#2e7d32]">
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
+                  }).format(fakeAuctionData.currentPrice)}
                 </div>
               </div>
               <div>
-                <span className="text-sm text-gray-600">Buy Now Price:</span>
+                <span className="text-sm text-gray-600">Bước giá tối thiểu:</span>
                 <div className="text-xl font-semibold text-[#333333]">
-                  ${(price * 1.2).toFixed(2)}
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
+                  }).format(fakeAuctionData.minimumBidStep)}
                 </div>
               </div>
             </div>
             
-            {/* Display available stock */}
-            {availableStock !== null && (
-              <p className="text-sm text-gray-600">
-                {availableStock > 0 
-                  ? `${availableStock} in stock` 
-                  : "Out of stock"}
-              </p>
-            )}
+            {/* Display auction status */}
+            <p className="text-sm text-gray-600">
+              {fakeAuctionData.isEnded 
+                ? "Kết thúc đấu giá" 
+                : "Đang diễn ra đấu giá"}
+            </p>
 
             {/* Bid Button */}
             <button 
               className={`w-full py-3 rounded-md flex items-center justify-center ${
-                isBidEnabled && !isAddingToCart
+                isBidEnabled
                   ? 'bg-[#ead9c9] text-[#333333] hover:bg-[#e0cbb9]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
-              disabled={!isBidEnabled || isAddingToCart}
+              disabled={!isBidEnabled}
               onClick={handleBid}
             >
-              {isAddingToCart 
-                ? 'Placing bid...' 
-                : (availableStock === 0 
-                  ? 'Out of Stock' 
-                  : 'Bid'
-                  )
+              {fakeAuctionData.isEnded 
+                ? 'Kết thúc đấu giá' 
+                : 'Đấu giá'
               }
-              {!isAddingToCart && availableStock !== null && availableStock > 0 && <ChevronRight className="w-4 h-4 ml-1" />}
+              {isBidEnabled && <ChevronRight className="w-4 h-4 ml-1" />}
             </button>
 
             {/* Seller Information */}
@@ -468,6 +395,11 @@ export default function ProductDetailPage(): JSX.Element {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Transaction History Section */}
+        <div className="mt-16">
+          <TransactionHistory />
         </div>
 
         {/* Reviews Section */}
@@ -549,6 +481,15 @@ export default function ProductDetailPage(): JSX.Element {
 
       {/* Footer */}
       <Footer />
+
+      {/* Bid Dialog */}
+      <BidDialog
+        open={bidDialogOpen}
+        onClose={() => setBidDialogOpen(false)}
+        onConfirm={handleBidConfirm}
+        currentPrice={fakeAuctionData.currentPrice}
+        minimumBidStep={fakeAuctionData.minimumBidStep}
+      />
     </div>
   );
 }

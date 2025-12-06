@@ -27,6 +27,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
   Store as StoreIcon,
+  Inventory2 as InventoryIcon,
 } from '@mui/icons-material';
 import logo from '../../public/LOGO.png';
 import { useNavigate } from 'react-router-dom';
@@ -85,10 +86,21 @@ const MenuButton = ({ onClick }: { onClick: () => void }) => (
 interface UserActionsProps {
   onProfileClick: () => void;
   onCartClick: () => void;
+  onCreateProductClick: () => void;
 }
 
-const UserActions: React.FC<UserActionsProps> = ({ onProfileClick, onCartClick }) => (
+const UserActions: React.FC<UserActionsProps> = ({ onProfileClick, onCartClick, onCreateProductClick }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+    <IconButton
+      onClick={onCreateProductClick}
+      sx={{
+        color: '#C3937C',
+        '&:hover': { bgcolor: 'rgba(195, 147, 124, 0.08)' },
+      }}
+    >
+      <InventoryIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
+    </IconButton>
+    
     <IconButton
       onClick={onProfileClick}
       sx={{
@@ -137,19 +149,19 @@ const DrawerLogo: React.FC<DrawerLogoProps> = ({ logo }) => (
 
 interface MenuItemsListProps {
   items: MenuItem[];
-  onItemClick: (path: string, subcategory?: string) => void;
+  onItemClick: (path: string, category: string) => void;
 }
 
 const MenuItemsList: React.FC<MenuItemsListProps> = ({ items, onItemClick }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const handleToggle = (path: string) => {
+  const handleToggle = (itemText: string) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(path)) {
-        newSet.delete(path);
+      if (newSet.has(itemText)) {
+        newSet.delete(itemText);
       } else {
-        newSet.add(path);
+        newSet.add(itemText);
       }
       return newSet;
     });
@@ -158,7 +170,7 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ items, onItemClick }) => 
   return (
     <List>
       {items.map((item) => {
-        const isExpanded = expandedItems.has(item.path);
+        const isExpanded = expandedItems.has(item.text);
         const hasSubcategories = item.subcategories && item.subcategories.length > 0;
 
         return (
@@ -166,11 +178,8 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ items, onItemClick }) => 
             <ListItem disablePadding>
               <ListItemButton
                 onClick={() => {
-                  if (hasSubcategories) {
-                    handleToggle(item.path);
-                  } else {
-                    onItemClick(item.path);
-                  }
+                  // Always navigate when clicking on the text
+                  onItemClick(item.path, item.text);
                 }}
                 sx={{
                   borderRadius: '8px',
@@ -193,7 +202,13 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ items, onItemClick }) => 
                   }}
                 />
                 {hasSubcategories && (
-                  <Box sx={{ color: '#C3937C' }}>
+                  <Box 
+                    sx={{ color: '#C3937C', cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent parent onClick
+                      handleToggle(item.text);
+                    }}
+                  >
                     {isExpanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
                   </Box>
                 )}
@@ -278,7 +293,7 @@ interface NavigationDrawerProps {
   onClose: () => void;
   logo: string;
   menuItems: MenuItem[];
-  onMenuItemClick: (path: string, subcategory?: string) => void;
+  onMenuItemClick: (path: string, category: string) => void;
   isAuthenticated: boolean;
   role: string | null;
 }
@@ -342,6 +357,10 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
     navigate('/cart');
   };
 
+  const goToCreateProductPage = (): void => {
+    navigate('/create-product');
+  };
+
   // Menu items configuration with subcategories
   const menuItems: MenuItem[] = [
     { 
@@ -368,7 +387,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
     { 
       text: 'Clothes', 
       icon: <DressIcon />, 
-      path: '/photography',
+      path: '/pcp',
       subcategories: [
         { text: 'Men', value: 'men' },
         { text: 'Women', value: 'women' },
@@ -379,7 +398,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
     { 
       text: 'Book', 
       icon: <BookIcon />, 
-      path: '/appointment',
+      path: '/pcp',
       subcategories: [
         { text: 'Fiction', value: 'fiction' },
         { text: 'Non-Fiction', value: 'non-fiction' },
@@ -427,6 +446,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
             <UserActions
               onProfileClick={goToProfilePage}
               onCartClick={goToCartPage}
+              onCreateProductClick={goToCreateProductPage}
             />
           </Box>
         </Toolbar>
@@ -438,28 +458,25 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
         onClose={toggleDrawer(false)}
         logo={logo}
         menuItems={menuItems}
-        onMenuItemClick={(path, subcategory) => {
+        onMenuItemClick={(path, category) => {
           // If "All Products" is clicked, navigate directly to /pcp without query params
-          const allProductsItem = menuItems.find(item => item.text === 'All Products' && item.path === path);
-          if (allProductsItem) {
-            navigate('/pcp');
+          if (category === 'All Products' || category === 'Home' || category === 'About') {
+            navigate(path);
             setDrawerOpen(false);
             return;
           }
           
-          // Build URL with category and subcategory if provided
-          const params = new URLSearchParams();
-          const categoryName = path.replace(/^\//, '') || 'home';
-          params.set('category', categoryName);
-          
-          if (subcategory) {
-            params.set('subcategory', subcategory);
-          }
-          
-          // Navigate to PCP with filters, or to the path if it's not PCP
-          if (path === '/pcp' || path.startsWith('/pcp')) {
+          // Handle navigation based on category
+          if (path === '/pcp') {
+            const params = new URLSearchParams();
+            
+            // Map category names to lowercase values for query param
+            const categoryValue = category.toLowerCase();
+            params.set('category', categoryValue);
+            
             navigate(`/pcp?${params.toString()}`);
           } else {
+            // Navigate to other paths
             navigate(path);
           }
           setDrawerOpen(false);
