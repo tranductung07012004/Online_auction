@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
 import ProductCard from '../../components/ProductCard';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 // TODO: Uncomment when backend is ready
 // import { getAllProducts, searchProducts, Product } from '../../api/product';
 import { PCPSearchBar } from './pcp/PCPSearchBar';
@@ -10,17 +10,11 @@ import {
   Box,
   Container,
   Typography,
-  Breadcrumbs,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
   CircularProgress,
   Alert,
   Paper,
+  Pagination,
 } from '@mui/material';
-import { NavigateNext } from '@mui/icons-material';
 import { useSearchSync } from '../../hooks/useSearchSync';
 
 // Fake data interface matching ProductProps
@@ -46,6 +40,7 @@ interface FakeProduct {
   created_at?: string | Date;
   posted_at?: string | Date;
   bid_count: number;
+  category: string;
 }
 
 // Generate fake products data
@@ -57,6 +52,13 @@ const generateFakeProducts = (): FakeProduct[] => {
     { id: 3, avatar: '/placeholder-user.jpg', fullname: 'Lê Văn C' },
     { id: 4, avatar: '/placeholder-user.jpg', fullname: 'Phạm Thị D' },
     { id: 5, avatar: '/placeholder-user.jpg', fullname: 'Hoàng Văn E' },
+  ];
+
+  // All categories (including what were subcategories)
+  const categories = [
+    'smartphone', 'iphone', 'samsung', 'xiaomi', 'oppo',
+    'clothes', 'men', 'women', 'kids', 'accessories',
+    'book', 'fiction', 'non-fiction', 'educational',
   ];
 
   const productNames = [
@@ -97,6 +99,9 @@ const generateFakeProducts = (): FakeProduct[] => {
     const postedDate = new Date(startDate);
     postedDate.setDate(postedDate.getDate() - Math.floor(Math.random() * 3)); // Posted 0-3 days before start
 
+    // Assign random category
+    const category = categories[index % categories.length];
+
     return {
       id: index + 1,
       product_name: name,
@@ -110,6 +115,7 @@ const generateFakeProducts = (): FakeProduct[] => {
       highest_bidder: hasHighestBidder ? bidders[Math.floor(Math.random() * bidders.length)] : null,
       created_at: postedDate.toISOString(),
       bid_count: bidCount,
+      category,
     };
   });
 };
@@ -128,11 +134,11 @@ export default function ProductPage(): JSX.Element {
   const [filteredProducts, setFilteredProducts] = useState<FakeProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visibleProducts, setVisibleProducts] = useState<number>(6); // Number of products to show initially
   const [isSearching, setIsSearching] = useState(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const productsPerPage = 6; // Number of products per page
 
   // Filter states
-  const [priceFilter, setPriceFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>(urlCategory);
 
   // Initialize with fake data
@@ -211,57 +217,33 @@ export default function ProductPage(): JSX.Element {
       );
     }
 
-    // Apply price filter (converting VND to approximate USD for filter)
-    // Use buy_now_price if available, otherwise use current_price
-    if (priceFilter !== 'all') {
-      switch (priceFilter) {
-        case 'under50':
-          result = result.filter((product) => {
-            const price = product.buy_now_price ?? product.current_price;
-            return price < 50 * 25000; // ~$50
-          });
-          break;
-        case '50to100':
-          result = result.filter((product) => {
-            const price = product.buy_now_price ?? product.current_price;
-            return price >= 50 * 25000 && price <= 100 * 25000;
-          });
-          break;
-        case '100to200':
-          result = result.filter((product) => {
-            const price = product.buy_now_price ?? product.current_price;
-            return price > 100 * 25000 && price <= 200 * 25000;
-          });
-          break;
-        case 'above200':
-          result = result.filter((product) => {
-            const price = product.buy_now_price ?? product.current_price;
-            return price > 200 * 25000;
-          });
-          break;
-      }
-    }
-
     // Apply category filter if category is selected
     if (categoryFilter) {
-      // You can add category-based filtering logic here when category field is available
+      result = result.filter((product) => 
+        product.category.toLowerCase() === categoryFilter.toLowerCase()
+      );
     }
 
     setFilteredProducts(result);
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [
-    priceFilter,
     products,
     searchQuery,
     categoryFilter,
   ]);
 
-  const handleLoadMore = () => {
-    setVisibleProducts((prev) => prev + 6); // Load 6 more products
-  };
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const endIndex = startIndex + productsPerPage;
+  const displayProducts = filteredProducts.slice(startIndex, endIndex);
 
-  // Get limited number of products to display
-  const displayProducts = filteredProducts.slice(0, visibleProducts);
-  const hasMoreProducts = filteredProducts.length > visibleProducts;
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setCurrentPage(value);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div>
@@ -287,23 +269,6 @@ export default function ProductPage(): JSX.Element {
 
       <main>
         <Container maxWidth="lg" sx={{ py: 4 }}>
-          {/* Breadcrumbs */}
-          <Breadcrumbs
-            separator={<NavigateNext fontSize="small" />}
-            sx={{ mb: 3 }}
-          >
-            <Link
-              to="/category"
-              style={{
-                textDecoration: 'none',
-                color: 'inherit',
-              }}
-            >
-              <Typography color="text.secondary">Category</Typography>
-            </Link>
-            <Typography color="text.primary">Products</Typography>
-          </Breadcrumbs>
-
           {/* Page Title */}
           <Typography
             variant="h4"
@@ -316,26 +281,6 @@ export default function ProductPage(): JSX.Element {
           >
             Our Products
           </Typography>
-
-          {/* Price Filter */}
-          <Box sx={{ mb: 4 }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="price-filter-label">Price</InputLabel>
-              <Select
-                labelId="price-filter-label"
-                id="price-filter"
-                value={priceFilter}
-                label="Price"
-                onChange={(e) => setPriceFilter(e.target.value)}
-              >
-                <MenuItem value="all">All Prices</MenuItem>
-                <MenuItem value="under50">Under 1.25M VND</MenuItem>
-                <MenuItem value="50to100">1.25M - 2.5M VND</MenuItem>
-                <MenuItem value="100to200">2.5M - 5M VND</MenuItem>
-                <MenuItem value="above200">Above 5M VND</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
 
           {/* Products Grid */}
           {loading || isSearching ? (
@@ -385,7 +330,8 @@ export default function ProductPage(): JSX.Element {
                 ))}
               </Box>
 
-              {hasMoreProducts && (
+              {/* Pagination */}
+              {totalPages > 1 && (
                 <Box
                   sx={{
                     display: 'flex',
@@ -393,17 +339,31 @@ export default function ProductPage(): JSX.Element {
                     mt: 6,
                   }}
                 >
-                  <Button
-                    variant="outlined"
-                    onClick={handleLoadMore}
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    size="large"
+                    showFirstButton
+                    showLastButton
                     sx={{
-                      px: 4,
-                      py: 1.5,
-                      textTransform: 'none',
+                      '& .MuiPaginationItem-root': {
+                        color: '#8B6F47',
+                        '&.Mui-selected': {
+                          backgroundColor: '#EAD9C9',
+                          color: '#8B6F47',
+                          '&:hover': {
+                            backgroundColor: '#EAD9C9',
+                            opacity: 0.8,
+                          },
+                        },
+                        '&:hover': {
+                          backgroundColor: '#EAD9C9',
+                          opacity: 0.6,
+                        },
+                      },
                     }}
-                  >
-                    Load More
-                  </Button>
+                  />
                 </Box>
               )}
             </>

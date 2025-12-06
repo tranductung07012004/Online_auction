@@ -18,12 +18,15 @@ const Information: React.FC = () => {
     tax: 0,
     shipping: 0,
     total: 0,
+    initialDeposit: 0,
+    remainingPayment: 0,
     currency: 'USD'
   });
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [defaultAddressId, setDefaultAddressId] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(true);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(new Set());
   const { toast } = useToast();
   
   // Hàm để lấy địa chỉ và thông tin profile từ API
@@ -37,7 +40,7 @@ const Information: React.FC = () => {
         console.log('Saved addresses loaded:', addressesData);
         
         // Kiểm tra định dạng dữ liệu trả về
-        let addressesList = [];
+        let addressesList: any[] = [];
         
         // Kiểm tra nếu API trả về dạng { addresses: [...], defaultAddressId: '...' }
         if (addressesData.addresses && Array.isArray(addressesData.addresses)) {
@@ -57,7 +60,7 @@ const Information: React.FC = () => {
         if (addressesList.length > 0) {
           if (addressesData.defaultAddressId) {
             // Tìm địa chỉ mặc định dựa vào ID
-            const defaultAddress = addressesList.find(addr => addr.id === addressesData.defaultAddressId);
+            const defaultAddress = addressesList.find((addr: any) => addr.id === addressesData.defaultAddressId);
             if (defaultAddress) {
               setSelectedAddressId(defaultAddress.id);
               setShowAddressForm(false);
@@ -68,7 +71,7 @@ const Information: React.FC = () => {
             }
           } else {
             // Nếu không có defaultAddressId, kiểm tra xem các địa chỉ có trường isDefault không
-            const defaultAddress = addressesList.find(addr => addr.isDefault === true);
+            const defaultAddress = addressesList.find((addr: any) => addr.isDefault === true);
             if (defaultAddress) {
               setDefaultAddressId(defaultAddress.id);
               setSelectedAddressId(defaultAddress.id);
@@ -98,6 +101,81 @@ const Information: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+
+        // In development, use mock data so UI can be previewed without backend/localStorage
+        if (import.meta.env.DEV) {
+          const today = new Date();
+          const twoDaysLater = new Date(today);
+          twoDaysLater.setDate(twoDaysLater.getDate() + 2);
+
+          const mockCartItems: CartItem[] = [
+            {
+              name: 'Elegant Wedding Dress',
+              image: '/pic1.jpg',
+              quantity: 1,
+              dressId: 'demo-dress-1',
+              sizeName: 'M',
+              colorName: 'Ivory',
+              pricePerDay: 80,
+              startDate: today,
+              endDate: twoDaysLater,
+            },
+          ];
+
+          const rentalDays =
+            Math.ceil(
+              (twoDaysLater.getTime() - today.getTime()) /
+                (1000 * 60 * 60 * 24),
+            ) + 1;
+          const dressTotal = 80 * rentalDays * 1;
+          const mockSubtotal = dressTotal;
+          const mockTax = mockSubtotal * 0.1;
+          const mockShipping = mockSubtotal >= 100 ? 0 : 10;
+          const mockTotal = mockSubtotal + mockTax + mockShipping;
+
+          const mockAddress: Address = {
+            firstName: 'Tung',
+            lastName: 'Tran',
+            company: 'Demo Company',
+            address: '123 Demo Street',
+            apartment: 'Apt 4B',
+            city: 'Da Nang',
+            province: 'Da Nang',
+            postalCode: '550000',
+            phone: '0123456789',
+            country: 'Vietnam',
+          };
+
+          setCartItems(mockCartItems);
+          // Auto-select all items
+          setSelectedItemIds(new Set(mockCartItems.map((_: any, index: number) => index)));
+          setSummary({
+            subtotal: mockSubtotal,
+            tax: mockTax,
+            shipping: mockShipping,
+            total: mockTotal,
+            initialDeposit: mockTotal * 0.5,
+            remainingPayment: mockTotal * 0.5,
+            currency: 'USD',
+          } as OrderSummary);
+
+          // Show one saved address and preselect it
+          const fakeSavedList = [
+            {
+              id: 'mock-address-1',
+              isDefault: true,
+              ...mockAddress,
+            },
+          ];
+          setSavedAddresses(fakeSavedList);
+          setDefaultAddressId('mock-address-1');
+          setSelectedAddressId('mock-address-1');
+          setShowAddressForm(false);
+
+          setIsLoading(false);
+          return;
+        }
+
         // Using flag to track if we loaded items
         let hasItems = false;
 
@@ -107,7 +185,7 @@ const Information: React.FC = () => {
           try {
             const orderData = JSON.parse(orderStr);
             console.log('Order data from localStorage:', orderData);
-            let allCartItems = [];
+            let allCartItems: CartItem[] = [];
             
             // Process dress items
             if (orderData && orderData.items && orderData.items.length > 0) {
@@ -136,7 +214,7 @@ const Information: React.FC = () => {
               console.log('Photography items found in order:', orderData.photographyItems);
               
               // Convert photography items to cart item format
-              const processedPhotographyItems = orderData.photographyItems.map((item) => ({
+              const processedPhotographyItems = orderData.photographyItems.map((item: any) => ({
                 id: item.serviceId,
                 name: item.serviceName,
                 type: item.serviceType,
@@ -153,7 +231,7 @@ const Information: React.FC = () => {
               
               // Calculate summary for photography services and combine with dress summary if available
               const totalAmount = processedPhotographyItems.reduce(
-                (sum, item) => sum + (item.price || 0), 0
+                (sum: number, item: CartItem) => sum + (item.price || 0), 0
               );
               
               // Update the summary with photography items
@@ -170,6 +248,8 @@ const Information: React.FC = () => {
             
             if (hasItems) {
               setCartItems(allCartItems);
+              // Auto-select all items
+              setSelectedItemIds(new Set(allCartItems.map((_: any, index: number) => index)));
               await fetchAddressAndProfileData();
               setIsLoading(false);
               return; // Exit if we have any items
@@ -183,12 +263,12 @@ const Information: React.FC = () => {
         const photographyCartStr = localStorage.getItem('photography_cart_items');
         if (photographyCartStr) {
           try {
-            const photographyItems = JSON.parse(photographyCartStr);
+            const photographyItems: any[] = JSON.parse(photographyCartStr);
             console.log('Photography cart data from localStorage (fallback):', photographyItems);
             
             if (photographyItems && photographyItems.length > 0) {
               // Convert photography items to cart item format
-              const processedPhotographyItems = photographyItems.map((item) => ({
+              const processedPhotographyItems = photographyItems.map((item: any) => ({
                 id: item.serviceId,
                 name: item.serviceName,
                 type: item.serviceType,
@@ -201,10 +281,12 @@ const Information: React.FC = () => {
               }));
               
               setCartItems(processedPhotographyItems);
+              // Auto-select all items
+              setSelectedItemIds(new Set(processedPhotographyItems.map((_: any, index: number) => index)));
               
               // Calculate summary for photography services
               const totalAmount = processedPhotographyItems.reduce(
-                (sum, item) => sum + (item.price || 0), 0
+                (sum: number, item: CartItem) => sum + (item.price || 0), 0
               );
               
               const totalWithTax = totalAmount + (totalAmount * 0.1);
@@ -237,7 +319,7 @@ const Information: React.FC = () => {
           // Tính toán tổng đơn hàng nếu có items
           if (cartItems && cartItems.length > 0) {
             // Chuyển đổi dữ liệu giỏ hàng thành định dạng đơn hàng
-            const processedItems = cartItems.map((item) => {
+            const processedItems = cartItems.map((item: any) => {
               return {
                 dressId: typeof item.dress === 'object' ? item.dress._id : (item.dressId || item.dress),
                 name: typeof item.dress === 'object' ? item.dress.name : item.name,
@@ -280,6 +362,8 @@ const Information: React.FC = () => {
               };
               localStorage.setItem('currentOrder', JSON.stringify(orderData));
               setCartItems(processedItems);
+              // Auto-select all items
+              setSelectedItemIds(new Set(processedItems.map((_: any, index: number) => index)));
             }
           } else {
             setError('No items in cart');
@@ -363,8 +447,8 @@ const Information: React.FC = () => {
       
       // Give a moment for session storage to complete
       setTimeout(() => {
-        // Navigate to next step
-        navigate('/payment-shipping');
+        // Navigate to order history where user can confirm received and review
+        navigate('/order-history');
       }, 100);
     } catch (error) {
       console.error('Error processing address:', error);
@@ -375,6 +459,28 @@ const Information: React.FC = () => {
   
   const handleBackToReview = () => {
     navigate('/cart');
+  };
+
+  // Handle item selection
+  const handleItemSelection = (index: number) => {
+    setSelectedItemIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle select all
+  const handleSelectAll = () => {
+    if (selectedItemIds.size === cartItems.length) {
+      setSelectedItemIds(new Set());
+    } else {
+      setSelectedItemIds(new Set(cartItems.map((_: any, index: number) => index)));
+    }
   };
   
   // Handle using a selected saved address
@@ -393,7 +499,7 @@ const Information: React.FC = () => {
       setIsSubmitting(true);
       
       // Find the selected address
-      const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId);
+      const selectedAddress = savedAddresses.find((addr: any) => addr.id === selectedAddressId);
       console.log('Selected address:', selectedAddress);
       
       if (!selectedAddress) {
@@ -435,12 +541,12 @@ const Information: React.FC = () => {
         return;
       }
       
-      console.log('About to navigate to shipping page');
+      console.log('About to navigate to order history');
       
       // Give a moment for session storage to complete
       setTimeout(() => {
-        // Navigate to next step
-        navigate('/payment-shipping');
+        // Navigate to order history where user can confirm received and review
+        navigate('/order-history');
         console.log('Navigation command issued');
       }, 100);
     } catch (error) {
@@ -453,7 +559,7 @@ const Information: React.FC = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <CheckoutSteps currentStep="information" completedSteps={['review']} />
+        <CheckoutSteps currentStep="information" completedSteps={['payment']} />
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#c3937c]"></div>
         </div>
@@ -464,7 +570,7 @@ const Information: React.FC = () => {
   if (error && cartItems.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <CheckoutSteps currentStep="information" completedSteps={['review']} />
+        <CheckoutSteps currentStep="information" completedSteps={['payment']} />
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <h2 className="text-2xl font-semibold mb-4">Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
@@ -476,7 +582,7 @@ const Information: React.FC = () => {
   
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <CheckoutSteps currentStep="information" completedSteps={['review']} />
+      <CheckoutSteps currentStep="information" completedSteps={['payment']} />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content - Address Form */}
@@ -588,32 +694,48 @@ const Information: React.FC = () => {
         {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Order Summary</h2>
+              <button
+                onClick={handleSelectAll}
+                className="text-sm text-[#c3937c] hover:text-[#a67c66] font-medium"
+              >
+                {selectedItemIds.size === cartItems.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+              </button>
+            </div>
             
             <div className="divide-y divide-gray-200">
               {cartItems.map((item, index) => {
+                const isSelected = selectedItemIds.has(index);
+                if (!isSelected) return null;
                 // Calculate days for rental
-                const startDate = new Date(item.startDate);
-                const endDate = new Date(item.endDate);
+                const startDate = new Date(item.startDate as Date);
+                const endDate = new Date(item.endDate as Date);
                 const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                 
                 // Determine total price based on purchase type
                 let itemTotal = 0;
                 let typeDisplay = '';
                 
-                if (item.purchaseType === 'buy') {
+                if ((item as any).purchaseType === 'buy') {
                   // Use purchase price if buying
-                  const purchasePrice = item.purchasePrice || (item.pricePerDay * 10);
+                  const purchasePrice = (item as any).purchasePrice || ((item.pricePerDay || 0) * 10);
                   itemTotal = purchasePrice * item.quantity;
                   typeDisplay = 'Purchase';
                 } else {
                   // Calculate rental price based on days
-                  itemTotal = item.pricePerDay * days * item.quantity;
+                  itemTotal = (item.pricePerDay || 0) * days * item.quantity;
                   typeDisplay = `${days} days rental`;
                 }
                 
                 return (
                   <div key={index} className="py-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleItemSelection(index)}
+                      className="mr-3 w-4 h-4 text-[#c3937c] border-gray-300 rounded focus:ring-[#c3937c]"
+                    />
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 relative">
                       <img
                         src={item.image}
@@ -642,24 +764,56 @@ const Information: React.FC = () => {
             </div>
             
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">{formatCurrency(summary.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Tax</span>
-                <span className="font-medium">{formatCurrency(summary.tax)}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-4">
-                <span className="text-gray-600">Shipping</span>
-                <span className="font-medium">
-                  {summary.shipping === 0 ? 'Free' : formatCurrency(summary.shipping)}
-                </span>
-              </div>
-              <div className="flex justify-between font-medium text-lg">
-                <span>Total</span>
-                <span className="text-[#c3937c]">{formatCurrency(summary.total)}</span>
-              </div>
+              {(() => {
+                // Calculate summary for selected items only
+                const selectedItems = cartItems.filter((_, idx) => selectedItemIds.has(idx));
+                let selectedSubtotal = 0;
+                let selectedTax = 0;
+                let selectedShipping = 0;
+
+                selectedItems.forEach(item => {
+                  if (item.isPhotographyService) {
+                    selectedSubtotal += item.price || 0;
+                  } else {
+                    const startDate = new Date(item.startDate as Date);
+                    const endDate = new Date(item.endDate as Date);
+                    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                    if ((item as any).purchaseType === 'buy') {
+                      const purchasePrice = (item as any).purchasePrice || ((item.pricePerDay || 0) * 10);
+                      selectedSubtotal += purchasePrice * item.quantity;
+                    } else {
+                      selectedSubtotal += (item.pricePerDay || 0) * days * item.quantity;
+                    }
+                  }
+                });
+
+                selectedTax = selectedSubtotal * 0.1;
+                selectedShipping = selectedSubtotal >= 100 ? 0 : (selectedSubtotal > 0 ? 10 : 0);
+                const selectedTotal = selectedSubtotal + selectedTax + selectedShipping;
+
+                return (
+                  <>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Subtotal</span>
+                      <span className="font-medium">{formatCurrency(selectedSubtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Tax</span>
+                      <span className="font-medium">{formatCurrency(selectedTax)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-4">
+                      <span className="text-gray-600">Shipping</span>
+                      <span className="font-medium">
+                        {selectedShipping === 0 ? 'Free' : formatCurrency(selectedShipping)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-medium text-lg">
+                      <span>Total</span>
+                      <span className="text-[#c3937c]">{formatCurrency(selectedTotal)}</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

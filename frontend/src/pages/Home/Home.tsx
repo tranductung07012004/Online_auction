@@ -2,7 +2,9 @@ import React from 'react';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
 import BannerSection from './sections/BannerSection';
-import FlashSaleSection from './sections/FlashSaleSection';
+import TopFiveLastSoon from './sections/TopFiveLastSoon';
+import TopFiveHighestPrice from './sections/TopFiveHighestPrice';
+import TopFiveBidCount from './sections/TopFiveBidCount'; 
 
 const HomeNew: React.FC = () => {
   return (
@@ -12,8 +14,12 @@ const HomeNew: React.FC = () => {
       {/* Banner Section - Full Width Slideshow */}
       <BannerSection />
 
-      {/* Flash Sale Section */}
-      <FlashSaleSection />
+      {/* Top 5 last soon Section */}
+      <TopFiveLastSoon />
+
+      <TopFiveHighestPrice />
+
+      <TopFiveBidCount />
 
       <Footer />
     </div>

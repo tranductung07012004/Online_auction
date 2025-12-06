@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SearchBar, MenuItem } from '../../../components/SearchBar';
 import { useSearchStore } from '../../../stores';
 import {
-  Home as HomeIcon,
   CheckroomOutlined as DressIcon,
-  InfoOutlined as AboutIcon,
   Smartphone as SmartPhoneIcon,
   Book as BookIcon,
 } from '@mui/icons-material';
@@ -29,11 +27,6 @@ export const PCPSearchBar: React.FC = () => {
   // Menu items configuration (can be customized for PCP page)
   const menuItems: MenuItem[] = [
     { 
-      text: 'Home', 
-      icon: <HomeIcon />, 
-      path: '/'
-    },
-    { 
       text: 'Smartphone', 
       icon: <SmartPhoneIcon />, 
       path: '/pcp',
@@ -47,7 +40,7 @@ export const PCPSearchBar: React.FC = () => {
     { 
       text: 'Clothes', 
       icon: <DressIcon />, 
-      path: '/photography',
+      path: '/pcp',
       subcategories: [
         { text: 'Men', value: 'men' },
         { text: 'Women', value: 'women' },
@@ -58,17 +51,12 @@ export const PCPSearchBar: React.FC = () => {
     { 
       text: 'Book', 
       icon: <BookIcon />, 
-      path: '/appointment',
+      path: '/pcp',
       subcategories: [
         { text: 'Fiction', value: 'fiction' },
         { text: 'Non-Fiction', value: 'non-fiction' },
         { text: 'Educational', value: 'educational' },
       ]
-    },
-    { 
-      text: 'About', 
-      icon: <AboutIcon />, 
-      path: '/about' 
     },
   ];
 
@@ -91,9 +79,6 @@ export const PCPSearchBar: React.FC = () => {
     if (filters.category) {
       params.set('category', filters.category);
     }
-    if (filters.subcategory) {
-      params.set('subcategory', filters.subcategory);
-    }
     if (filters.sort) {
       params.set('sort', filters.sort);
     }
@@ -108,7 +93,6 @@ export const PCPSearchBar: React.FC = () => {
   // Handle filter selection
   const handleFilterSelect = (newFilters: { 
     category?: string; 
-    subcategory?: string; 
     sort?: string; 
     endTime?: boolean 
   }) => {
@@ -127,9 +111,6 @@ export const PCPSearchBar: React.FC = () => {
     const updatedFilters = { ...filters, ...newFilters };
     if (updatedFilters.category) {
       params.set('category', updatedFilters.category);
-    }
-    if (updatedFilters.subcategory) {
-      params.set('subcategory', updatedFilters.subcategory);
     }
     if (updatedFilters.sort) {
       params.set('sort', updatedFilters.sort);

@@ -52,12 +52,98 @@ const Shipping: React.FC = () => {
   // Fetch cart data and get shipping address from session storage
   useEffect(() => {
     console.log('Shipping component mounted');
-    
+
     const fetchData = async () => {
       try {
         console.log('Fetching data in Shipping component...');
         setIsLoading(true);
-        
+
+        // In development, provide mock data so UI can be previewed without real backend/localStorage
+        if (import.meta.env.DEV) {
+          const today = new Date();
+          const twoDaysLater = new Date(today);
+          twoDaysLater.setDate(twoDaysLater.getDate() + 2);
+
+          const mockCartItems: CartItem[] = [
+            {
+              name: 'Elegant Wedding Dress',
+              image: '/pic1.jpg',
+              quantity: 1,
+              dressId: 'demo-dress-1',
+              sizeName: 'M',
+              colorName: 'Ivory',
+              pricePerDay: 80,
+              startDate: today,
+              endDate: twoDaysLater,
+              // @ts-expect-error: allow purchaseType for UI preview
+              purchaseType: 'rent',
+            } as any,
+            {
+              // Photography service preview
+              // @ts-expect-error: extra fields for UI preview
+              id: 'demo-photo-1',
+              name: 'Outdoor Photography Package',
+              image: '/pic7.png',
+              quantity: 1,
+              isPhotographyService: true,
+              // @ts-expect-error
+              type: 'Full-day shoot',
+              // @ts-expect-error
+              price: 300,
+              bookingDate: today,
+              location: 'Da Nang City',
+            } as any,
+          ];
+
+          const rentalDays =
+            Math.ceil(
+              (twoDaysLater.getTime() - today.getTime()) /
+                (1000 * 60 * 60 * 24),
+            ) + 1;
+          const dressTotal = 80 * rentalDays * 1;
+          const photographyTotal = 300;
+          const subtotal = dressTotal + photographyTotal;
+          const tax = subtotal * 0.1;
+
+          const selectedOption = shippingOptions.find(
+            (opt) => opt.id === selectedShippingOption,
+          ) || shippingOptions[0];
+          const shippingCost = selectedOption.price;
+          const total = subtotal + tax + shippingCost;
+
+          const mockAddress: Address = {
+            firstName: 'Tung',
+            lastName: 'Tran',
+            company: 'Demo Company',
+            address: '123 Demo Street',
+            apartment: 'Apt 4B',
+            city: 'Da Nang',
+            province: 'Da Nang',
+            postalCode: '550000',
+            phone: '0123456789',
+            country: 'Vietnam',
+          };
+
+          setDeliveryMethod('shipping');
+          setCartItems(mockCartItems);
+          setShippingAddress(mockAddress);
+          setCustomerInfo({
+            email: 'demo@example.com',
+            phone: '0123456789',
+          });
+          setSummary({
+            subtotal,
+            tax,
+            shipping: shippingCost,
+            total,
+            initialDeposit: total * 0.5,
+            remainingPayment: total * 0.5,
+            currency: 'USD',
+          } as OrderSummary);
+          setIsLoading(false);
+          return;
+        }
+
         // Determine delivery method from localStorage
         const savedMethodStr = localStorage.getItem('deliveryMethod');
         if (savedMethodStr) {

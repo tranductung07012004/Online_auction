@@ -3,7 +3,7 @@ import { Box, Container, Typography, IconButton } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import ProductCard from '../../../components/ProductCard';
 
-const FlashSaleSection: React.FC = () => {
+const TopFiveHighestPrice: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
@@ -125,7 +125,7 @@ const FlashSaleSection: React.FC = () => {
                 fontSize: { xs: '1.5rem', md: '2rem' },
               }}
             >
-              Newest arrivals
+              Top 5 products that have the highest current price
             </Typography>
             <Box
               sx={{
@@ -227,4 +227,4 @@ const FlashSaleSection: React.FC = () => {
   );
 };
 
-export default FlashSaleSection;
+export default TopFiveHighestPrice;

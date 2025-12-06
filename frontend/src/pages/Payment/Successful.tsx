@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Successful: React.FC = () => {
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Clean up all temporary checkout data
@@ -14,6 +15,10 @@ const Successful: React.FC = () => {
     console.log('Cleaned up checkout data after successful payment');
   }, []);
   
+  const handleGoToOrderHistory = () => {
+    navigate('/order-history');
+  };
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="bg-white rounded-lg shadow-lg p-8 text-center">
@@ -25,22 +30,23 @@ const Successful: React.FC = () => {
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold mb-4">Payment Successful!</h1>
+        <h1 className="text-3xl font-bold mb-4">Thanh toán đặt cọc thành công!</h1>
         <p className="text-lg text-gray-700 mb-8">
-          Thank you for your order. We've received your payment and are processing your order now.
+          Cảm ơn bạn đã thanh toán. Chúng tôi đang xử lý đơn hàng của bạn và sẽ gửi hóa đơn chi tiết trong thời gian
+          sớm nhất.
         </p>
 
         <div className="bg-gray-50 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">What happens next?</h2>
+          <h2 className="text-xl font-semibold mb-4">Tiếp theo sẽ như thế nào?</h2>
           <div className="space-y-4 text-left">
             <div className="flex">
               <div className="flex-shrink-0">
                 <div className="h-8 w-8 rounded-full bg-[#c3937c] flex items-center justify-center text-white font-medium">1</div>
               </div>
               <div className="ml-4">
-                <h3 className="text-base font-medium">Order Confirmation</h3>
+                <h3 className="text-base font-medium">Xác nhận đơn hàng</h3>
                 <p className="text-gray-600">
-                  You'll receive an email confirmation with your order details shortly.
+                  Bạn sẽ nhận được email/xác nhận với thông tin chi tiết đơn hàng và số tiền đã đặt cọc.
                 </p>
               </div>
             </div>
@@ -50,9 +56,9 @@ const Successful: React.FC = () => {
                 <div className="h-8 w-8 rounded-full bg-[#c3937c] flex items-center justify-center text-white font-medium">2</div>
               </div>
               <div className="ml-4">
-                <h3 className="text-base font-medium">Order Processing</h3>
+                <h3 className="text-base font-medium">Chuẩn bị đơn hàng</h3>
                 <p className="text-gray-600">
-                  We'll prepare your dresses and get them ready for shipping.
+                  Đội ngũ của chúng tôi sẽ chuẩn bị sản phẩm theo thông tin bạn đã cung cấp.
                 </p>
               </div>
             </div>
@@ -62,10 +68,10 @@ const Successful: React.FC = () => {
                 <div className="h-8 w-8 rounded-full bg-[#c3937c] flex items-center justify-center text-white font-medium">3</div>
               </div>
               <div className="ml-4">
-                <h3 className="text-base font-medium">Shipping</h3>
+                <h3 className="text-base font-medium">Gửi hóa đơn</h3>
                 <p className="text-gray-600">
-                  Your items will be shipped according to your selected shipping method.
-                  You'll receive tracking information once your order ships.
+                  Sau khi đơn hàng được xác nhận, người bán sẽ gửi lại hóa đơn chi tiết. Sau khi nhận được, bạn hãy xác
+                  nhận đã nhận hóa đơn để hoàn tất bước này.
                 </p>
               </div>
             </div>
@@ -73,12 +79,12 @@ const Successful: React.FC = () => {
         </div>
 
         <div className="flex justify-center">
-          <Link
-            to="/"
-            className="inline-block rounded-md border border-gray-300 bg-white px-6 py-3 text-gray-700 font-medium shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#c3937c]"
+          <button
+            onClick={handleGoToOrderHistory}
+            className="inline-block rounded-md bg-[#c3937c] px-6 py-3 text-white font-medium shadow-sm hover:bg-[#a67c66] focus:outline-none focus:ring-2 focus:ring-[#c3937c]"
           >
-            Continue Shopping
-          </Link>
+            Xem lịch sử đơn hàng
+          </button>
         </div>
       </div>
     </div>
