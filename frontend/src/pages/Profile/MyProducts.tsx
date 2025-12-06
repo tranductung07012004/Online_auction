@@ -15,7 +15,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Rating,
   ToggleButton,
   ToggleButtonGroup,
   Avatar,
@@ -24,6 +23,8 @@ import {
   Paper,
   Alert,
 } from '@mui/material';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import { Boxes, Star, X, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -31,11 +32,49 @@ import { useAuth } from '../../context/AuthContext';
 // ========== FAKE DATA FOR UI PREVIEW ==========
 const USE_FAKE_DATA = true;
 
-const generateFakeProductsData = (showActive: boolean): SellerProduct[] => {
+const generateFakeProductsData = (showActive: boolean, showUpcoming: boolean = false): SellerProduct[] => {
   const now = new Date();
   const fakeProducts: SellerProduct[] = [];
 
-  if (showActive) {
+  if (showUpcoming) {
+    // Fake data for upcoming products (chưa đến thời điểm đấu giá)
+    fakeProducts.push(
+      {
+        _id: 'fake-product-5',
+        id: 5,
+        product_name: 'Áo dài lụa tơ tằm cao cấp',
+        thumpnail_url: '/pic5.jpg',
+        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
+        buy_now_price: 5000000,
+        minimum_bid_step: 150000,
+        start_at: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+        end_at: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+        current_price: 3000000,
+        highest_bidder: null,
+        bid_count: 0,
+        created_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+        posted_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+        status: 'upcoming',
+      },
+      {
+        _id: 'fake-product-6',
+        id: 6,
+        product_name: 'Váy cưới ren Pháp sang trọng',
+        thumpnail_url: '/pic6.jpg',
+        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
+        buy_now_price: 8000000,
+        minimum_bid_step: 250000,
+        start_at: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+        end_at: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
+        current_price: 5000000,
+        highest_bidder: null,
+        bid_count: 0,
+        created_at: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        posted_at: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        status: 'upcoming',
+      },
+    );
+  } else if (showActive) {
     // Fake data for active products (còn hạn)
     fakeProducts.push(
       {
@@ -135,13 +174,16 @@ export default function MyProductsPage(): JSX.Element {
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'active' | 'won'>('active');
+  const [filter, setFilter] = useState<'active' | 'won' | 'upcoming'>('active');
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SellerProduct | null>(null);
-  const [rating, setRating] = useState<number>(5);
+  const [reviewType, setReviewType] = useState<'like' | 'dislike' | null>(null);
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
+  const [description, setDescription] = useState('');
+  const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -150,22 +192,58 @@ export default function MyProductsPage(): JSX.Element {
         setLoading(true);
         const profile = await getUserProfile();
         setUserData(profile);
-        
+
         // Use fake data if flag is enabled
         if (USE_FAKE_DATA) {
           console.log('Using fake products data for UI preview');
-          const fakeData = generateFakeProductsData(filter === 'active');
+          const fakeData = generateFakeProductsData(
+            filter === 'active',
+            filter === 'upcoming'
+          );
           setProducts(fakeData);
+
+          // Load reviewed status from localStorage
+          const reviewed = new Set<string>();
+          fakeData.forEach(product => {
+            const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
+            if (isReviewed === 'true') {
+              reviewed.add(product._id);
+            }
+          });
+          setReviewedProducts(reviewed);
         } else {
           const productsData = await getMyProducts();
           setProducts(productsData);
+
+          // Load reviewed status from localStorage
+          const reviewed = new Set<string>();
+          productsData.forEach(product => {
+            const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
+            if (isReviewed === 'true') {
+              reviewed.add(product._id);
+            }
+          });
+          setReviewedProducts(reviewed);
         }
       } catch (err: any) {
         console.error('Error fetching data:', err);
         // If API fails, use fake data for preview
         if (USE_FAKE_DATA) {
-          const fakeData = generateFakeProductsData(filter === 'active');
+          const fakeData = generateFakeProductsData(
+            filter === 'active',
+            filter === 'upcoming'
+          );
           setProducts(fakeData);
+
+          // Load reviewed status from localStorage
+          const reviewed = new Set<string>();
+          fakeData.forEach(product => {
+            const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
+            if (isReviewed === 'true') {
+              reviewed.add(product._id);
+            }
+          });
+          setReviewedProducts(reviewed);
         } else {
           toast.error(err.message || 'Failed to load products');
         }
@@ -179,7 +257,7 @@ export default function MyProductsPage(): JSX.Element {
 
   const handleFilterChange = (
     event: React.MouseEvent<HTMLElement>,
-    newFilter: 'active' | 'won' | null,
+    newFilter: 'active' | 'won' | 'upcoming' | null,
   ) => {
     if (newFilter !== null) {
       setFilter(newFilter);
@@ -188,8 +266,13 @@ export default function MyProductsPage(): JSX.Element {
 
   const handleReviewClick = (product: SellerProduct) => {
     setSelectedProduct(product);
-    setRating(5);
-    setReviewText('');
+
+    // Load previous review data from localStorage if exists
+    const savedRating = localStorage.getItem(`bidder_rating_${product._id}`);
+    const savedComment = localStorage.getItem(`bidder_comment_${product._id}`);
+
+    setReviewType((savedRating === 'like' || savedRating === 'dislike') ? savedRating : null);
+    setReviewText(savedComment || '');
     setReviewDialogOpen(true);
   };
 
@@ -198,24 +281,67 @@ export default function MyProductsPage(): JSX.Element {
     setCancelDialogOpen(true);
   };
 
+  const handleDescriptionClick = (product: SellerProduct) => {
+    setSelectedProduct(product);
+    setDescription('');
+    setDescriptionDialogOpen(true);
+  };
+
+  const handleSubmitDescription = async () => {
+    if (!selectedProduct || !description.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      // TODO: Replace with actual API call
+      console.log('Adding description:', {
+        productId: selectedProduct._id,
+        description: description,
+      });
+      toast.success('Description added successfully!');
+      setDescriptionDialogOpen(false);
+      setSelectedProduct(null);
+      setDescription('');
+    } catch (err: any) {
+      console.error('Error adding description:', err);
+      toast.error(err.message || 'Failed to add description');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmitReview = async () => {
-    if (!selectedProduct || !selectedProduct.winningBidder) return;
+    if (!selectedProduct || !selectedProduct.winningBidder || !reviewType) return;
 
     try {
       setIsSubmitting(true);
       const reviewData: ReviewBidderData = {
         productId: selectedProduct._id,
         bidderId: selectedProduct.winningBidder.id.toString(),
-        rating,
+        reviewType,
         reviewText,
       };
       await reviewBidder(reviewData);
-      toast.success('Đánh giá thành công!');
+
+      // Save to localStorage
+      localStorage.setItem(`bidder_rating_${selectedProduct._id}`, reviewType);
+      if (reviewText.trim()) {
+        localStorage.setItem(`bidder_comment_${selectedProduct._id}`, reviewText.trim());
+      }
+      localStorage.setItem(`bidder_reviewed_${selectedProduct._id}`, 'true');
+
+      // Update reviewed products set
+      setReviewedProducts(prev => new Set(prev).add(selectedProduct._id));
+
+      const isReReview = reviewedProducts.has(selectedProduct._id);
+      toast.success(isReReview ? 'Bidder review updated successfully!' : 'Review submitted successfully!');
       setReviewDialogOpen(false);
       setSelectedProduct(null);
       // Refresh products
       if (USE_FAKE_DATA) {
-        const fakeData = generateFakeProductsData(filter === 'active');
+        const fakeData = generateFakeProductsData(
+          filter === 'active',
+          filter === 'upcoming'
+        );
         setProducts(fakeData);
       } else {
         const productsData = await getMyProducts();
@@ -235,12 +361,15 @@ export default function MyProductsPage(): JSX.Element {
     try {
       setIsSubmitting(true);
       await cancelTransaction(selectedProduct._id, selectedProduct.winningBidder.id.toString());
-      toast.success('Đã hủy giao dịch thành công!');
+      toast.success('Transaction cancelled successfully!');
       setCancelDialogOpen(false);
       setSelectedProduct(null);
       // Refresh products
       if (USE_FAKE_DATA) {
-        const fakeData = generateFakeProductsData(filter === 'active');
+        const fakeData = generateFakeProductsData(
+          filter === 'active',
+          filter === 'upcoming'
+        );
         setProducts(fakeData);
       } else {
         const productsData = await getMyProducts();
@@ -264,6 +393,8 @@ export default function MyProductsPage(): JSX.Element {
   const filteredProducts = products.filter((product) => {
     if (filter === 'active') {
       return product.status === 'active';
+    } else if (filter === 'upcoming') {
+      return product.status === 'upcoming';
     } else {
       return product.status === 'won';
     }
@@ -311,7 +442,7 @@ export default function MyProductsPage(): JSX.Element {
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Quản lý các sản phẩm bạn đã đăng bán
+                    Manage the products you have listed
                   </Typography>
 
                   {/* Filter Tabs */}
@@ -338,10 +469,13 @@ export default function MyProductsPage(): JSX.Element {
                       }}
                     >
                       <ToggleButton value="active" aria-label="active products">
-                        Sản phẩm đã đăng, còn hạn
+                        Active Auctions
+                      </ToggleButton>
+                      <ToggleButton value="upcoming" aria-label="upcoming products">
+                        Upcoming Auctions
                       </ToggleButton>
                       <ToggleButton value="won" aria-label="won products">
-                        Sản phẩm đã có người thắng đấu giá
+                        Completed Auctions
                       </ToggleButton>
                     </ToggleButtonGroup>
                   </Box>
@@ -361,14 +495,18 @@ export default function MyProductsPage(): JSX.Element {
               >
                 <Boxes className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                  {filter === 'active' 
-                    ? 'Chưa có sản phẩm đang đấu giá' 
-                    : 'Chưa có sản phẩm có người thắng'}
+                  {filter === 'active'
+                    ? 'No active auctions'
+                    : filter === 'upcoming'
+                      ? 'No upcoming auctions'
+                      : 'No completed auctions'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {filter === 'active'
-                    ? 'Bạn chưa đăng sản phẩm nào hoặc tất cả sản phẩm đã kết thúc.'
-                    : 'Chưa có sản phẩm nào có người thắng đấu giá.'}
+                    ? 'You don't have any active auctions.'
+                    : filter === 'upcoming'
+                      ? 'You don't have any upcoming auctions.'
+                      : 'No products with winners yet.'}
                 </Typography>
               </Paper>
             ) : (
@@ -396,31 +534,47 @@ export default function MyProductsPage(): JSX.Element {
                             </Typography>
                             <Stack spacing={1}>
                               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Giá hiện tại: <strong>{formatPrice(product.current_price)}</strong>
+                                Current Price: <strong>{formatPrice(product.current_price)}</strong>
                               </Typography>
                               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Số lượt đấu giá: <strong>{product.bid_count}</strong>
+                                Bid Count: <strong>{product.bid_count}</strong>
                               </Typography>
                               {product.buy_now_price && (
                                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                  Giá mua ngay: <strong>{formatPrice(product.buy_now_price)}</strong>
+                                  Buy Now Price: <strong>{formatPrice(product.buy_now_price)}</strong>
                                 </Typography>
                               )}
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                Kết thúc: {new Date(product.end_at).toLocaleString('vi-VN')}
+                                {product.status === 'upcoming'
+                                  ? `Starts: ${new Date(product.start_at).toLocaleString('en-US')}`
+                                  : `Ends: ${new Date(product.end_at).toLocaleString('en-US')}`}
                               </Typography>
                             </Stack>
                           </Box>
                           <Box>
                             {product.status === 'active' ? (
                               <Chip
-                                label="Đang đấu giá"
+                                label="Active"
                                 color="success"
+                                icon={<CheckCircle className="h-4 w-4" />}
+                              />
+                            ) : product.status === 'upcoming' ? (
+                              <Chip
+                                label="Upcoming"
+                                sx={{
+                                  backgroundColor: '#a67c66',      // màu nền
+                                  color: 'white',                  // màu chữ
+                                  textTransform: 'none',           // giữ nguyên viết hoa/thường
+                                  '&:hover': {
+                                    backgroundColor: '#8c6550',    // màu hover
+                                  },
+                                }}
+                                color="info"
                                 icon={<CheckCircle className="h-4 w-4" />}
                               />
                             ) : (
                               <Chip
-                                label="Đã có người thắng"
+                                label="Completed"
                                 color="warning"
                                 icon={<Star className="h-4 w-4" />}
                               />
@@ -428,17 +582,45 @@ export default function MyProductsPage(): JSX.Element {
                           </Box>
                         </Box>
 
+                        {/* Add Description Button (for upcoming products) */}
+                        {product.status === 'upcoming' && (
+                          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                            <Button
+                              variant="contained"
+                              onClick={() => handleDescriptionClick(product)}
+                              sx={{
+                                bgcolor: '#FFE082',
+                                color: '#1a1a1a',
+                                '&:hover': {
+                                  bgcolor: '#FFD54F',
+                                },
+                                fontWeight: 600,
+                              }}
+                            >
+                              Add Description
+                            </Button>
+                          </Box>
+                        )}
+
                         {/* Winning Bidder Info (for won products) */}
                         {product.status === 'won' && product.winningBidder && (
-                          <Alert 
-                            severity="info" 
-                            sx={{ 
-                              bgcolor: '#E3F2FD',
+                          <Alert
+                            severity="info"
+                            sx={{
+                              "& .MuiAlert-icon": {
+                                color: "#5c5752",        // ⚡ đây là màu của icon "i"
+                              },
+                              color: "#5c5752",
+                              bgcolor: '#f5d3b0',
                               borderRadius: 2,
                             }}
                           >
                             <Stack spacing={2}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                              }}>
                                 <Avatar
                                   src={product.winningBidder.avatar}
                                   alt={product.winningBidder.fullname}
@@ -446,13 +628,13 @@ export default function MyProductsPage(): JSX.Element {
                                 />
                                 <Box>
                                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                    Người thắng: {product.winningBidder.fullname}
+                                    Winner: {product.winningBidder.fullname}
                                   </Typography>
                                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                    Giá đấu: {formatPrice(product.winningBidder.bidAmount)}
+                                    Winning Bid: {formatPrice(product.winningBidder.bidAmount)}
                                   </Typography>
                                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    Đấu giá lúc: {new Date(product.winningBidder.bidAt).toLocaleString('vi-VN')}
+                                    Bid Placed: {new Date(product.winningBidder.bidAt).toLocaleString('en-US')}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -470,18 +652,23 @@ export default function MyProductsPage(): JSX.Element {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  Đánh giá Bidder
+                                  {reviewedProducts.has(product._id) ? 'Review Bidder Again' : 'Review Bidder'}
                                 </Button>
                                 <Button
-                                  variant="outlined"
-                                  color="error"
+
                                   startIcon={<X className="h-5 w-5" />}
                                   onClick={() => handleCancelClick(product)}
                                   sx={{
+                                    backgroundColor: '#a67c66',      // màu nền
+                                    color: 'white',                  // màu chữ
+                                    textTransform: 'none',           // giữ nguyên viết hoa/thường
+                                    '&:hover': {
+                                      backgroundColor: '#8c6550',    // màu hover
+                                    },
                                     fontWeight: 600,
                                   }}
                                 >
-                                  Hủy giao dịch
+                                  Cancel Transaction
                                 </Button>
                               </Box>
                             </Stack>
@@ -504,7 +691,9 @@ export default function MyProductsPage(): JSX.Element {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Đánh giá Bidder</DialogTitle>
+        <DialogTitle>
+          {selectedProduct && reviewedProducts.has(selectedProduct._id) ? 'Review Bidder Again' : 'Review Bidder'}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
             {selectedProduct?.winningBidder && (
@@ -516,52 +705,103 @@ export default function MyProductsPage(): JSX.Element {
                 />
                 <Box>
                   <Typography variant="h6">{selectedProduct.winningBidder.fullname}</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {selectedProduct.product_name}
-                  </Typography>
                 </Box>
               </Box>
             )}
-            <Box>
-              <Typography variant="body1" sx={{ mb: 1, fontWeight: 600 }}>
-                Đánh giá
+
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ mb: 2, fontWeight: 'medium' }}>
+                Are you satisfied with this bidder?
               </Typography>
-              <Rating
-                value={rating}
-                onChange={(event, newValue) => {
+              <ToggleButtonGroup
+                value={reviewType}
+                exclusive
+                onChange={(_, newValue) => {
                   if (newValue !== null) {
-                    setRating(newValue);
+                    setReviewType(newValue);
                   }
                 }}
-                size="large"
-              />
+                aria-label="bidder rating"
+                fullWidth
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    flex: 1,
+                    py: 1.5,
+                    borderColor: '#c3937c',
+                    color: '#c3937c',
+                    '&.Mui-selected': {
+                      bgcolor: '#c3937c',
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: '#a67c66',
+                      },
+                    },
+                    '&:hover': {
+                      bgcolor: '#f8f3f0',
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="like" aria-label="like">
+                  <ThumbUpIcon sx={{ mr: 1 }} />
+                  Like
+                </ToggleButton>
+                <ToggleButton value="dislike" aria-label="dislike">
+                  <ThumbDownIcon sx={{ mr: 1 }} />
+                  Dislike
+                </ToggleButton>
+              </ToggleButtonGroup>
             </Box>
+
             <TextField
-              label="Nhận xét"
+              fullWidth
               multiline
               rows={4}
+              label="Comment about bidder"
+              placeholder="Share your experience with this bidder (communication, reliability, payment...)"
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
-              fullWidth
-              placeholder="Viết nhận xét về bidder này..."
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#a67c66',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#a67c66',
+                },
+                '& .MuiOutlinedInput-root.Mui-focused': {
+                  backgroundColor: '#f8f3f0',
+                },
+              }}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setReviewDialogOpen(false)}>Hủy</Button>
+          <Button
+            onClick={() => setReviewDialogOpen(false)}
+            variant="outlined"
+            sx={{
+              borderColor: '#c3937c',
+              color: '#c3937c',
+              '&:hover': {
+                borderColor: '#a67c66',
+                bgcolor: '#f8f3f0'
+              }
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleSubmitReview}
             variant="contained"
-            disabled={isSubmitting || !reviewText.trim()}
+            disabled={isSubmitting || !reviewText.trim() || !reviewType}
             sx={{
-              bgcolor: '#FFE082',
-              color: '#1a1a1a',
-              '&:hover': {
-                bgcolor: '#FFD54F',
-              },
+              bgcolor: '#c3937c',
+              '&:hover': { bgcolor: '#a67c66' },
+              '&:disabled': { bgcolor: '#d3c4b8' }
             }}
           >
-            {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+            {isSubmitting ? 'Sending...' : 'Submit Review'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -573,11 +813,11 @@ export default function MyProductsPage(): JSX.Element {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Hủy giao dịch</DialogTitle>
+        <DialogTitle>Cancel Transaction</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Alert severity="warning">
-              Bạn có chắc chắn muốn hủy giao dịch với bidder này? Hành động này không thể hoàn tác.
+              Are you sure you want to cancel the transaction with this bidder? This action cannot be undone.
             </Alert>
             {selectedProduct?.winningBidder && (
               <Box>
@@ -588,24 +828,120 @@ export default function MyProductsPage(): JSX.Element {
                   Bidder: {selectedProduct.winningBidder.fullname}
                 </Typography>
                 <Typography variant="body2">
-                  Sản phẩm: {selectedProduct.product_name}
+                  Product: {selectedProduct.product_name}
                 </Typography>
                 <Typography variant="body2">
-                  Giá đấu: {formatPrice(selectedProduct.winningBidder.bidAmount)}
+                  Bid Amount: {formatPrice(selectedProduct.winningBidder.bidAmount)}
                 </Typography>
               </Box>
             )}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCancelDialogOpen(false)}>Hủy</Button>
+          <Button
+            sx={{
+              backgroundColor: '#a67c66',      // màu nền
+              color: 'white',                  // màu chữ
+              textTransform: 'none',           // giữ nguyên viết hoa/thường
+              '&:hover': {
+                backgroundColor: '#8c6550',    // màu hover
+              },
+            }}
+            onClick={() => setCancelDialogOpen(false)}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleCancelTransaction}
             variant="contained"
             color="error"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy'}
+            {isSubmitting ? 'Processing...' : 'Confirm Cancel'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Description Dialog */}
+      <Dialog
+        open={descriptionDialogOpen}
+        onClose={() => setDescriptionDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Description</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            {selectedProduct && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  component="img"
+                  src={selectedProduct.thumpnail_url || '/placeholder.svg'}
+                  alt={selectedProduct.product_name}
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                  }}
+                />
+                <Box>
+                  <Typography variant="h6">{selectedProduct.product_name}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Starts: {new Date(selectedProduct.start_at).toLocaleString('en-US')}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            <TextField
+              label="Product description"
+              sx={{
+                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#a67c66',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#a67c66',
+                },
+                '& .MuiOutlinedInput-root.Mui-focused': {
+                  backgroundColor: '#f8f3f0',
+                },
+              }}
+              multiline
+              rows={6}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              fullWidth
+              placeholder="Enter detailed description for the product..."
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            sx={{
+              backgroundColor: '#a67c66',      // màu nền
+              color: 'white',                  // màu chữ
+              textTransform: 'none',           // giữ nguyên viết hoa/thường
+              '&:hover': {
+                backgroundColor: '#8c6550',    // màu hover
+              },
+            }}
+            onClick={() => setDescriptionDialogOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmitDescription}
+            variant="contained"
+            disabled={isSubmitting || !description.trim()}
+            sx={{
+              bgcolor: '#FFE082',
+              color: '#1a1a1a',
+              '&:hover': {
+                bgcolor: '#FFD54F',
+              },
+            }}
+          >
+            {isSubmitting ? 'Sending...' : 'Add Description'}
           </Button>
         </DialogActions>
       </Dialog>

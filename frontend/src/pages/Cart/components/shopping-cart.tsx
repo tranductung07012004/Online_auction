@@ -266,14 +266,14 @@ export const ShoppingCart: React.FC = () => {
 
       // Check if at least one product is selected
       if (selectedProductIds.size === 0) {
-        toast.error('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
+        toast.error('Please select at least one product to checkout');
         return;
       }
 
       // Find all selected products
       const selectedProducts = cartProducts.filter((p) => selectedProductIds.has(p.id));
       if (selectedProducts.length === 0) {
-        toast.error('Không tìm thấy sản phẩm đã chọn');
+        toast.error('Selected products not found');
         return;
       }
 
@@ -294,11 +294,11 @@ export const ShoppingCart: React.FC = () => {
       localStorage.setItem('currentOrder', JSON.stringify(orderData));
 
       // Show success and navigate
-      toast.success(`Đang chuyển đến trang thanh toán với ${selectedProducts.length} sản phẩm...`);
+      toast.success(`Redirecting to checkout page with ${selectedProducts.length} products...`);
       navigate('/payment-checkout');
     } catch (error: any) {
       console.error('Failed to process cart:', error);
-      toast.error(error.message || 'Không thể tiếp tục thanh toán. Vui lòng thử lại.');
+      toast.error(error.message || 'Unable to proceed to checkout. Please try again.');
     } finally {
       setIsProcessingOrder(false);
     }
@@ -329,7 +329,7 @@ export const ShoppingCart: React.FC = () => {
           {error}
         </Alert>
         <Button variant="contained" onClick={() => window.location.reload()}>
-          Thử lại
+          Try Again
         </Button>
       </Box>
     );
@@ -348,7 +348,7 @@ export const ShoppingCart: React.FC = () => {
       {/* Select All Button */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="body1" color="text.secondary">
-          Chọn sản phẩm để thanh toán ({selectedProductIds.size}/{cartProducts.length} đã chọn)
+          Select products to checkout ({selectedProductIds.size}/{cartProducts.length} selected)
         </Typography>
         <Button
           variant="outlined"
@@ -363,7 +363,7 @@ export const ShoppingCart: React.FC = () => {
             },
           }}
         >
-          {isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+          {isAllSelected ? 'Deselect All' : 'Select All'}
         </Button>
       </Box>
 
@@ -433,7 +433,7 @@ export const ShoppingCart: React.FC = () => {
                                 sx={{ width: 32, height: 32 }}
                               />
                               <Typography variant="body2" color="text.secondary">
-                                Người bán: <strong>{product.seller.fullname}</strong>
+                                Seller: <strong>{product.seller.fullname}</strong>
                               </Typography>
                             </Box>
 
@@ -444,7 +444,7 @@ export const ShoppingCart: React.FC = () => {
                                   {formatPrice(product.current_price)}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  Giá hiện tại
+                                  Current Price
                                 </Typography>
                               </Box>
 
@@ -454,13 +454,13 @@ export const ShoppingCart: React.FC = () => {
                                     {formatPrice(product.buy_now_price)}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary">
-                                    Giá mua ngay
+                                    Buy Now Price
                                   </Typography>
                                 </Box>
                               )}
 
                               <Typography variant="caption" color="text.secondary">
-                                Số lượt ra giá: <strong>{product.bid_count}</strong>
+                                Bid Count: <strong>{product.bid_count}</strong>
                               </Typography>
                             </Box>
 
@@ -473,7 +473,7 @@ export const ShoppingCart: React.FC = () => {
                                   sx={{ width: 24, height: 24 }}
                                 />
                                 <Typography variant="caption" color="text.secondary">
-                                  Người đặt giá cao nhất: {product.highest_bidder.fullname}
+                                  Highest Bidder: {product.highest_bidder.fullname}
                                 </Typography>
                               </Box>
                             )}
@@ -521,7 +521,7 @@ export const ShoppingCart: React.FC = () => {
             },
           }}
         >
-          {isProcessingOrder ? 'Đang xử lý...' : 'Tiếp tục thanh toán'}
+          {isProcessingOrder ? 'Processing...' : 'Continue to Checkout'}
         </Button>
       </Box>
     </Box>

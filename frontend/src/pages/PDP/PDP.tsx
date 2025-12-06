@@ -7,6 +7,7 @@ import ReviewForm from './pdp/review-form';
 import ReviewList from './pdp/review-list';
 import TransactionHistory from './pdp/transaction-history';
 import BidDialog from './pdp/bid-dialog';
+import BidderManagement from './pdp/bidder-management';
 import ProductCard from '../../components/ProductCard';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
@@ -43,14 +44,97 @@ interface SimilarProduct {
 export default function ProductDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { checkAuthStatus } = useAuth();
+  const { checkAuthStatus, userId, role } = useAuth();
   const [dress, setDress] = useState<Dress | null>(null);
   const [similarProducts, setSimilarProducts] = useState<SimilarProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [refreshReviews, setRefreshReviews] = useState<boolean>(false);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [refreshQuestions, setRefreshQuestions] = useState<boolean>(false);
+  const [questions, setQuestions] = useState<any[]>([]);
+  
+  // Fake Q&A data
+  const fakeQuestions = [
+    {
+      _id: '1',
+      username: 'Nguyễn Thị Mai',
+      date: new Date('2024-12-01'),
+      questionText: 'Is size S available for this product? I want to order urgently.',
+      icon: '/placeholder-user.jpg',
+      images: [],
+      answer: {
+        username: 'Seller',
+        date: new Date('2024-12-02'),
+        answerText: 'Yes, we currently have size S in stock. You can place your order right away!',
+        icon: '/placeholder-user.jpg'
+      }
+    },
+    {
+      _id: '2',
+      username: 'Trần Văn Hoàng',
+      date: new Date('2024-11-28'),
+      questionText: 'What is the fabric material of this product? Is it stretchy?',
+      icon: '/placeholder-user.jpg',
+      images: [],
+      answer: {
+        username: 'Seller',
+        date: new Date('2024-11-29'),
+        answerText: 'The product is made from premium silk fabric with slight stretch, very comfortable to wear.',
+        icon: '/placeholder-user.jpg'
+      }
+    },
+    {
+      _id: '3',
+      username: 'Lê Thị Hương',
+      date: new Date('2024-11-25'),
+      questionText: 'How long does delivery take? I need it before December 5th.',
+      icon: '/placeholder-user.jpg',
+      images: [],
+      answer: {
+        username: 'Seller',
+        date: new Date('2024-11-26'),
+        answerText: 'Delivery time is 2-3 days. If you order today, you will definitely receive it before December 5th!',
+        icon: '/placeholder-user.jpg'
+      }
+    },
+    {
+      _id: '4',
+      username: 'Phạm Minh Tuấn',
+      date: new Date('2024-11-20'),
+      questionText: 'Does the shop have a return policy? What if the size doesn\'t fit?',
+      icon: '/placeholder-user.jpg',
+      images: [],
+      answer: null
+    },
+    {
+      _id: '5',
+      username: 'Vũ Thị Lan',
+      date: new Date('2024-11-15'),
+      questionText: 'Can this product be machine washed? Will it fade?',
+      icon: '/placeholder-user.jpg',
+      images: [],
+      answer: {
+        username: 'Seller',
+        date: new Date('2024-11-16'),
+        answerText: 'The product can be machine washed on gentle cycle. We recommend hand washing to maintain the best shape. The product does not fade!',
+        icon: '/placeholder-user.jpg'
+      }
+    },
+    {
+      _id: '6',
+      username: 'Đỗ Văn Bình',
+      date: new Date('2024-11-10'),
+      questionText: 'What occasions can this be worn for? I\'m looking for a party dress.',
+      icon: '/placeholder-user.jpg',
+      images: [],
+      answer: {
+        username: 'Seller',
+        date: new Date('2024-11-11'),
+        answerText: 'This product is perfect for parties, events, or elegant outings. Elegant design that flatters your figure!',
+        icon: '/placeholder-user.jpg'
+      }
+    }
+  ];
 
   // Bid dialog state
   const [bidDialogOpen, setBidDialogOpen] = useState<boolean>(false);
@@ -149,6 +233,8 @@ export default function ProductDetailPage(): JSX.Element {
         // If no ID provided, use a default dress or redirect
         if (!id) {
           console.warn('No dress ID provided, using default view');
+          // Set fake questions for default view
+          setQuestions(fakeQuestions);
           setLoading(false);
           return;
         }
@@ -161,14 +247,16 @@ export default function ProductDetailPage(): JSX.Element {
         
         setDress(dressData);
 
-        // Fetch reviews (Thêm mới)
+        // Fetch questions (Q&A) - Use fake data if API fails
         try {
-          const response = await axios.get(`http://localhost:3000/dress/${id}/review`);
+          const response = await axios.get(`http://localhost:3000/dress/${id}/questions`);
           if (response.data && response.data.success) {
-            setReviews(response.data.data);
+            setQuestions(response.data.data);
           }
-        } catch (reviewError) {
-          console.error('Failed to fetch reviews:', reviewError);
+        } catch (questionError) {
+          console.error('Failed to fetch questions:', questionError);
+          // Use fake questions as fallback
+          setQuestions(fakeQuestions);
         }
         
         setError(null);
@@ -185,7 +273,7 @@ export default function ProductDetailPage(): JSX.Element {
     };
 
     fetchDressData();
-  }, [id, refreshReviews]);
+  }, [id, refreshQuestions, userId, role]);
   
   // Handle bid button click
   const handleBid = async () => {
@@ -193,13 +281,13 @@ export default function ProductDetailPage(): JSX.Element {
     const isAuthenticatedNow = await checkAuthStatus();
     
     if (!isAuthenticatedNow) {
-      toast.error('Vui lòng đăng nhập để đấu giá');
+      toast.error('Please sign in to place a bid');
       navigate('/signin');
       return;
     }
 
     if (fakeAuctionData.isEnded) {
-      toast.error('Phiên đấu giá đã kết thúc');
+      toast.error('The auction has ended');
       return;
     }
 
@@ -215,7 +303,7 @@ export default function ProductDetailPage(): JSX.Element {
       ...prev,
       currentPrice: bidAmount,
     }));
-    toast.success('Đấu giá thành công!');
+    toast.success('Bid placed successfully!');
   };
 
   // Format price
@@ -224,10 +312,10 @@ export default function ProductDetailPage(): JSX.Element {
   // Check if bid can be placed - fake data: always enabled unless auction ended
   const isBidEnabled = !fakeAuctionData.isEnded;
 
-  // Handle review submission
-  const handleReviewSubmitted = () => {
-    // Refresh dress data to show the new review
-    setRefreshReviews(prev => !prev);
+  // Handle question submission
+  const handleQuestionSubmitted = () => {
+    // Refresh dress data to show the new question
+    setRefreshQuestions(prev => !prev);
   };
 
   // If loading, show loading state
@@ -287,7 +375,7 @@ export default function ProductDetailPage(): JSX.Element {
             {/* Current Price and Buy Now Price */}
             <div className="space-y-2">
               <div>
-                <span className="text-sm text-gray-600">Giá hiện tại:</span>
+                <span className="text-sm text-gray-600">Current Price:</span>
                 <div className="text-2xl font-bold text-[#2e7d32]">
                   {new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
@@ -296,7 +384,7 @@ export default function ProductDetailPage(): JSX.Element {
                 </div>
               </div>
               <div>
-                <span className="text-sm text-gray-600">Bước giá tối thiểu:</span>
+                <span className="text-sm text-gray-600">Minimum Bid Step:</span>
                 <div className="text-xl font-semibold text-[#333333]">
                   {new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
@@ -309,8 +397,8 @@ export default function ProductDetailPage(): JSX.Element {
             {/* Display auction status */}
             <p className="text-sm text-gray-600">
               {fakeAuctionData.isEnded 
-                ? "Kết thúc đấu giá" 
-                : "Đang diễn ra đấu giá"}
+                ? "Auction Ended" 
+                : "Auction in Progress"}
             </p>
 
             {/* Bid Button */}
@@ -324,8 +412,8 @@ export default function ProductDetailPage(): JSX.Element {
               onClick={handleBid}
             >
               {fakeAuctionData.isEnded 
-                ? 'Kết thúc đấu giá' 
-                : 'Đấu giá'
+                ? 'Auction Ended' 
+                : 'Place Bid'
               }
               {isBidEnabled && <ChevronRight className="w-4 h-4 ml-1" />}
             </button>
@@ -402,25 +490,30 @@ export default function ProductDetailPage(): JSX.Element {
           <TransactionHistory />
         </div>
 
-        {/* Reviews Section */}
+        {/* Bidder Management Section - Visible to all users (for testing) */}
         <div className="mt-16">
-          <h2 className="text-2xl font-medium mb-8">Raise a question</h2>
+          <BidderManagement productId={id || 'fake-product-123'} isSeller={true} />
+        </div>
+
+        {/* Questions & Answers Section */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-medium mb-8">Questions & Answers</h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Review Form */}
+            {/* Question Form */}
             <div className="lg:col-span-1">
               <ReviewForm 
                 dressId={id || ''} 
-                onReviewSubmitted={handleReviewSubmitted} 
+                onReviewSubmitted={handleQuestionSubmitted} 
               />
             </div>
             
-            {/* Review List */}
+            {/* Question List */}
             <div className="lg:col-span-2">
               <ReviewList 
                 dressId={id || ''} 
-                reviews={reviews} 
-                onRefresh={handleReviewSubmitted} 
+                reviews={questions} 
+                onRefresh={handleQuestionSubmitted} 
               />
             </div>
           </div>

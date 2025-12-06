@@ -326,7 +326,7 @@ export interface SellerProduct {
   created_at?: string | Date;
   posted_at?: string | Date;
   bid_count: number;
-  status: 'active' | 'won'; // active = còn hạn, won = đã có người thắng
+  status: 'active' | 'won' | 'upcoming'; // active = auction in progress, won = has winner, upcoming = not yet started
   winningBidder?: {
     id: number;
     avatar: string;
@@ -353,7 +353,7 @@ export const getMyProducts = async (): Promise<SellerProduct[]> => {
 export interface ReviewBidderData {
   productId: string;
   bidderId: string;
-  rating: number;
+  reviewType: 'like' | 'dislike'; // Changed from rating to like/dislike
   reviewText: string;
 }
 
