@@ -14,22 +14,22 @@ export function Testimonials() {
       name: "Ngọc Linh",
       image: "https://i.pinimg.com/736x/ab/02/11/ab0211aa51e8f13cf12ba981e2f698f9.jpg",
       rating: 5,
-      date: "Tháng 6, 2023",
-      text: "Tôi đã thuê váy cưới từ Enchanted Weddings cho đám cưới của mình và đó là quyết định tuyệt vời nhất! Chiếc váy hoàn hảo và dịch vụ thật sự xuất sắc. Mọi người đều khen ngợi váy của tôi và không ai có thể tin rằng đó là váy thuê.",
+      date: "June 2023",
+      text: "I rented my wedding dress from Enchanted Weddings for my wedding and it was the best decision! The dress was perfect and the service was truly excellent. Everyone complimented my dress and no one could believe it was rented.",
     },
     {
       name: "Thanh Thảo",
       image: "https://i.pinimg.com/736x/15/2d/ac/152dacf8f23167e4a16dd80db075f605.jpg",
       rating: 5,
-      date: "Tháng 3, 2023",
-      text: "Đội ngũ tại Enchanted Weddings thật sự tận tâm và chuyên nghiệp. Họ đã giúp tôi tìm được chiếc váy phù hợp nhất với vóc dáng và phong cách của tôi. Tôi cảm thấy như một nàng công chúa trong ngày cưới của mình!",
+      date: "March 2023",
+      text: "The team at Enchanted Weddings is truly dedicated and professional. They helped me find the perfect dress that matched my body type and style. I felt like a princess on my wedding day!",
     },
     {
       name: "Minh Tú",
       image: "https://i.pinimg.com/736x/ce/7b/87/ce7b87665bf35272ca6b5d2fa4dfb632.jpg",
       rating: 5,
-      date: "Tháng 12, 2022",
-      text: "Tôi đã lo lắng về việc tìm váy cưới vì ngân sách hạn hẹp, nhưng Enchanted Weddings đã giúp tôi tiết kiệm rất nhiều mà vẫn có được chiếc váy trong mơ. Chất lượng váy và dịch vụ đều vượt xa mong đợi của tôi.",
+      date: "December 2022",
+      text: "I was worried about finding a wedding dress because of my limited budget, but Enchanted Weddings helped me save a lot while still getting my dream dress. The dress quality and service both exceeded my expectations.",
     },
   ]
 
@@ -37,11 +37,11 @@ export function Testimonials() {
     <section className="py-20">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-4xl  mb-6">Khách hàng nói gì về chúng tôi</h2>
+          <h2 className="text-3xl md:text-4xl  mb-6">What Our Customers Say</h2>
           <div className="w-20 h-1 bg-[#c3937c] mx-auto mb-8"></div>
           <p className="text-lg text-[#404040]">
-            Hàng nghìn cô dâu đã tin tưởng Enchanted Weddings cho ngày trọng đại của họ. Đây là những gì họ nói về trải
-            nghiệm của mình.
+            Thousands of brides have trusted Enchanted Weddings for their special day. Here's what they say about their
+            experience.
           </p>
         </div>
 

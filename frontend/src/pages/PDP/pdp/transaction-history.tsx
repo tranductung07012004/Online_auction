@@ -202,7 +202,7 @@ export default function TransactionHistory({ transactions = fakeTransactions }: 
                   <TableCell sx={{ color: '#333333' }}>
                     {transaction.buyer}
                   </TableCell>
-                  <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 500 }}>
+                  <TableCell align="right" sx={{ color: '#c3937c', fontWeight: 600 }}>
                     {formatPrice(transaction.price)}
                   </TableCell>
                 </TableRow>

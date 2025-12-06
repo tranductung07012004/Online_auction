@@ -174,3 +174,85 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
   }
 };
 
+// Bidder management interfaces
+export interface Bidder {
+  id: string;
+  username: string;
+  fullname: string;
+  avatar: string;
+  email: string;
+  bidAmount: number;
+  bidAt: string;
+  bidCount: number;
+  hasReview: boolean;
+  reviewType?: 'like' | 'dislike';
+  reviewText?: string;
+  isBlocked?: boolean;
+}
+
+// Get product bidders (for seller)
+export const getProductBidders = async (productId: string): Promise<Bidder[]> => {
+  try {
+    const response = await api.get(`/product/${productId}/bidders`);
+
+    if (response.data && response.data.success) {
+      return response.data.data;
+    }
+
+    throw new Error(response.data.message || 'Failed to fetch bidders');
+  } catch (error: any) {
+    console.error(`Error fetching bidders for product ${productId}:`, error);
+    throw error;
+  }
+};
+
+// Block bidder from product
+export const blockBidder = async (
+  productId: string,
+  bidderId: string,
+  reason?: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await api.post(`/product/${productId}/block-bidder`, {
+      bidderId,
+      reason,
+    });
+
+    if (response.data && response.data.success) {
+      return response.data;
+    }
+
+    throw new Error(response.data.message || 'Failed to block bidder');
+  } catch (error: any) {
+    console.error(`Error blocking bidder:`, error);
+    if (error.response) {
+      throw new Error(error.response.data?.message || 'Failed to block bidder');
+    }
+    throw error;
+  }
+};
+
+// Allow bidder to participate in auction
+export const allowBidder = async (
+  productId: string,
+  bidderId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await api.post(`/product/${productId}/allow-bidder`, {
+      bidderId,
+    });
+
+    if (response.data && response.data.success) {
+      return response.data;
+    }
+
+    throw new Error(response.data.message || 'Failed to allow bidder');
+  } catch (error: any) {
+    console.error(`Error allowing bidder:`, error);
+    if (error.response) {
+      throw new Error(error.response.data?.message || 'Failed to allow bidder');
+    }
+    throw error;
+  }
+};
+
