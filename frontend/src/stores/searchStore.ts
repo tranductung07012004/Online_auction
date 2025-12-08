@@ -2,7 +2,6 @@ import { create } from 'zustand';
 
 interface SearchFilters {
   category?: string;
-  subcategory?: string;
   sort?: string;
   endTime?: boolean;
 }

@@ -10,6 +10,11 @@ import {
   Upload,
   AlertCircle,
   Loader2,
+  Store,
+  Heart,
+  Gavel,
+  Boxes,
+  PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { LogoutModal } from './logout-modal';
@@ -56,6 +61,31 @@ export default function ProfileSidebar({
       id: 'address',
       label: 'My Address',
       icon: <MapPin className="h-5 w-5" />,
+    },
+    {
+      id: 'become-seller',
+      label: 'Become Seller',
+      icon: <Store className="h-5 w-5" />,
+    },
+    {
+      id: 'watchlist',
+      label: 'Watch List',
+      icon: <Heart className="h-5 w-5" />,
+    },
+    {
+      id: 'my-bids',
+      label: 'My Bids',
+      icon: <Gavel className="h-5 w-5" />,
+    },
+    {
+      id: 'my-products',
+      label: 'My Products',
+      icon: <Boxes className="h-5 w-5" />,
+    },
+    {
+      id: 'create-product',
+      label: 'Create Product',
+      icon: <PlusCircle className="h-5 w-5" />,
     },
   ];
 
@@ -162,7 +192,7 @@ export default function ProfileSidebar({
           
           <button
             onClick={handleUploadClick}
-            className="absolute bottom-0 right-0 bg-rose-500 text-white p-1 rounded-full hover:bg-rose-600 transition-colors disabled:opacity-50"
+            className="absolute bottom-0 right-0 bg-[#a67c66] text-white p-1 rounded-full hover:bg-[#8c6550] transition-colors disabled:opacity-50"
             aria-label="Edit profile picture"
             disabled={isUploading}
           >
@@ -203,7 +233,7 @@ export default function ProfileSidebar({
                 to={`/${item.id}`}
                 className={`flex items-center gap-3 px-3 py-2 rounded-md ${
                   activeTab === item.id
-                    ? 'bg-rose-50 text-rose-500 font-medium'
+                    ? 'bg-[#EAD9C9] text-[#8c6550] font-medium'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -218,7 +248,7 @@ export default function ProfileSidebar({
       <div className="mt-auto pt-4 border-t">
         <button
           onClick={() => setIsLogoutModalOpen(true)}
-          className="flex items-center gap-2 text-red-500 hover:text-red-600 transition-colors"
+          className="flex items-center gap-2 text-[#a67c66] hover:text-[#8c6550] transition-colors"
         >
           <LogOut className="h-5 w-5" />
           <span>Log Out</span>

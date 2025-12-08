@@ -1,6 +1,6 @@
-import Header from '../../components/header';
-import Footer from '../../components/footer';
-import { ShoppingCart } from './components/shopping-cart';
+import Header from "../../components/header";
+import Footer from "../../components/footer";
+import { ShoppingCart } from "./components/shopping-cart";
 const Cart = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#ead9c9]/20">

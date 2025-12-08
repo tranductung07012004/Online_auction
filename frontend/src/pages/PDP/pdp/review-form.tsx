@@ -143,7 +143,7 @@ export default function ReviewForm({ dressId, onReviewSubmitted }: ReviewFormPro
 
   return (
     <div className="space-y-4 border border-gray-200 rounded-md p-4">
-      <h3 className="text-lg font-medium">Write a Review</h3>
+      <h3 className="text-lg font-medium">Write a question here</h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Review Text */}

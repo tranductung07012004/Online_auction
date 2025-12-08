@@ -110,90 +110,86 @@ const Categories: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
+    <div className="relative flex flex-col min-h-screen">
       <Header />
 
-      <Box sx={{ display: "flex", flex: 1 }}>
-        <AdminSidebar />
-
-        <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
-          <Container maxWidth="lg">
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 4,
-              }}
+      <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 4,
+            }}
+          >
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>
+              Categories Management
+            </Typography>
+            <Button
+              variant="contained"
+              sx={{ bgcolor: "#E53935" }}
+              startIcon={<Plus size={20} />}
+              onClick={() => handleOpenDialog()}
             >
-              <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                Categories Management
-              </Typography>
-              <Button
-                variant="contained"
-                sx={{ bgcolor: "#E53935" }}
-                startIcon={<Plus size={20} />}
-                onClick={() => handleOpenDialog()}
-              >
-                Add Category
-              </Button>
-            </Box>
+              Add Category
+            </Button>
+          </Box>
 
-            <Card>
-              <CardContent sx={{ p: 0 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead sx={{ bgcolor: "#f5f5f5" }}>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>
-                          Description
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>
+                        Description
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Products
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Actions
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {categories.map((category) => (
+                      <TableRow key={category.id} hover>
+                        <TableCell sx={{ fontWeight: 500 }}>
+                          {category.name}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Products
+                        <TableCell>{category.description}</TableCell>
+                        <TableCell align="center">
+                          <Chip label={category.productCount} size="small" />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Actions
+                        <TableCell>{category.createdAt}</TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenDialog(category)}
+                          >
+                            <Edit size={18} />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteCategory(category.id)}
+                          >
+                            <Trash2 size={18} />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {categories.map((category) => (
-                        <TableRow key={category.id} hover>
-                          <TableCell sx={{ fontWeight: 500 }}>
-                            {category.name}
-                          </TableCell>
-                          <TableCell>{category.description}</TableCell>
-                          <TableCell align="center">
-                            <Chip label={category.productCount} size="small" />
-                          </TableCell>
-                          <TableCell>{category.createdAt}</TableCell>
-                          <TableCell align="center">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleOpenDialog(category)}
-                            >
-                              <Edit size={18} />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteCategory(category.id)}
-                            >
-                              <Trash2 size={18} />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-          </Container>
-        </Box>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Container>
       </Box>
 
       {/* Add/Edit Category Dialog */}
@@ -239,7 +235,7 @@ const Categories: React.FC = () => {
       </Dialog>
 
       <Footer />
-    </Box>
+    </div>
   );
 };
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   List,
@@ -9,6 +9,7 @@ import {
   Drawer,
   Typography,
   Divider,
+  Avatar,
 } from "@mui/material";
 import {
   LayoutDashboard,
@@ -18,130 +19,238 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Category as CategoryIcon,
+  AdminPanelSettings as AdminIcon,
+} from "@mui/icons-material";
+const logo = "/LOGO.png";
+import { useNavigate } from "react-router-dom";
 
-interface NavItem {
-  id: string;
-  label: string;
+// MenuItem type for drawer menu
+interface SubCategory {
+  text: string;
+  value: string;
+}
+
+interface MenuItem {
+  text: string;
   icon: React.ReactNode;
   path: string;
+  subcategories?: SubCategory[];
 }
+
+interface DrawerLogoProps {
+  logo: string;
+}
+
+const DrawerLogo: React.FC<DrawerLogoProps> = ({ logo }) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      mb: 2,
+    }}
+  >
+    <Box
+      component="img"
+      src={logo}
+      alt="Logo"
+      sx={{ width: 80, height: 80, objectFit: "cover" }}
+    />
+  </Box>
+);
+
+interface MenuItemsListProps {
+  items: MenuItem[];
+  onItemClick: (path: string, category: string) => void;
+  sectionTitle?: string;
+}
+
+const MenuItemsList: React.FC<MenuItemsListProps> = ({
+  items,
+  onItemClick,
+  sectionTitle,
+}) => {
+  return (
+    <>
+      {sectionTitle && (
+        <Box
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            color: "#C3937C",
+            mb: 1,
+            px: 2,
+            letterSpacing: "0.5px",
+            textTransform: "uppercase",
+          }}
+        >
+          {sectionTitle}
+        </Box>
+      )}
+      <List>
+        {items.map((item) => {
+          return (
+            <React.Fragment key={item.text}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    onItemClick(item.path, item.text);
+                  }}
+                  sx={{
+                    borderRadius: "8px",
+                    mb: 1,
+                    "&:hover": {
+                      bgcolor: "rgba(195, 147, 124, 0.08)",
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: "#C3937C", minWidth: 40 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      "& .MuiListItemText-primary": {
+                        color: "#C3937C",
+                        fontWeight: 500,
+                      },
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            </React.Fragment>
+          );
+        })}
+      </List>
+    </>
+  );
+};
+
+interface UserInfoProps {
+  isAuthenticated: boolean;
+  role: string | null;
+}
+
+const UserInfo: React.FC<UserInfoProps> = ({ isAuthenticated, role }) => {
+  if (!isAuthenticated) return null;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 2,
+        p: 2,
+        bgcolor: "rgba(195, 147, 124, 0.08)",
+        borderRadius: "8px",
+      }}
+    >
+      <Avatar sx={{ bgcolor: "#C3937C" }}>
+        {role === "admin" ? "A" : "U"}
+      </Avatar>
+      <Box>
+        <Box sx={{ fontSize: "0.875rem", fontWeight: 600, color: "#333" }}>
+          {role === "admin" ? "Admin" : "User"}
+        </Box>
+        <Box sx={{ fontSize: "0.75rem", color: "#666" }}>Logged in</Box>
+      </Box>
+    </Box>
+  );
+};
+
+interface NavigationDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  logo: string;
+  menuItems: MenuItem[];
+  onMenuItemClick: (path: string, category: string) => void;
+  isAuthenticated: boolean;
+  role: string | null;
+}
+
+const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
+  open,
+  onClose,
+  logo,
+  menuItems,
+  onMenuItemClick,
+  isAuthenticated,
+  role,
+}) => (
+  <Drawer
+    anchor="left"
+    open={open}
+    onClose={onClose}
+    sx={{
+      "& .MuiDrawer-paper": {
+        width: { xs: 280, sm: 320 },
+        bgcolor: "#fdfcf9",
+      },
+    }}
+  >
+    <Box sx={{ p: 3 }}>
+      <DrawerLogo logo={logo} />
+      <Divider sx={{ my: 2 }} />
+
+      {/* Menu Items */}
+      <MenuItemsList
+        items={menuItems}
+        onItemClick={onMenuItemClick}
+        sectionTitle="Menu"
+      />
+
+      <Divider sx={{ my: 2 }} />
+      <UserInfo isAuthenticated={isAuthenticated} role={role} />
+    </Box>
+  </Drawer>
+);
 
 const AdminSidebar: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const navItems: NavItem[] = [
+  const [drawerOpen, setDrawerOpen] = useState(true);
+
+  const toggleDrawer = (open: boolean) => () => {
+    setDrawerOpen(open);
+  };
+
+  const menuItems: MenuItem[] = [
     {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: <LayoutDashboard size={20} />,
+      text: "Dashboard",
+      icon: <AdminIcon />,
       path: "/admin/dashboard",
     },
     {
-      id: "products",
-      label: "Products",
-      icon: <Package size={20} />,
-      path: "/admin/products",
-    },
-    {
-      id: "categories",
-      label: "Categories",
-      icon: <ShoppingCart size={20} />,
+      text: "Categories",
+      icon: <CategoryIcon />,
       path: "/admin/categories",
     },
     {
-      id: "users",
-      label: "Users",
-      icon: <Users size={20} />,
+      text: "Manage Users",
+      icon: <Users />,
       path: "/admin/users",
     },
     {
-      id: "settings",
-      label: "Settings",
-      icon: <Settings size={20} />,
-      path: "/admin/settings",
+      text: "Manage Products",
+      icon: <Package />,
+      path: "/admin/products",
     },
   ];
-
-  const isActive = (path: string) => location.pathname === path;
-
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: 240,
-        "& .MuiDrawer-paper": {
-          width: 240,
-          boxSizing: "border-box",
-          bgcolor: "#2c3e50",
-          color: "white",
-          pt: 2,
-        },
+    <NavigationDrawer
+      open={drawerOpen}
+      onClose={toggleDrawer(false)}
+      logo={logo}
+      menuItems={menuItems}
+      onMenuItemClick={(path, category) => {
+        navigate(path);
+        toggleDrawer(false)();
       }}
-    >
-      <Box sx={{ p: 2, mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: "#E53935" }}>
-          🎯 Admin Panel
-        </Typography>
-      </Box>
-
-      <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)" }} />
-
-      <List sx={{ pt: 2 }}>
-        {navItems.map((item) => (
-          <ListItem key={item.id} disablePadding sx={{ mb: 1, px: 1 }}>
-            <ListItemButton
-              onClick={() => navigate(item.path)}
-              sx={{
-                borderRadius: 1,
-                backgroundColor: isActive(item.path)
-                  ? "rgba(229, 57, 53, 0.2)"
-                  : "transparent",
-                color: isActive(item.path)
-                  ? "#E53935"
-                  : "rgba(255,255,255,0.7)",
-                "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.1)",
-                },
-                "& .MuiListItemIcon-root": {
-                  color: "inherit",
-                  minWidth: 40,
-                },
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-
-      <Divider sx={{ bgcolor: "rgba(255,255,255,0.1)", my: 2 }} />
-
-      <Box sx={{ p: 2, mt: "auto" }}>
-        <ListItemButton
-          onClick={() => navigate("/")}
-          sx={{
-            borderRadius: 1,
-            color: "rgba(255,255,255,0.7)",
-            "&:hover": {
-              bgcolor: "rgba(255,255,255,0.1)",
-              color: "#E53935",
-            },
-            "& .MuiListItemIcon-root": {
-              color: "inherit",
-              minWidth: 40,
-            },
-          }}
-        >
-          <ListItemIcon>
-            <LogOut size={20} />
-          </ListItemIcon>
-          <ListItemText primary="Logout" />
-        </ListItemButton>
-      </Box>
-    </Drawer>
+      isAuthenticated={true}
+      role="admin"
+    />
   );
 };
 

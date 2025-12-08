@@ -29,15 +29,15 @@ export interface ProductCardProps {
   product_name: string;
   thumpnail_url: string;
   seller: SellerProps;
-  buy_now_price: number | null; // Có thể null nếu không có giá mua ngay
+  buy_now_price: number | null; // Can be null if no buy now price
   minimum_bid_step: number;
   start_at: string | Date;
   end_at: string | Date;
-  current_price: number; // Giá hiện tại (giá bid cao nhất)
+  current_price: number; // Current price (highest bid)
   highest_bidder: BidderProps | null; // Thông tin bidder đang đặt giá cao nhất
-  created_at?: string | Date; // Ngày đăng sản phẩm
-  posted_at?: string | Date; // Ngày đăng sản phẩm (alias)
-  bid_count: number; // Số lượt ra giá hiện tại
+  created_at?: string | Date; // Product posted date
+  posted_at?: string | Date; // Product posted date (alias)
+  bid_count: number; // Current bid count
 }
 
 export default function ProductCard({
@@ -90,7 +90,7 @@ export default function ProductCard({
       const diff = end.getTime() - now.getTime();
 
       if (diff <= 0) {
-        setTimeRemaining('Đã kết thúc');
+        setTimeRemaining('Ended');
         return;
       }
 
@@ -100,13 +100,13 @@ export default function ProductCard({
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
       if (days > 0) {
-        setTimeRemaining(`${days} ngày ${hours} giờ`);
+        setTimeRemaining(`${days} days ${hours} hours`);
       } else if (hours > 0) {
-        setTimeRemaining(`${hours} giờ ${minutes} phút`);
+        setTimeRemaining(`${hours} hours ${minutes} minutes`);
       } else if (minutes > 0) {
-        setTimeRemaining(`${minutes} phút ${seconds} giây`);
+        setTimeRemaining(`${minutes} minutes ${seconds} seconds`);
       } else {
-        setTimeRemaining(`${seconds} giây`);
+        setTimeRemaining(`${seconds} seconds`);
       }
     };
 
@@ -134,6 +134,7 @@ export default function ProductCard({
         borderRadius: 2,
         overflow: 'hidden',
         height: '100%',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.3s ease',
@@ -204,7 +205,7 @@ export default function ProductCard({
             <Typography
               variant="h6"
               sx={{
-                color: '#E53935',
+                color: 'text.secondary',
                 fontWeight: 700,
                 fontSize: '1.25rem',
               }}
@@ -218,7 +219,7 @@ export default function ProductCard({
                 fontSize: '0.75rem',
               }}
             >
-              Giá hiện tại
+              Current Price
             </Typography>
           </Box>
 
@@ -259,7 +260,7 @@ export default function ProductCard({
                     fontSize: '0.75rem',
                   }}
                 >
-                  Người đặt giá cao nhất
+                  Highest Bidder
                 </Typography>
               </Box>
             </Box>
@@ -285,7 +286,7 @@ export default function ProductCard({
                   fontSize: '0.75rem',
                 }}
               >
-                Giá mua ngay
+                Buy Now Price
               </Typography>
             </Box>
           )}
@@ -302,7 +303,7 @@ export default function ProductCard({
                 display: 'block',
               }}
             >
-              Ngày đăng: {new Date(postedDate).toLocaleDateString('vi-VN', {
+              Posted: {new Date(postedDate).toLocaleDateString('en-US', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
@@ -320,7 +321,7 @@ export default function ProductCard({
                 fontSize: '0.875rem',
               }}
             >
-              ⏱️ Còn lại: {timeRemaining}
+              ⏱️ Time Remaining: {timeRemaining}
             </Typography>
           </Box>
 
@@ -333,7 +334,7 @@ export default function ProductCard({
                 fontSize: '0.75rem',
               }}
             >
-              Số lượt ra giá: <strong>{bid_count}</strong>
+              Bid Count: <strong>{bid_count}</strong>
             </Typography>
           </Box>
         </Stack>

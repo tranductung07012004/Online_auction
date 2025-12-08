@@ -22,7 +22,6 @@ import {
 import { ShoppingCart, Users, Package, TrendingUp } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
-import AdminSidebar from "./AdminSidebar";
 
 interface DashboardStats {
   totalProducts: number;
@@ -76,31 +75,63 @@ const Dashboard: React.FC = () => {
     value: string | number;
     color: string;
   }> = ({ icon, label, value, color }) => (
-    <Card sx={{ height: "100%" }}>
-      <CardContent>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <Card
+      sx={{
+        height: "100%",
+        minHeight: { xs: 120, sm: 140, md: 160 },
+        display: "flex",
+        alignItems: "center",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+        },
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2, sm: 3 }, width: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: { xs: 1.5, sm: 2 },
+            flexDirection: { xs: "column", sm: "row" },
+            textAlign: { xs: "center", sm: "left" },
+            justifyContent: "center",
+          }}
+        >
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 60,
-              height: 60,
+              width: { xs: 50, sm: 60 },
+              height: { xs: 50, sm: 60 },
               borderRadius: "50%",
               backgroundColor: `${color}20`,
               color,
+              flexShrink: 0,
             }}
           >
             {icon}
           </Box>
-          <Box>
-            <Typography color="textSecondary" variant="body2">
+          <Box sx={{ width: "100%" }}>
+            <Typography
+              color="textSecondary"
+              variant="body2"
+              sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+            >
               {label}
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+              }}
+            >
               {typeof value === "number" && label.includes("Revenue")
                 ? `${(value / 1000000).toFixed(1)}M`
-                : value}
+                : value.toLocaleString()}
             </Typography>
           </Box>
         </Box>
@@ -109,21 +140,46 @@ const Dashboard: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
+    <div className="relative flex flex-col min-h-screen">
       <Header />
 
-      <Box sx={{ display: "flex", flex: 1 }}>
-        <AdminSidebar />
-
-        <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
-          <Container maxWidth="lg">
-            <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            bgcolor: "#f5f5f5",
+            p: { xs: 2, sm: 3, md: 4 },
+          }}
+        >
+          <Container maxWidth="lg" sx={{ width: "100%" }}>
+            <Typography
+              variant="h4"
+              sx={{
+                mb: { xs: 3, sm: 4 },
+                fontWeight: 600,
+                fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+              }}
+            >
               Dashboard
             </Typography>
 
             {/* Stats Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              container
+              spacing={{ xs: 2, sm: 3 }}
+              sx={{
+                mb: { xs: 3, sm: 4 },
+                maxWidth: "100%",
+              }}
+            >
+              <Grid item xs={6} sm={6} md={3}>
                 <StatCard
                   icon={<Package size={28} />}
                   label="Total Products"
@@ -131,7 +187,7 @@ const Dashboard: React.FC = () => {
                   color="#E53935"
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <StatCard
                   icon={<Users size={28} />}
                   label="Total Users"
@@ -139,7 +195,7 @@ const Dashboard: React.FC = () => {
                   color="#1976D2"
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <StatCard
                   icon={<ShoppingCart size={28} />}
                   label="Total Orders"
@@ -147,7 +203,7 @@ const Dashboard: React.FC = () => {
                   color="#388E3C"
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <StatCard
                   icon={<TrendingUp size={28} />}
                   label="Total Revenue"
@@ -158,25 +214,63 @@ const Dashboard: React.FC = () => {
             </Grid>
 
             {/* Charts */}
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
+              <Grid item xs={12} lg={6}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    transition: "box-shadow 0.2s",
+                    "&:hover": {
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        mb: 2,
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
                       Monthly Sales
                     </Typography>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={salesData}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={300}
+                      minHeight={250}
+                    >
+                      <LineChart
+                        data={salesData}
+                        margin={{
+                          top: 5,
+                          right: 10,
+                          left: 0,
+                          bottom: 5,
+                        }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
+                        <XAxis
+                          dataKey="month"
+                          style={{ fontSize: "0.875rem" }}
+                        />
+                        <YAxis style={{ fontSize: "0.875rem" }} />
+                        <Tooltip
+                          contentStyle={{
+                            fontSize: "0.875rem",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
                         <Line
                           type="monotone"
                           dataKey="sales"
                           stroke="#E53935"
+                          strokeWidth={2}
                           name="Sales (VND)"
+                          dot={{ r: 4 }}
+                          activeDot={{ r: 6 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -184,20 +278,60 @@ const Dashboard: React.FC = () => {
                 </Card>
               </Grid>
 
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              <Grid item xs={12} lg={6}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    transition: "box-shadow 0.2s",
+                    "&:hover": {
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        mb: 2,
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
                       Orders Per Month
                     </Typography>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={salesData}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={300}
+                      minHeight={250}
+                    >
+                      <BarChart
+                        data={salesData}
+                        margin={{
+                          top: 5,
+                          right: 10,
+                          left: 0,
+                          bottom: 5,
+                        }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="orders" fill="#1976D2" name="Orders" />
+                        <XAxis
+                          dataKey="month"
+                          style={{ fontSize: "0.875rem" }}
+                        />
+                        <YAxis style={{ fontSize: "0.875rem" }} />
+                        <Tooltip
+                          contentStyle={{
+                            fontSize: "0.875rem",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
+                        <Bar
+                          dataKey="orders"
+                          fill="#1976D2"
+                          name="Orders"
+                          radius={[8, 8, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
@@ -209,7 +343,7 @@ const Dashboard: React.FC = () => {
       </Box>
 
       <Footer />
-    </Box>
+    </div>
   );
 };
 

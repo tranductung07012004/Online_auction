@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -10,21 +10,20 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Button,
+  Typography,
+  Chip,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
-  Typography,
-  Chip,
-  IconButton,
-  Paper,
+  Button,
 } from "@mui/material";
-import { Edit, Trash2, Plus, Eye } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
-import AdminSidebar from "./AdminSidebar";
+import { ProductSearchBar } from "./ProductSearchBar";
+import { useSearchParams } from "react-router-dom";
 
 interface Product {
   id: string;
@@ -39,6 +38,9 @@ interface Product {
 }
 
 const Products: React.FC = () => {
+  // --------------------------------------
+  // 1) DATA STATE (original + filtered)
+  // --------------------------------------
   const [products, setProducts] = useState<Product[]>([
     {
       id: "1",
@@ -74,83 +76,77 @@ const Products: React.FC = () => {
     },
   ]);
 
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    startPrice: "",
-    stepPrice: "",
-    buyNowPrice: "",
-  });
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
 
-  const handleOpenDialog = (product?: Product) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        category: product.category,
-        startPrice: product.startPrice.toString(),
-        stepPrice: product.stepPrice.toString(),
-        buyNowPrice: product.buyNowPrice?.toString() || "",
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData({
-        name: "",
-        category: "",
-        startPrice: "",
-        stepPrice: "",
-        buyNowPrice: "",
-      });
-    }
-    setOpenDialog(true);
-  };
+  // --------------------------------------
+  // 2) URL SYNC
+  // --------------------------------------
+  const [searchParams] = useSearchParams();
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setEditingProduct(null);
-  };
+  const urlQ = searchParams.get("q") || "";
+  const urlCategory = searchParams.get("category") || "";
+  const urlStatus = searchParams.get("status") || "";
 
-  const handleSaveProduct = () => {
-    if (editingProduct) {
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id
-            ? {
-                ...p,
-                name: formData.name,
-                category: formData.category,
-                startPrice: parseInt(formData.startPrice),
-                stepPrice: parseInt(formData.stepPrice),
-                buyNowPrice: formData.buyNowPrice
-                  ? parseInt(formData.buyNowPrice)
-                  : undefined,
-              }
-            : p
-        )
+  // --------------------------------------
+  // 3) SEARCH / FILTER STATE
+  // --------------------------------------
+  const [searchText, setSearchText] = useState(urlQ);
+  const [filterCategory, setFilterCategory] = useState(urlCategory);
+  const [filterStatus, setFilterStatus] = useState(urlStatus);
+
+  // --------------------------------------
+  // 4) LOADING STATE (giống ProductPage)
+  // --------------------------------------
+  const [loading, setLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+
+  // --------------------------------------
+  // 5) APPLY URL FILTERS ON PAGE LOAD
+  // --------------------------------------
+  useEffect(() => {
+    setSearchText(urlQ);
+    setFilterCategory(urlCategory);
+    setFilterStatus(urlStatus);
+  }, [urlQ, urlCategory, urlStatus]);
+
+  // --------------------------------------
+  // 6) MAIN FILTER LOGIC (giống ProductPage)
+  // --------------------------------------
+  useEffect(() => {
+    setIsSearching(true);
+
+    let result = [...products];
+
+    // Search text
+    if (searchText.trim()) {
+      result = result.filter((p) =>
+        p.name.toLowerCase().includes(searchText.toLowerCase())
       );
-    } else {
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        name: formData.name,
-        category: formData.category,
-        startPrice: parseInt(formData.startPrice),
-        stepPrice: parseInt(formData.stepPrice),
-        buyNowPrice: formData.buyNowPrice
-          ? parseInt(formData.buyNowPrice)
-          : undefined,
-        status: "draft",
-        bids: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setProducts([...products, newProduct]);
     }
-    handleCloseDialog();
-  };
 
+    // Category filter
+    if (filterCategory.trim()) {
+      result = result.filter((p) => p.category === filterCategory);
+    }
+
+    // Status filter
+    if (filterStatus.trim()) {
+      result = result.filter((p) => p.status === filterStatus);
+    }
+
+    setFilteredProducts(result);
+    setIsSearching(false);
+  }, [products, searchText, filterCategory, filterStatus]);
+
+  // --------------------------------------
+  // 7) DELETE PRODUCT
+  // --------------------------------------
   const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id));
+    setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
   const formatPrice = (price: number) => {
@@ -160,182 +156,144 @@ const Products: React.FC = () => {
     }).format(price);
   };
 
+  // --------------------------------------
+  // RENDER
+  // --------------------------------------
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
+    <div className="relative flex flex-col min-h-screen">
       <Header />
 
-      <Box sx={{ display: "flex", flex: 1 }}>
-        <AdminSidebar />
+      <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
+        <Container maxWidth="lg">
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>
+              Products Management
+            </Typography>
+          </Box>
 
-        <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
-          <Container maxWidth="lg">
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 4,
-              }}
-            >
-              <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                Products Management
-              </Typography>
-              <Button
-                variant="contained"
-                sx={{ bgcolor: "#E53935" }}
-                startIcon={<Plus size={20} />}
-                onClick={() => handleOpenDialog()}
-              >
-                Add Product
-              </Button>
-            </Box>
+          {/* Search Bar (bạn sẽ xử lý truyền filter vào đây sau) */}
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+            <ProductSearchBar />
+          </Box>
 
-            <Card>
-              <CardContent sx={{ p: 0 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead sx={{ bgcolor: "#f5f5f5" }}>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">
-                          Start Price
+          {/* TABLE - giữ nguyên */}
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">
+                        Start Price
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">
+                        Step Price
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Bids
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Actions
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {filteredProducts.map((product) => (
+                      <TableRow key={product.id} hover>
+                        <TableCell>{product.name}</TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell align="right">
+                          {formatPrice(product.startPrice)}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">
-                          Step Price
+                        <TableCell align="right">
+                          {formatPrice(product.stepPrice)}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Bids
+
+                        <TableCell>
+                          <Chip
+                            label={product.status}
+                            size="small"
+                            color={
+                              product.status === "active"
+                                ? "success"
+                                : product.status === "ended"
+                                ? "error"
+                                : "default"
+                            }
+                          />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Actions
+
+                        <TableCell align="center">{product.bids}</TableCell>
+                        <TableCell>{product.createdAt}</TableCell>
+
+                        <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              setProductToDelete(product.id);
+                              setDeleteConfirmOpen(true);
+                            }}
+                          >
+                            <Trash2 size={18} />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {products.map((product) => (
-                        <TableRow key={product.id} hover>
-                          <TableCell>{product.name}</TableCell>
-                          <TableCell>{product.category}</TableCell>
-                          <TableCell align="right">
-                            {formatPrice(product.startPrice)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatPrice(product.stepPrice)}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={product.status}
-                              size="small"
-                              color={
-                                product.status === "active"
-                                  ? "success"
-                                  : product.status === "ended"
-                                  ? "error"
-                                  : "default"
-                              }
-                            />
-                          </TableCell>
-                          <TableCell align="center">{product.bids}</TableCell>
-                          <TableCell>{product.createdAt}</TableCell>
-                          <TableCell align="center">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleOpenDialog(product)}
-                            >
-                              <Edit size={18} />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteProduct(product.id)}
-                            >
-                              <Trash2 size={18} />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-          </Container>
-        </Box>
+                    ))}
+
+                    {filteredProducts.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                          <Typography>No products found.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Container>
       </Box>
 
-      {/* Add/Edit Product Dialog */}
       <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>
-          {editingProduct ? "Edit Product" : "Add New Product"}
-        </DialogTitle>
-        <DialogContent
-          sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}
-        >
-          <TextField
-            label="Product Name"
-            fullWidth
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-          <TextField
-            label="Category"
-            fullWidth
-            value={formData.category}
-            onChange={(e) =>
-              setFormData({ ...formData, category: e.target.value })
-            }
-          />
-          <TextField
-            label="Start Price"
-            type="number"
-            fullWidth
-            value={formData.startPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, startPrice: e.target.value })
-            }
-          />
-          <TextField
-            label="Step Price"
-            type="number"
-            fullWidth
-            value={formData.stepPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, stepPrice: e.target.value })
-            }
-          />
-          <TextField
-            label="Buy Now Price (Optional)"
-            type="number"
-            fullWidth
-            value={formData.buyNowPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, buyNowPrice: e.target.value })
-            }
-          />
+        <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn
+            tác.
+          </Typography>
         </DialogContent>
+
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Hủy</Button>
+
           <Button
-            onClick={handleSaveProduct}
+            color="error"
             variant="contained"
-            sx={{ bgcolor: "#E53935" }}
+            onClick={() => {
+              if (productToDelete) handleDeleteProduct(productToDelete);
+              setDeleteConfirmOpen(false);
+            }}
           >
-            Save
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>
 
       <Footer />
-    </Box>
+    </div>
   );
 };
 

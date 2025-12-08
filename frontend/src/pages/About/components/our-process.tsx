@@ -11,26 +11,26 @@ export function OurProcess() {
   const steps: ProcessStep[] = [
     {
       icon: Calendar,
-      title: "Đặt lịch hẹn",
+      title: "Book Appointment",
       description:
-        "Đặt lịch hẹn trực tuyến hoặc qua điện thoại để được tư vấn cá nhân với chuyên gia váy cưới của chúng tôi.",
+        "Book an appointment online or by phone for a personal consultation with our wedding dress experts.",
     },
     {
       icon: Sparkles,
-      title: "Tìm váy hoàn hảo",
+      title: "Find Perfect Dress",
       description:
-        "Chuyên gia của chúng tôi sẽ giúp bạn khám phá và thử các mẫu váy phù hợp với phong cách, vóc dáng và ngân sách của bạn.",
+        "Our experts will help you explore and try on dresses that match your style, body type, and budget.",
     },
     {
       icon: Check,
-      title: "Đặt thuê váy",
-      description: "Khi đã tìm được chiếc váy hoàn hảo, bạn có thể đặt thuê ngay với thời gian linh hoạt từ 3-7 ngày.",
+      title: "Rent Dress",
+      description: "Once you've found the perfect dress, you can rent it immediately with flexible rental periods from 3-7 days.",
     },
     {
       icon: Heart,
-      title: "Tỏa sáng trong ngày cưới",
+      title: "Shine on Your Wedding Day",
       description:
-        "Nhận váy đã được vệ sinh và chuẩn bị kỹ lưỡng, sẵn sàng để bạn tỏa sáng trong ngày trọng đại của mình.",
+        "Receive your dress cleaned and carefully prepared, ready for you to shine on your special day.",
     },
   ]
 
@@ -38,11 +38,11 @@ export function OurProcess() {
     <section className="py-20 bg-[#f8f3ee]">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-4xl  mb-6">Quy trình của chúng tôi</h2>
+          <h2 className="text-3xl md:text-4xl  mb-6">Our Process</h2>
           <div className="w-20 h-1 bg-[#c3937c] mx-auto mb-8"></div>
           <p className="text-lg text-[#404040]">
-            Chúng tôi đã tạo ra một quy trình đơn giản và hiệu quả để giúp bạn tìm được chiếc váy cưới trong mơ một cách
-            dễ dàng và không căng thẳng.
+            We've created a simple and efficient process to help you find your dream wedding dress easily
+            and stress-free.
           </p>
         </div>
 

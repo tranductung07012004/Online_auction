@@ -5,7 +5,7 @@ import { LoadingOverlay } from "../components/ui/LoadingOverlay";
 import UserLayout from "../components/layouts/UserLayout";
 
 // Lazy load pages
-const Home = lazy(() => import("../pages/Home/Home"));
+const HomeNew = lazy(() => import("../pages/Home/Home"));
 const NotFoundPage = lazy(() => import("../pages/404/404"));
 const PDP = lazy(() => import("../pages/PDP/PDP"));
 const PCP = lazy(() => import("../pages/PCP/PCP"));
@@ -13,11 +13,15 @@ const ProfilePage = lazy(() => import("../pages/Profile/ProfilePage"));
 const OrderHistory = lazy(() => import("../pages/Profile/OrderHistory"));
 const Address = lazy(() => import("../pages/Profile/Address"));
 const OrderDetails = lazy(() => import("../pages/Profile/OrderDetails"));
-const Review = lazy(() => import("../pages/Payment/Review"));
-const Information = lazy(() => import("../pages/Payment/Information"));
-const Shipping = lazy(() => import("../pages/Payment/Shipping"));
+const SellerRequest = lazy(() => import("../pages/Profile/SellerRequest"));
+const WatchList = lazy(() => import("../pages/Profile/WatchList"));
+const MyBids = lazy(() => import("../pages/Profile/MyBids"));
+const MyProducts = lazy(() => import("../pages/Profile/MyProducts"));
+const CreateProduct = lazy(() => import("../pages/Seller/CreateProduct"));
 const Checkout = lazy(() => import("../pages/Payment/Checkout"));
+const Information = lazy(() => import("../pages/Payment/Information"));
 const Successful = lazy(() => import("../pages/Payment/Successful"));
+const PaymentReview = lazy(() => import("../pages/Payment/PaymentReview"));
 const SearchOverlay = lazy(() => import("../pages/Search/SearchOverlay"));
 const Appointment = lazy(() => import("../pages/Appointment/Appointment"));
 const Photography = lazy(() => import("../pages/Photography/Photography"));
@@ -68,10 +72,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
 const AppRoutes = () => {
   const routes = [
-    { path: "/", element: <Home /> },
+    { path: "/", element: <HomeNew /> },
     { path: "/pdp", element: <PDP /> },
     { path: "/pdp/:id", element: <PDP /> },
-    { path: "/product/:id", element: <PDP /> },
+    // { path: '/product/:id', element: <PDP /> },
     { path: "/pcp", element: <PCP /> },
     { path: "/appointment", element: <Appointment /> },
     { path: "/photography", element: <Photography /> },
@@ -81,20 +85,26 @@ const AppRoutes = () => {
     },
     {
       path: "/profile",
+      //(
       element: (
-        <ProtectedRoute requiredRole="user">
-          <ProfilePage />
-        </ProtectedRoute>
+        // <ProtectedRoute requiredRole="user">
+        <ProfilePage />
       ),
+      // </ProtectedRoute>
+      // ),
     },
     { path: "/order-history", element: <OrderHistory /> },
     { path: "/address", element: <Address /> },
     { path: "/order-details/:id", element: <OrderDetails /> },
-    { path: "/payment-review", element: <Review /> },
-    { path: "/payment-information", element: <Information /> },
-    { path: "/payment-shipping", element: <Shipping /> },
+    { path: "/become-seller", element: <SellerRequest /> },
+    { path: "/watchlist", element: <WatchList /> },
+    { path: "/my-bids", element: <MyBids /> },
+    { path: "/my-products", element: <MyProducts /> },
+    { path: "/create-product", element: <CreateProduct /> },
     { path: "/payment-checkout", element: <Checkout /> },
+    { path: "/payment-information", element: <Information /> },
     { path: "/payment-successful", element: <Successful /> },
+    { path: "/payment-review", element: <PaymentReview /> },
     { path: "/order-success", element: <Successful /> },
 
     // Admin Routes

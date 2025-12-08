@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -14,7 +14,7 @@ import {
   Avatar,
   Badge,
   Collapse,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
@@ -27,11 +27,16 @@ import {
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
   Store as StoreIcon,
-} from '@mui/icons-material';
-import logo from '../../public/LOGO.png';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useNavigationStore } from '../stores';
+  Inventory2 as InventoryIcon,
+  Category as CategoryIcon,
+  AdminPanelSettings as AdminIcon,
+  Logout as LogoutIcon,
+} from "@mui/icons-material";
+import { Package, Users } from "lucide-react";
+import logo from "/LOGO.png";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useNavigationStore } from "../stores";
 
 // MenuItem type for drawer menu
 interface SubCategory {
@@ -54,62 +59,92 @@ interface LogoProps {
   onClick?: () => void;
 }
 
-
-const Logo: React.FC<LogoProps> = ({onClick}) => (
+const Logo: React.FC<LogoProps> = ({ onClick }) => (
   <Box
-    component="img"
-    src={logo}
-    alt="Logo"
     onClick={onClick}
     sx={{
-      width: 100,
-      height: 100,
-      cursor: 'pointer'
+      width: { xs: "50px", sm: "60px", md: "70px", lg: "80px" },
+      height: { xs: "50px", sm: "60px", md: "70px", lg: "80px" },
+      overflow: "hidden",
+      cursor: "pointer",
+      borderRadius: "8px",
     }}
-  />
+  >
+    <Box
+      component="img"
+      src={logo}
+      alt="Logo"
+      sx={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        objectPosition: "center",
+      }}
+    />
+  </Box>
 );
 
 const MenuButton = ({ onClick }: { onClick: () => void }) => (
   <IconButton
     onClick={onClick}
     sx={{
-      color: '#C3937C',
-      '&:hover': { bgcolor: 'rgba(195, 147, 124, 0.08)' },
+      color: "#C3937C",
+      "&:hover": { bgcolor: "rgba(195, 147, 124, 0.08)" },
     }}
   >
     <MenuIcon sx={{ fontSize: 28 }} />
   </IconButton>
 );
 
-
 interface UserActionsProps {
   onProfileClick: () => void;
   onCartClick: () => void;
+  onCreateProductClick: () => void;
+  isAdmin?: boolean;
 }
 
-const UserActions: React.FC<UserActionsProps> = ({ onProfileClick, onCartClick }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+const UserActions: React.FC<UserActionsProps> = ({
+  onProfileClick,
+  onCartClick,
+  onCreateProductClick,
+  isAdmin = false,
+}) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 } }}>
+    {!isAdmin && (
+      <IconButton
+        onClick={onCreateProductClick}
+        sx={{
+          color: "#C3937C",
+          "&:hover": { bgcolor: "rgba(195, 147, 124, 0.08)" },
+        }}
+      >
+        <InventoryIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
+      </IconButton>
+    )}
+
     <IconButton
       onClick={onProfileClick}
       sx={{
-        color: '#C3937C',
-        '&:hover': { bgcolor: 'rgba(195, 147, 124, 0.08)' },
+        color: "#C3937C",
+        "&:hover": { bgcolor: "rgba(195, 147, 124, 0.08)" },
       }}
     >
       <PersonIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
     </IconButton>
 
-    <IconButton
-      onClick={onCartClick}
-      sx={{
-        color: '#C3937C',
-        '&:hover': { bgcolor: 'rgba(195, 147, 124, 0.08)' },
-      }}
-    >
-      <Badge badgeContent={0} color="error">
-        <CartIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
-      </Badge>
-    </IconButton>
+    {!isAdmin && (
+      <IconButton
+        onClick={onCartClick}
+        sx={{
+          color: "#C3937C",
+          "&:hover": { bgcolor: "rgba(195, 147, 124, 0.08)" },
+        }}
+      >
+        <Badge badgeContent={0} color="error">
+          <CartIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
+        </Badge>
+      </IconButton>
+    )}
   </Box>
 );
 
@@ -120,8 +155,9 @@ interface DrawerLogoProps {
 const DrawerLogo: React.FC<DrawerLogoProps> = ({ logo }) => (
   <Box
     sx={{
-      display: 'flex',
-      alignItems: 'center',
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       mb: 2,
     }}
   >
@@ -129,161 +165,203 @@ const DrawerLogo: React.FC<DrawerLogoProps> = ({ logo }) => (
       component="img"
       src={logo}
       alt="Logo"
-      sx={{ width: 80, height: 80 }}
+      sx={{ width: 80, height: 80, objectFit: "cover" }}
     />
   </Box>
 );
 
-
 interface MenuItemsListProps {
   items: MenuItem[];
-  onItemClick: (path: string, subcategory?: string) => void;
+  onItemClick: (path: string, category: string) => void;
+  sectionTitle?: string;
 }
 
-const MenuItemsList: React.FC<MenuItemsListProps> = ({ items, onItemClick }) => {
+const MenuItemsList: React.FC<MenuItemsListProps> = ({
+  items,
+  onItemClick,
+  sectionTitle,
+}) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const handleToggle = (path: string) => {
+  const handleToggle = (itemText: string) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(path)) {
-        newSet.delete(path);
+      if (newSet.has(itemText)) {
+        newSet.delete(itemText);
       } else {
-        newSet.add(path);
+        newSet.add(itemText);
       }
       return newSet;
     });
   };
 
   return (
-    <List>
-      {items.map((item) => {
-        const isExpanded = expandedItems.has(item.path);
-        const hasSubcategories = item.subcategories && item.subcategories.length > 0;
+    <>
+      {sectionTitle && (
+        <Box
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            color: "#C3937C",
+            mb: 1,
+            px: 2,
+            letterSpacing: "0.5px",
+            textTransform: "uppercase",
+          }}
+        >
+          {sectionTitle}
+        </Box>
+      )}
+      <List>
+        {items.map((item) => {
+          const isExpanded = expandedItems.has(item.text);
+          const hasSubcategories =
+            item.subcategories && item.subcategories.length > 0;
 
-        return (
-          <React.Fragment key={item.text}>
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => {
-                  if (hasSubcategories) {
-                    handleToggle(item.path);
-                  } else {
-                    onItemClick(item.path);
-                  }
-                }}
-                sx={{
-                  borderRadius: '8px',
-                  mb: 1,
-                  '&:hover': {
-                    bgcolor: 'rgba(195, 147, 124, 0.08)',
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: '#C3937C', minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
+          return (
+            <React.Fragment key={item.text}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    onItemClick(item.path, item.text);
+                  }}
                   sx={{
-                    '& .MuiListItemText-primary': {
-                      color: '#C3937C',
-                      fontWeight: 500,
+                    borderRadius: "8px",
+                    mb: 1,
+                    "&:hover": {
+                      bgcolor: "rgba(195, 147, 124, 0.08)",
                     },
                   }}
-                />
-                {hasSubcategories && (
-                  <Box sx={{ color: '#C3937C' }}>
-                    {isExpanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-                  </Box>
-                )}
-              </ListItemButton>
-            </ListItem>
-            {/* Subcategories */}
-            {hasSubcategories && (
-              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                  {item.subcategories!.map((subCat) => (
-                    <ListItem key={subCat.value} disablePadding>
-                      <ListItemButton
-                        onClick={() => onItemClick(item.path, subCat.value)}
-                        sx={{
-                          pl: 6,
-                          borderRadius: '8px',
-                          mb: 0.5,
-                          '&:hover': {
-                            bgcolor: 'rgba(195, 147, 124, 0.05)',
-                          },
-                        }}
-                      >
-                        <ListItemText
-                          primary={subCat.text}
+                >
+                  <ListItemIcon sx={{ color: "#C3937C", minWidth: 40 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      "& .MuiListItemText-primary": {
+                        color: "#C3937C",
+                        fontWeight: 500,
+                      },
+                    }}
+                  />
+                  {hasSubcategories && (
+                    <Box
+                      sx={{ color: "#C3937C", cursor: "pointer" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggle(item.text);
+                      }}
+                    >
+                      {isExpanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+                    </Box>
+                  )}
+                </ListItemButton>
+              </ListItem>
+              {/* Subcategories */}
+              {hasSubcategories && (
+                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.subcategories!.map((subCat) => (
+                      <ListItem key={subCat.value} disablePadding>
+                        <ListItemButton
+                          onClick={() => onItemClick(item.path, subCat.value)}
                           sx={{
-                            '& .MuiListItemText-primary': {
-                              color: '#C3937C',
-                              fontWeight: 400,
-                              fontSize: '0.9rem',
+                            pl: 6,
+                            borderRadius: "8px",
+                            mb: 0.5,
+                            "&:hover": {
+                              bgcolor: "rgba(195, 147, 124, 0.05)",
                             },
                           }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  ))}
-                </List>
-              </Collapse>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </List>
+                        >
+                          <ListItemText
+                            primary={subCat.text}
+                            sx={{
+                              "& .MuiListItemText-primary": {
+                                color: "#C3937C",
+                                fontWeight: 400,
+                                fontSize: "0.9rem",
+                              },
+                            }}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </List>
+    </>
   );
 };
 
 interface UserInfoProps {
   isAuthenticated: boolean;
   role: string | null;
+  onLogout?: () => void;
 }
 
-const UserInfo: React.FC<UserInfoProps> = ({ isAuthenticated, role }) => {
+const UserInfo: React.FC<UserInfoProps> = ({
+  isAuthenticated,
+  role,
+  onLogout,
+}) => {
   if (!isAuthenticated) return null;
 
   return (
     <Box
       sx={{
-        display: 'flex',
-        alignItems: 'center',
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
         gap: 2,
         p: 2,
-        bgcolor: 'rgba(195, 147, 124, 0.08)',
-        borderRadius: '8px',
+        bgcolor: "rgba(195, 147, 124, 0.08)",
+        borderRadius: "8px",
       }}
     >
-      <Avatar sx={{ bgcolor: '#C3937C' }}>
-        {role === 'admin' ? 'A' : 'U'}
-      </Avatar>
-      <Box>
-        <Box sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#333' }}>
-          {role === 'admin' ? 'Admin' : 'User'}
-        </Box>
-        <Box sx={{ fontSize: '0.75rem', color: '#666' }}>
-          Logged in
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Avatar sx={{ bgcolor: "#C3937C" }}>
+          {role === "admin" ? "A" : "U"}
+        </Avatar>
+        <Box>
+          <Box sx={{ fontSize: "0.875rem", fontWeight: 600, color: "#333" }}>
+            {role === "admin" ? "Admin" : "User"}
+          </Box>
+          <Box sx={{ fontSize: "0.75rem", color: "#666" }}>Logged in</Box>
         </Box>
       </Box>
+      {onLogout && (
+        <IconButton
+          onClick={onLogout}
+          sx={{
+            color: "#C3937C",
+            "&:hover": { bgcolor: "rgba(195, 147, 124, 0.15)" },
+          }}
+        >
+          <LogoutIcon fontSize="small" />
+        </IconButton>
+      )}
     </Box>
   );
 };
 
-interface NavigationDrawerProps {
+// ==================== USER DRAWER ====================
+interface UserNavigationDrawerProps {
   open: boolean;
   onClose: () => void;
   logo: string;
   menuItems: MenuItem[];
-  onMenuItemClick: (path: string, subcategory?: string) => void;
+  onMenuItemClick: (path: string, category: string) => void;
   isAuthenticated: boolean;
   role: string | null;
 }
 
-const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
+const UserNavigationDrawer: React.FC<UserNavigationDrawerProps> = ({
   open,
   onClose,
   logo,
@@ -297,9 +375,9 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     open={open}
     onClose={onClose}
     sx={{
-      '& .MuiDrawer-paper': {
+      "& .MuiDrawer-paper": {
         width: { xs: 280, sm: 320 },
-        bgcolor: '#fdfcf9',
+        bgcolor: "#fdfcf9",
       },
     }}
   >
@@ -313,10 +391,67 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   </Drawer>
 );
 
-const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
+// ==================== ADMIN DRAWER ====================
+interface AdminNavigationDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  logo: string;
+  menuItems: MenuItem[];
+  onMenuItemClick: (path: string, category: string) => void;
+  isAuthenticated: boolean;
+  role: string | null;
+  onLogout?: () => void;
+}
+
+const AdminNavigationDrawer: React.FC<AdminNavigationDrawerProps> = ({
+  open,
+  onClose,
+  logo,
+  menuItems,
+  onMenuItemClick,
+  isAuthenticated,
+  role,
+  onLogout,
+}) => (
+  <Drawer
+    anchor="left"
+    open={open}
+    onClose={onClose}
+    sx={{
+      "& .MuiDrawer-paper": {
+        width: { xs: 280, sm: 320 },
+        bgcolor: "#fdfcf9",
+      },
+    }}
+  >
+    <Box
+      sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}
+    >
+      <DrawerLogo logo={logo} />
+      <Divider sx={{ my: 2 }} />
+
+      {/* Menu Items */}
+      <MenuItemsList items={menuItems} onItemClick={onMenuItemClick} />
+
+      <Box sx={{ flexGrow: 1 }} />
+
+      <Divider sx={{ my: 2 }} />
+      <UserInfo
+        isAuthenticated={isAuthenticated}
+        role={role}
+        onLogout={onLogout}
+      />
+    </Box>
+  </Drawer>
+);
+
+const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
   const navigate = useNavigate();
-  const { role, isAuthenticated } = useAuth();
-  
+  // const { role, isAuthenticated } = useAuth();
+  const { role, isAuthenticated } = { role: "admin", isAuthenticated: true };
+
+  const isAdmin = role === "admin";
+
   // Zustand stores
   const { drawerOpen, setDrawerOpen } = useNavigationStore();
 
@@ -328,148 +463,198 @@ const Header: React.FC<NavigationProps> = ({ isSticky = false }) => {
   // Navigation handlers
   const goToProfilePage = (): void => {
     if (isAuthenticated) {
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/profile');
-      }
+      navigate("/profile");
     } else {
-      navigate('/signin');
+      navigate("/signin");
     }
   };
 
   const goToCartPage = (): void => {
-    navigate('/cart');
+    navigate("/cart");
   };
 
-  // Menu items configuration with subcategories
-  const menuItems: MenuItem[] = [
-    { 
-      text: 'Home', 
-      icon: <HomeIcon />, 
-      path: '/'
+  const goToCreateProductPage = (): void => {
+    navigate("/create-product");
+  };
+
+  const handleLogout = (): void => {
+    // TODO: Implement logout logic
+    console.log("Logout clicked");
+    navigate("/signin");
+  };
+
+  // User menu items configuration with subcategories
+  const userMenuItems: MenuItem[] = [
+    {
+      text: "Home",
+      icon: <HomeIcon />,
+      path: "/",
     },
-    { 
-      text: 'All Products', 
-      icon: <StoreIcon />, 
-      path: '/pcp'
+    {
+      text: "All Products",
+      icon: <StoreIcon />,
+      path: "/pcp",
     },
-    { 
-      text: 'Smartphone', 
-      icon: <SmartPhoneIcon />, 
-      path: '/pcp',
+    {
+      text: "Smartphone",
+      icon: <SmartPhoneIcon />,
+      path: "/pcp",
       subcategories: [
-        { text: 'iPhone', value: 'iphone' },
-        { text: 'Samsung', value: 'samsung' },
-        { text: 'Xiaomi', value: 'xiaomi' },
-        { text: 'Oppo', value: 'oppo' },
-      ]
+        { text: "iPhone", value: "iphone" },
+        { text: "Samsung", value: "samsung" },
+        { text: "Xiaomi", value: "xiaomi" },
+        { text: "Oppo", value: "oppo" },
+      ],
     },
-    { 
-      text: 'Clothes', 
-      icon: <DressIcon />, 
-      path: '/photography',
+    {
+      text: "Clothes",
+      icon: <DressIcon />,
+      path: "/pcp",
       subcategories: [
-        { text: 'Men', value: 'men' },
-        { text: 'Women', value: 'women' },
-        { text: 'Kids', value: 'kids' },
-        { text: 'Accessories', value: 'accessories' },
-      ]
+        { text: "Men", value: "men" },
+        { text: "Women", value: "women" },
+        { text: "Kids", value: "kids" },
+        { text: "Accessories", value: "accessories" },
+      ],
     },
-    { 
-      text: 'Book', 
-      icon: <BookIcon />, 
-      path: '/appointment',
+    {
+      text: "Book",
+      icon: <BookIcon />,
+      path: "/pcp",
       subcategories: [
-        { text: 'Fiction', value: 'fiction' },
-        { text: 'Non-Fiction', value: 'non-fiction' },
-        { text: 'Educational', value: 'educational' },
-      ]
+        { text: "Fiction", value: "fiction" },
+        { text: "Non-Fiction", value: "non-fiction" },
+        { text: "Educational", value: "educational" },
+      ],
     },
-    { 
-      text: 'About', 
-      icon: <AboutIcon />, 
-      path: '/about' 
+    {
+      text: "About",
+      icon: <AboutIcon />,
+      path: "/about",
     },
   ];
+
+  // Admin menu items configuration
+  const adminMenuItems: MenuItem[] = [
+    {
+      text: "Dashboard",
+      icon: <AdminIcon />,
+      path: "/admin/dashboard",
+    },
+    {
+      text: "Categories",
+      icon: <CategoryIcon />,
+      path: "/admin/categories",
+    },
+    {
+      text: "Manage Users",
+      icon: <Users size={20} />,
+      path: "/admin/users",
+    },
+    {
+      text: "Manage Products",
+      icon: <Package size={20} />,
+      path: "/admin/products",
+    },
+  ];
+
+  // Handle menu item click for user drawer
+  const handleUserMenuItemClick = (path: string, category: string) => {
+    if (
+      category === "All Products" ||
+      category === "Home" ||
+      category === "About"
+    ) {
+      navigate(path);
+      setDrawerOpen(false);
+      return;
+    }
+
+    if (path === "/pcp") {
+      const params = new URLSearchParams();
+      const categoryValue = category.toLowerCase();
+      params.set("category", categoryValue);
+      navigate(`/pcp?${params.toString()}`);
+    } else {
+      navigate(path);
+    }
+    setDrawerOpen(false);
+  };
+
+  // Handle menu item click for admin drawer
+  const handleAdminMenuItemClick = (path: string, _category: string) => {
+    navigate(path);
+    setDrawerOpen(false);
+  };
 
   return (
     <>
       <AppBar
-        position={isSticky ? 'sticky' : 'static'}
+        position={isSticky ? "sticky" : "static"}
         sx={{
-          bgcolor: 'white',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-          borderBottom: '1px solid #EAEAEA',
+          bgcolor: "white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
+          borderBottom: "1px solid #EAEAEA",
         }}
       >
         <Toolbar
           sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             px: { xs: 2, md: 4 },
             py: 1,
           }}
         >
           {/* Left: Menu Button */}
-          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            <MenuButton onClick={() => setDrawerOpen(true)}/>
+          <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
+            <MenuButton onClick={() => setDrawerOpen(true)} />
           </Box>
 
           {/* Center: Logo */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', flex: 1 }}>
-            <Logo onClick={() => navigate('/')} />
+          <Box sx={{ display: "flex", justifyContent: "center", flex: 1 }}>
+            <Logo
+              onClick={() => navigate(isAdmin ? "/admin/dashboard" : "/")}
+            />
           </Box>
 
           {/* Right: User Actions */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', flex: 1 }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", flex: 1 }}>
             <UserActions
               onProfileClick={goToProfilePage}
               onCartClick={goToCartPage}
+              onCreateProductClick={goToCreateProductPage}
+              isAdmin={isAdmin}
             />
           </Box>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer Menu */}
-      <NavigationDrawer
-        open={drawerOpen}
-        onClose={toggleDrawer(false)}
-        logo={logo}
-        menuItems={menuItems}
-        onMenuItemClick={(path, subcategory) => {
-          // If "All Products" is clicked, navigate directly to /pcp without query params
-          const allProductsItem = menuItems.find(item => item.text === 'All Products' && item.path === path);
-          if (allProductsItem) {
-            navigate('/pcp');
-            setDrawerOpen(false);
-            return;
-          }
-          
-          // Build URL with category and subcategory if provided
-          const params = new URLSearchParams();
-          const categoryName = path.replace(/^\//, '') || 'home';
-          params.set('category', categoryName);
-          
-          if (subcategory) {
-            params.set('subcategory', subcategory);
-          }
-          
-          // Navigate to PCP with filters, or to the path if it's not PCP
-          if (path === '/pcp' || path.startsWith('/pcp')) {
-            navigate(`/pcp?${params.toString()}`);
-          } else {
-            navigate(path);
-          }
-          setDrawerOpen(false);
-        }}
-        isAuthenticated={isAuthenticated}
-        role={role}
-      />
+      {/* Conditional Drawer based on role */}
+      {isAdmin ? (
+        <AdminNavigationDrawer
+          open={drawerOpen}
+          onClose={toggleDrawer(false)}
+          logo={logo}
+          menuItems={adminMenuItems}
+          onMenuItemClick={handleAdminMenuItemClick}
+          isAuthenticated={isAuthenticated}
+          role={role}
+          onLogout={handleLogout}
+        />
+      ) : (
+        <UserNavigationDrawer
+          open={drawerOpen}
+          onClose={toggleDrawer(false)}
+          logo={logo}
+          menuItems={userMenuItems}
+          onMenuItemClick={handleUserMenuItemClick}
+          isAuthenticated={isAuthenticated}
+          role={role}
+        />
+      )}
     </>
   );
 };
 
 export default Header;
-

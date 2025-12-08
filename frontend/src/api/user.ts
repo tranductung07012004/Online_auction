@@ -159,4 +159,217 @@ export const updateUserSettings = async (data: UserSettings): Promise<UserProfil
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Failed to update settings');
   }
+};
+
+// Seller Request Interfaces
+export interface SellerRequest {
+  _id?: string;
+  userId: string;
+  reason?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Send request to become seller
+export const sendSellerRequest = async (reason?: string): Promise<SellerRequest> => {
+  try {
+    const response = await API.post('/users/seller-request', { reason });
+    return response.data.data || response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to send seller request');
+  }
+};
+
+// Get seller request status
+export const getSellerRequestStatus = async (): Promise<SellerRequest | null> => {
+  try {
+    const response = await API.get('/users/seller-request');
+    return response.data.data || response.data || null;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null; // No request found
+    }
+    throw new Error(error.response?.data?.message || 'Failed to get seller request status');
+  }
+};
+
+// Watchlist Interfaces
+export interface WatchlistItem {
+  _id: string;
+  productId: string;
+  product: {
+    id: number;
+    product_name: string;
+    thumpnail_url: string;
+    seller: {
+      id: number;
+      avatar: string;
+      fullname: string;
+    };
+    buy_now_price: number | null;
+    minimum_bid_step: number;
+    start_at: string | Date;
+    end_at: string | Date;
+    current_price: number;
+    highest_bidder: {
+      id: number;
+      avatar: string;
+      fullname: string;
+    } | null;
+    created_at?: string | Date;
+    posted_at?: string | Date;
+    bid_count: number;
+  };
+  createdAt: string;
+}
+
+// Get watchlist
+export const getWatchlist = async (): Promise<WatchlistItem[]> => {
+  try {
+    const response = await API.get('/users/watchlist');
+    return response.data.data || response.data || [];
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw new Error(error.response?.data?.message || 'Failed to get watchlist');
+  }
+};
+
+// Add product to watchlist
+export const addToWatchlist = async (productId: string): Promise<WatchlistItem> => {
+  try {
+    const response = await API.post('/users/watchlist', { productId });
+    return response.data.data || response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to add to watchlist');
+  }
+};
+
+// Remove product from watchlist
+export const removeFromWatchlist = async (productId: string): Promise<void> => {
+  try {
+    await API.delete(`/users/watchlist/${productId}`);
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to remove from watchlist');
+  }
+};
+
+// Bidding Products Interfaces
+export interface BiddingItem {
+  _id: string;
+  productId: string;
+  bidAmount: number;
+  bidAt: string;
+  product: {
+    id: number;
+    product_name: string;
+    thumpnail_url: string;
+    seller: {
+      id: number;
+      avatar: string;
+      fullname: string;
+    };
+    buy_now_price: number | null;
+    minimum_bid_step: number;
+    start_at: string | Date;
+    end_at: string | Date;
+    current_price: number;
+    highest_bidder: {
+      id: number;
+      avatar: string;
+      fullname: string;
+    } | null;
+    created_at?: string | Date;
+    posted_at?: string | Date;
+    bid_count: number;
+  };
+  isWinning?: boolean; // Whether user is currently the highest bidder
+  status?: 'active' | 'won' | 'lost'; // Status of the bid
+}
+
+// Get user's active bidding products (products user has bid on that are still active)
+export const getMyBids = async (): Promise<BiddingItem[]> => {
+  try {
+    const response = await API.get('/users/my-bids');
+    return response.data.data || response.data || [];
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw new Error(error.response?.data?.message || 'Failed to get my bids');
+  }
+};
+
+// Seller Products Interfaces
+export interface SellerProduct {
+  _id: string;
+  id: number;
+  product_name: string;
+  thumpnail_url: string;
+  seller: {
+    id: number;
+    avatar: string;
+    fullname: string;
+  };
+  buy_now_price: number | null;
+  minimum_bid_step: number;
+  start_at: string | Date;
+  end_at: string | Date;
+  current_price: number;
+  highest_bidder: {
+    id: number;
+    avatar: string;
+    fullname: string;
+  } | null;
+  created_at?: string | Date;
+  posted_at?: string | Date;
+  bid_count: number;
+  status: 'active' | 'won' | 'upcoming'; // active = auction in progress, won = has winner, upcoming = not yet started
+  winningBidder?: {
+    id: number;
+    avatar: string;
+    fullname: string;
+    bidAmount: number;
+    bidAt: string;
+  };
+}
+
+// Get seller's products
+export const getMyProducts = async (): Promise<SellerProduct[]> => {
+  try {
+    const response = await API.get('/users/my-products');
+    return response.data.data || response.data || [];
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw new Error(error.response?.data?.message || 'Failed to get my products');
+  }
+};
+
+// Review bidder (seller reviews the winning bidder)
+export interface ReviewBidderData {
+  productId: string;
+  bidderId: string;
+  reviewType: 'like' | 'dislike'; // Changed from rating to like/dislike
+  reviewText: string;
+}
+
+export const reviewBidder = async (data: ReviewBidderData): Promise<void> => {
+  try {
+    await API.post('/users/review-bidder', data);
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to review bidder');
+  }
+};
+
+// Cancel transaction with bidder
+export const cancelTransaction = async (productId: string, bidderId: string): Promise<void> => {
+  try {
+    await API.post('/users/cancel-transaction', { productId, bidderId });
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to cancel transaction');
+  }
 }; 

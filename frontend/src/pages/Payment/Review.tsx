@@ -22,6 +22,67 @@ const Review: React.FC = () => {
   
   // Fetch cart data on component mount
   useEffect(() => {
+    // Use mock data in development so UI can be previewed without real cart/order
+    if (import.meta.env.DEV) {
+      const today = new Date();
+      const twoDaysLater = new Date(today);
+      twoDaysLater.setDate(twoDaysLater.getDate() + 2);
+
+      const mockCartItems: CartItem[] = [
+        {
+          name: 'Elegant Wedding Dress',
+          image: '/pic1.jpg',
+          quantity: 1,
+          dressId: 'demo-dress-1',
+          sizeName: 'M',
+          colorName: 'Ivory',
+          pricePerDay: 80,
+          startDate: today,
+          endDate: twoDaysLater,
+          // @ts-expect-error: allow purchaseType on CartItem for UI purposes
+          purchaseType: 'rent',
+        } as any,
+        {
+          // Extra fields are intentionally added for photography preview
+          // @ts-expect-error: allow id/type/price on CartItem for UI purposes
+          id: 'demo-photo-1',
+          name: 'Outdoor Photography Package',
+          image: '/pic7.png',
+          quantity: 1,
+          isPhotographyService: true,
+          // @ts-expect-error
+          type: 'Full-day shoot',
+          // @ts-expect-error
+          price: 300,
+          bookingDate: today,
+          location: 'Da Nang City',
+        } as any,
+      ];
+
+      const rentalDays = Math.ceil(
+        (twoDaysLater.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
+      const dressTotal = 80 * rentalDays * 1;
+      const photographyTotal = 300;
+      const mockSubtotal = dressTotal + photographyTotal;
+      const mockTax = mockSubtotal * 0.1;
+      const mockShipping = mockSubtotal >= 100 ? 0 : 10;
+      const mockTotal = mockSubtotal + mockTax + mockShipping;
+
+      setCartItems(mockCartItems);
+      setSummary({
+        subtotal: mockSubtotal,
+        tax: mockTax,
+        shipping: mockShipping,
+        total: mockTotal,
+        initialDeposit: mockTotal * 0.5,
+        remainingPayment: mockTotal * 0.5,
+        currency: 'USD',
+      });
+      setIsLoading(false);
+      return;
+    }
+
     const fetchCart = async () => {
       try {
         setIsLoading(true);

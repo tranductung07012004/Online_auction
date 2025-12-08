@@ -150,92 +150,88 @@ const Users: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
+    <div className="relative flex flex-col min-h-screen">
       <Header />
 
-      <Box sx={{ display: "flex", flex: 1 }}>
-        <AdminSidebar />
+      <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
+        <Container maxWidth="lg">
+          <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
+            Users Management
+          </Typography>
 
-        <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
-          <Container maxWidth="lg">
-            <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
-              Users Management
-            </Typography>
-
-            <Card>
-              <CardContent sx={{ p: 0 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead sx={{ bgcolor: "#f5f5f5" }}>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Username</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Rating
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>Username</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Rating
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Transactions
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Joined</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Actions
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id} hover>
+                        <TableCell sx={{ fontWeight: 500 }}>
+                          {user.username}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Transactions
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={user.role}
+                            size="small"
+                            color={getRoleColor(user.role) as any}
+                            variant="outlined"
+                          />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Joined</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">
-                          Actions
+                        <TableCell>
+                          <Chip
+                            label={user.status}
+                            size="small"
+                            color={getStatusColor(user.status) as any}
+                          />
+                        </TableCell>
+                        <TableCell align="center">⭐ {user.rating}</TableCell>
+                        <TableCell align="center">
+                          {user.totalTransactions}
+                        </TableCell>
+                        <TableCell>{user.joinedDate}</TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenDialog(user)}
+                          >
+                            <Edit size={18} />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteUser(user.id)}
+                          >
+                            <Trash2 size={18} />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id} hover>
-                          <TableCell sx={{ fontWeight: 500 }}>
-                            {user.username}
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={user.role}
-                              size="small"
-                              color={getRoleColor(user.role) as any}
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={user.status}
-                              size="small"
-                              color={getStatusColor(user.status) as any}
-                            />
-                          </TableCell>
-                          <TableCell align="center">⭐ {user.rating}</TableCell>
-                          <TableCell align="center">
-                            {user.totalTransactions}
-                          </TableCell>
-                          <TableCell>{user.joinedDate}</TableCell>
-                          <TableCell align="center">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleOpenDialog(user)}
-                            >
-                              <Edit size={18} />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteUser(user.id)}
-                            >
-                              <Trash2 size={18} />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-          </Container>
-        </Box>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Container>
       </Box>
 
       {/* Edit User Dialog */}
@@ -298,7 +294,7 @@ const Users: React.FC = () => {
       </Dialog>
 
       <Footer />
-    </Box>
+    </div>
   );
 };
 
