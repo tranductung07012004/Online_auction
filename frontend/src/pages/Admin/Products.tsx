@@ -18,11 +18,13 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Pagination,
+  Divider,
 } from "@mui/material";
-import { Trash2 } from "lucide-react";
+import { Trash2, Eye } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
-import { ProductSearchBar } from "./ProductSearchBar";
+import { ProductSearchBar } from "./components/ProductSearchBar";
 import { useSearchParams } from "react-router-dom";
 
 interface Product {
@@ -102,7 +104,13 @@ const Products: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
 
   // --------------------------------------
   // 5) APPLY URL FILTERS ON PAGE LOAD
@@ -145,16 +153,33 @@ const Products: React.FC = () => {
   // --------------------------------------
   // 7) DELETE PRODUCT
   // --------------------------------------
+  const handleViewProduct = (product: Product) => {
+    setViewingProduct(product);
+    setViewDialogOpen(true);
+  };
+
   const handleDeleteProduct = (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "VND",
     }).format(price);
   };
+
+  // Pagination logic
+  const handleChangePage = (_event: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const paginatedProducts = filteredProducts.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredProducts.length / rowsPerPage);
 
   // --------------------------------------
   // RENDER
@@ -163,7 +188,7 @@ const Products: React.FC = () => {
     <div className="relative flex flex-col min-h-screen">
       <Header />
 
-      <Box sx={{ flex: 1, bgcolor: "#f5f5f5", p: 3 }}>
+      <Box sx={{ flex: 1, bgcolor: "#fdfcf9", p: 3 }}>
         <Container maxWidth="lg">
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
@@ -181,7 +206,7 @@ const Products: React.FC = () => {
             <CardContent sx={{ p: 0 }}>
               <TableContainer>
                 <Table>
-                  <TableHead sx={{ bgcolor: "#f5f5f5" }}>
+                  <TableHead sx={{ bgcolor: "rgba(195, 147, 124, 0.1)" }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
@@ -203,61 +228,98 @@ const Products: React.FC = () => {
                   </TableHead>
 
                   <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id} hover>
-                        <TableCell>{product.name}</TableCell>
-                        <TableCell>{product.category}</TableCell>
-                        <TableCell align="right">
-                          {formatPrice(product.startPrice)}
-                        </TableCell>
-                        <TableCell align="right">
-                          {formatPrice(product.stepPrice)}
-                        </TableCell>
-
-                        <TableCell>
-                          <Chip
-                            label={product.status}
-                            size="small"
-                            color={
-                              product.status === "active"
-                                ? "success"
-                                : product.status === "ended"
-                                ? "error"
-                                : "default"
-                            }
-                          />
-                        </TableCell>
-
-                        <TableCell align="center">{product.bids}</TableCell>
-                        <TableCell>{product.createdAt}</TableCell>
-
-                        <TableCell align="center">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => {
-                              setProductToDelete(product.id);
-                              setDeleteConfirmOpen(true);
-                            }}
-                          >
-                            <Trash2 size={18} />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-
-                    {filteredProducts.length === 0 && (
+                    {paginatedProducts.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                          <Typography>No products found.</Typography>
+                          <Typography color="textSecondary">
+                            No products found.
+                          </Typography>
                         </TableCell>
                       </TableRow>
+                    ) : (
+                      paginatedProducts.map((product) => (
+                        <TableRow key={product.id} hover>
+                          <TableCell>{product.name}</TableCell>
+                          <TableCell>{product.category}</TableCell>
+                          <TableCell align="right">
+                            {formatPrice(product.startPrice)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatPrice(product.stepPrice)}
+                          </TableCell>
+
+                          <TableCell>
+                            <Chip
+                              label={product.status}
+                              size="small"
+                              color={
+                                product.status === "active"
+                                  ? "success"
+                                  : product.status === "ended"
+                                  ? "error"
+                                  : "default"
+                              }
+                            />
+                          </TableCell>
+
+                          <TableCell align="center">{product.bids}</TableCell>
+                          <TableCell>{product.createdAt}</TableCell>
+
+                          <TableCell align="center">
+                            <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleViewProduct(product)}
+                                title="View Details"
+                              >
+                                <Eye size={18} />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => {
+                                  setProductToDelete(product.id);
+                                  setDeleteConfirmOpen(true);
+                                }}
+                                title="Remove Product"
+                              >
+                                <Trash2 size={18} />
+                              </IconButton>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
               </TableContainer>
             </CardContent>
           </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={handleChangePage}
+                color="primary"
+                sx={{
+                  "& .MuiPaginationItem-root": {
+                    color: "#C3937C",
+                  },
+                  "& .Mui-selected": {
+                    backgroundColor: "#C3937C",
+                    color: "white",
+                    "&:hover": {
+                      backgroundColor: "#A67C5A",
+                    },
+                  },
+                }}
+              />
+            </Box>
+          )}
         </Container>
       </Box>
 
@@ -267,17 +329,16 @@ const Products: React.FC = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
+        <DialogTitle>Confirm Remove Product</DialogTitle>
 
         <DialogContent>
           <Typography>
-            Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn
-            tác.
+            Are you sure you want to remove this product? This action cannot be undone.
           </Typography>
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Hủy</Button>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
 
           <Button
             color="error"
@@ -287,7 +348,124 @@ const Products: React.FC = () => {
               setDeleteConfirmOpen(false);
             }}
           >
-            Xóa
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Product Details Dialog */}
+      <Dialog
+        open={viewDialogOpen}
+        onClose={() => {
+          setViewDialogOpen(false);
+          setViewingProduct(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Product Details</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {viewingProduct && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  Product Name
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {viewingProduct.name}
+                </Typography>
+              </Box>
+
+              <Divider />
+
+              <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                    Category
+                  </Typography>
+                  <Chip label={viewingProduct.category} size="small" />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                    Status
+                  </Typography>
+                  <Chip
+                    label={viewingProduct.status}
+                    size="small"
+                    color={
+                      viewingProduct.status === "active"
+                        ? "success"
+                        : viewingProduct.status === "ended"
+                        ? "error"
+                        : "default"
+                    }
+                  />
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  Pricing Information
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography variant="body2">Start Price:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {formatPrice(viewingProduct.startPrice)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography variant="body2">Step Price:</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {formatPrice(viewingProduct.stepPrice)}
+                    </Typography>
+                  </Box>
+                  {viewingProduct.buyNowPrice && (
+                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography variant="body2">Buy Now Price:</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500, color: "#C3937C" }}>
+                        {formatPrice(viewingProduct.buyNowPrice)}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Box sx={{ display: "flex", gap: 3 }}>
+                <Box>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                    Total Bids
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {viewingProduct.bids}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                    Created Date
+                  </Typography>
+                  <Typography variant="body1">
+                    {new Date(viewingProduct.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setViewDialogOpen(false);
+            setViewingProduct(null);
+          }}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

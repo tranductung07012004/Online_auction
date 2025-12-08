@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { SearchBar, MenuItem } from "../../components/SearchBar";
-import { useSearchStore } from "../../stores";
+import { SearchBar, MenuItem } from "../../../components/SearchBar";
+import { useSearchStore } from "../../../stores";
 import {
   CheckroomOutlined as DressIcon,
   Smartphone as SmartPhoneIcon,

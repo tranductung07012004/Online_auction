@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-} from "@mui/material";
+import { Box, Container, Card, CardContent, Typography } from "@mui/material";
 import {
   LineChart,
   Line,
@@ -18,8 +11,18 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
 } from "recharts";
-import { ShoppingCart, Users, Package, TrendingUp } from "lucide-react";
+import {
+  ShoppingCart,
+  Users,
+  Package,
+  TrendingUp,
+  Gavel,
+  UserPlus,
+  UserCheck,
+} from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
 
@@ -30,10 +33,12 @@ interface DashboardStats {
   totalRevenue: number;
 }
 
-interface MonthlySalesData {
+interface MonthlyData {
   month: string;
-  sales: number;
-  orders: number;
+  revenue: number;
+  newAuctions: number;
+  newUsers: number;
+  newSellerUpgrades: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -43,7 +48,7 @@ const Dashboard: React.FC = () => {
     totalOrders: 0,
     totalRevenue: 0,
   });
-  const [salesData, setSalesData] = useState<MonthlySalesData[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,17 +60,58 @@ const Dashboard: React.FC = () => {
       totalRevenue: 125000000,
     };
 
-    const mockSalesData: MonthlySalesData[] = [
-      { month: "Jan", sales: 4000000, orders: 120 },
-      { month: "Feb", sales: 3000000, orders: 98 },
-      { month: "Mar", sales: 2000000, orders: 75 },
-      { month: "Apr", sales: 2780000, orders: 89 },
-      { month: "May", sales: 1890000, orders: 62 },
-      { month: "Jun", sales: 2390000, orders: 78 },
+    // Mock data based on system requirements:
+    // - New auction platforms
+    // - Revenue
+    // - New users
+    // - Bidder upgraded to seller
+    const mockMonthlyData: MonthlyData[] = [
+      {
+        month: "January",
+        revenue: 45000000,
+        newAuctions: 45,
+        newUsers: 320,
+        newSellerUpgrades: 12,
+      },
+      {
+        month: "February",
+        revenue: 38000000,
+        newAuctions: 38,
+        newUsers: 280,
+        newSellerUpgrades: 10,
+      },
+      {
+        month: "March",
+        revenue: 52000000,
+        newAuctions: 52,
+        newUsers: 410,
+        newSellerUpgrades: 15,
+      },
+      {
+        month: "April",
+        revenue: 48000000,
+        newAuctions: 48,
+        newUsers: 360,
+        newSellerUpgrades: 13,
+      },
+      {
+        month: "May",
+        revenue: 55000000,
+        newAuctions: 55,
+        newUsers: 450,
+        newSellerUpgrades: 18,
+      },
+      {
+        month: "June",
+        revenue: 62000000,
+        newAuctions: 62,
+        newUsers: 520,
+        newSellerUpgrades: 20,
+      },
     ];
 
     setStats(mockStats);
-    setSalesData(mockSalesData);
+    setMonthlyData(mockMonthlyData);
     setLoading(false);
   }, []);
 
@@ -154,7 +200,7 @@ const Dashboard: React.FC = () => {
             width: "100%",
             display: "flex",
             justifyContent: "center",
-            bgcolor: "#f5f5f5",
+            bgcolor: "#fdfcf9",
             p: { xs: 2, sm: 3, md: 4 },
           }}
         >
@@ -171,51 +217,65 @@ const Dashboard: React.FC = () => {
             </Typography>
 
             {/* Stats Cards */}
-            <Grid
-              container
-              spacing={{ xs: 2, sm: 3 }}
+            <Box
               sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 3, // khoảng cách giữa các card
                 mb: { xs: 3, sm: 4 },
-                maxWidth: "100%",
               }}
             >
-              <Grid item xs={6} sm={6} md={3}>
+              <Box sx={{ flex: 1 }}>
                 <StatCard
                   icon={<Package size={28} />}
                   label="Total Products"
                   value={stats.totalProducts}
-                  color="#E53935"
+                  color="#C3937C"
                 />
-              </Grid>
-              <Grid item xs={6} sm={6} md={3}>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
                 <StatCard
                   icon={<Users size={28} />}
                   label="Total Users"
                   value={stats.totalUsers}
                   color="#1976D2"
                 />
-              </Grid>
-              <Grid item xs={6} sm={6} md={3}>
+              </Box>
+              <Box sx={{ flex: 1 }}>
                 <StatCard
                   icon={<ShoppingCart size={28} />}
                   label="Total Orders"
                   value={stats.totalOrders}
                   color="#388E3C"
                 />
-              </Grid>
-              <Grid item xs={6} sm={6} md={3}>
+              </Box>
+              <Box sx={{ flex: 1 }}>
                 <StatCard
                   icon={<TrendingUp size={28} />}
                   label="Total Revenue"
                   value={stats.totalRevenue}
                   color="#F57C00"
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             {/* Charts */}
-            <Grid container spacing={{ xs: 2, sm: 3 }}>
-              <Grid item xs={12} lg={6}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: { xs: 2, sm: 3 },
+                mb: { xs: 3, sm: 4 },
+              }}
+            >
+              {/* Revenue Chart */}
+              <Box
+                sx={{
+                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+                }}
+              >
                 <Card
                   sx={{
                     height: "100%",
@@ -226,23 +286,139 @@ const Dashboard: React.FC = () => {
                   }}
                 >
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography
-                      variant="h6"
+                    <Box
                       sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
                         mb: 2,
-                        fontWeight: 600,
-                        fontSize: { xs: "1rem", sm: "1.25rem" },
                       }}
                     >
-                      Monthly Sales
-                    </Typography>
+                      <TrendingUp size={24} color="#F57C00" />
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: "1rem", sm: "1.25rem" },
+                        }}
+                      >
+                        Monthly Revenue
+                      </Typography>
+                    </Box>
                     <ResponsiveContainer
                       width="100%"
                       height={300}
                       minHeight={250}
                     >
-                      <LineChart
-                        data={salesData}
+                      <AreaChart
+                        data={monthlyData}
+                        margin={{
+                          top: 5,
+                          right: 10,
+                          left: 0,
+                          bottom: 5,
+                        }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id="colorRevenue"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="#F57C00"
+                              stopOpacity={0.3}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#F57C00"
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="month"
+                          style={{ fontSize: "0.875rem" }}
+                        />
+                        <YAxis
+                          style={{ fontSize: "0.875rem" }}
+                          tickFormatter={(value) =>
+                            `${(value / 1000000).toFixed(0)}M`
+                          }
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            fontSize: "0.875rem",
+                            borderRadius: "8px",
+                          }}
+                          formatter={(value: number) => [
+                            `${(value / 1000000).toFixed(1)}M VND`,
+                            "Revenue",
+                          ]}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
+                        <Area
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="#F57C00"
+                          strokeWidth={2}
+                          fillOpacity={1}
+                          fill="url(#colorRevenue)"
+                          name="Revenue (VND)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Box>
+
+              {/* New Auctions Chart */}
+              <Box
+                sx={{
+                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+                }}
+              >
+                <Card
+                  sx={{
+                    height: "100%",
+                    transition: "box-shadow 0.2s",
+                    "&:hover": {
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 2,
+                      }}
+                    >
+                      <Gavel size={24} color="#C3937C" />
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: "1rem", sm: "1.25rem" },
+                        }}
+                      >
+                        New Auction Platforms
+                      </Typography>
+                    </Box>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={300}
+                      minHeight={250}
+                    >
+                      <BarChart
+                        data={monthlyData}
                         margin={{
                           top: 5,
                           right: 10,
@@ -261,14 +437,97 @@ const Dashboard: React.FC = () => {
                             fontSize: "0.875rem",
                             borderRadius: "8px",
                           }}
+                          formatter={(value: number) => [
+                            `${value} platforms`,
+                            "New auction platforms",
+                          ]}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
+                        <Bar
+                          dataKey="newAuctions"
+                          fill="#C3937C"
+                          name="New Auction Platforms"
+                          radius={[8, 8, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Box>
+
+              {/* New Users Chart */}
+              <Box
+                sx={{
+                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+                }}
+              >
+                <Card
+                  sx={{
+                    height: "100%",
+                    transition: "box-shadow 0.2s",
+                    "&:hover": {
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 2,
+                      }}
+                    >
+                      <UserPlus size={24} color="#1976D2" />
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: "1rem", sm: "1.25rem" },
+                        }}
+                      >
+                        New Users
+                      </Typography>
+                    </Box>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={300}
+                      minHeight={250}
+                    >
+                      <LineChart
+                        data={monthlyData}
+                        margin={{
+                          top: 5,
+                          right: 10,
+                          left: 0,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="month"
+                          style={{ fontSize: "0.875rem" }}
+                        />
+                        <YAxis style={{ fontSize: "0.875rem" }} />
+                        <Tooltip
+                          contentStyle={{
+                            fontSize: "0.875rem",
+                            borderRadius: "8px",
+                          }}
+                          formatter={(value: number) => [
+                            `${value} users`,
+                            "New users",
+                          ]}
                         />
                         <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
                         <Line
                           type="monotone"
-                          dataKey="sales"
-                          stroke="#E53935"
+                          dataKey="newUsers"
+                          stroke="#1976D2"
                           strokeWidth={2}
-                          name="Sales (VND)"
+                          name="New Users"
                           dot={{ r: 4 }}
                           activeDot={{ r: 6 }}
                         />
@@ -276,9 +535,15 @@ const Dashboard: React.FC = () => {
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} lg={6}>
+              {/* New Seller Upgrades Chart */}
+              <Box
+                sx={{
+                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+                }}
+              >
                 <Card
                   sx={{
                     height: "100%",
@@ -289,23 +554,32 @@ const Dashboard: React.FC = () => {
                   }}
                 >
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography
-                      variant="h6"
+                    <Box
                       sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
                         mb: 2,
-                        fontWeight: 600,
-                        fontSize: { xs: "1rem", sm: "1.25rem" },
                       }}
                     >
-                      Orders Per Month
-                    </Typography>
+                      <UserCheck size={24} color="#388E3C" />
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: "1rem", sm: "1.25rem" },
+                        }}
+                      >
+                        New Seller Upgrades from Bidders
+                      </Typography>
+                    </Box>
                     <ResponsiveContainer
                       width="100%"
                       height={300}
                       minHeight={250}
                     >
                       <BarChart
-                        data={salesData}
+                        data={monthlyData}
                         margin={{
                           top: 5,
                           right: 10,
@@ -324,20 +598,24 @@ const Dashboard: React.FC = () => {
                             fontSize: "0.875rem",
                             borderRadius: "8px",
                           }}
+                          formatter={(value: number) => [
+                            `${value} users`,
+                            "Seller upgrades",
+                          ]}
                         />
                         <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
                         <Bar
-                          dataKey="orders"
-                          fill="#1976D2"
-                          name="Orders"
+                          dataKey="newSellerUpgrades"
+                          fill="#388E3C"
+                          name="New Seller Upgrades"
                           radius={[8, 8, 0, 0]}
                         />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Container>
         </Box>
       </Box>
