@@ -107,7 +107,7 @@ const Products: React.FC = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
-  
+
   // Pagination state
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
@@ -256,8 +256,8 @@ const Products: React.FC = () => {
                                 product.status === "active"
                                   ? "success"
                                   : product.status === "ended"
-                                  ? "error"
-                                  : "default"
+                                    ? "error"
+                                    : "default"
                               }
                             />
                           </TableCell>
@@ -396,8 +396,8 @@ const Products: React.FC = () => {
                       viewingProduct.status === "active"
                         ? "success"
                         : viewingProduct.status === "ended"
-                        ? "error"
-                        : "default"
+                          ? "error"
+                          : "default"
                     }
                   />
                 </Box>
@@ -464,7 +464,17 @@ const Products: React.FC = () => {
           <Button onClick={() => {
             setViewDialogOpen(false);
             setViewingProduct(null);
-          }}>
+
+          }}
+            sx={{
+              borderColor: '#c3937c',
+              color: '#c3937c',
+              '&:hover': {
+                borderColor: '#a67c66',
+                bgcolor: '#f8f3f0'
+              }
+            }}
+          >
             Close
           </Button>
         </DialogActions>

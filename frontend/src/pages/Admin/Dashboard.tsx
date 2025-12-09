@@ -409,7 +409,7 @@ const Dashboard: React.FC = () => {
                           fontSize: { xs: "1rem", sm: "1.25rem" },
                         }}
                       >
-                        New Auction Platforms
+                        New Auction Products (Platforms) created 
                       </Typography>
                     </Box>
                     <ResponsiveContainer

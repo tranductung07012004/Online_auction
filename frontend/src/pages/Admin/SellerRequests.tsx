@@ -112,7 +112,7 @@ const SellerRequests: React.FC = () => {
     setSelectedTab(newValue);
   };
 
-  const filteredRequests = selectedTab === "pending" 
+  const filteredRequests = selectedTab === "pending"
     ? requests.filter((r) => r.status === "pending")
     : requests;
 
@@ -494,7 +494,16 @@ const SellerRequests: React.FC = () => {
         <DialogContent sx={{ pt: 2 }}>
           {selectedRequest && (
             <Box>
-              <Alert severity="info" sx={{ mb: 2 }}>
+              <Alert
+                severity="info"
+                sx={{
+                  "& .MuiAlert-icon": {
+                    color: "#5c5752",        // ⚡ đây là màu của icon "i"
+                  },
+                  color: "#5c5752",
+                  bgcolor: '#f5d3b0',
+                  borderRadius: 2,
+                }}>
                 Are you sure you want to approve the seller request from{" "}
                 <strong>{selectedRequest.fullName}</strong>?
               </Alert>

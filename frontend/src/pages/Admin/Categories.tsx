@@ -19,8 +19,9 @@ import {
   Typography,
   IconButton,
   Chip,
+  Stack,
   Pagination,
-  Divider,
+  MenuItem,
 } from "@mui/material";
 import { Edit, Trash2, Plus, Eye } from "lucide-react";
 import Header from "../../components/header";
@@ -29,9 +30,9 @@ import Footer from "../../components/footer";
 interface Category {
   id: string;
   name: string;
-  description: string;
   productCount: number;
   createdAt: string;
+  parentId?: string | null;
 }
 
 const Categories: React.FC = () => {
@@ -39,23 +40,30 @@ const Categories: React.FC = () => {
     {
       id: "1",
       name: "Electronics",
-      description: "Mobile phones, laptops, and accessories",
       productCount: 45,
-      createdAt: "2024-01-01",
+      createdAt: "2024-01-01T10:00:00Z",
+      parentId: null,
     },
     {
       id: "2",
       name: "Fashion",
-      description: "Clothing, shoes, and accessories",
       productCount: 68,
-      createdAt: "2024-01-02",
+      createdAt: "2024-01-02T12:30:00Z",
+      parentId: null,
     },
     {
       id: "3",
       name: "Home & Garden",
-      description: "Furniture and home items",
       productCount: 32,
-      createdAt: "2024-01-03",
+      createdAt: "2024-01-03T09:15:00Z",
+      parentId: null,
+    },
+    {
+      id: "4",
+      name: "Smartphones",
+      productCount: 20,
+      createdAt: "2024-01-04T08:45:00Z",
+      parentId: "1",
     },
   ]);
 
@@ -63,8 +71,8 @@ const Categories: React.FC = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
-  
+  const [formData, setFormData] = useState({ name: "", parentId: "" });
+
   // Pagination state
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
@@ -72,10 +80,13 @@ const Categories: React.FC = () => {
   const handleOpenDialog = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
-      setFormData({ name: category.name, description: category.description });
+      setFormData({
+        name: category.name,
+        parentId: category.parentId ?? "",
+      });
     } else {
       setEditingCategory(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", parentId: "" });
     }
     setOpenDialog(true);
   };
@@ -90,7 +101,7 @@ const Categories: React.FC = () => {
       setCategories(
         categories.map((c) =>
           c.id === editingCategory.id
-            ? { ...c, name: formData.name, description: formData.description }
+            ? { ...c, name: formData.name, parentId: formData.parentId || null }
             : c
         )
       );
@@ -98,9 +109,9 @@ const Categories: React.FC = () => {
       const newCategory: Category = {
         id: Date.now().toString(),
         name: formData.name,
-        description: formData.description,
         productCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
+        createdAt: new Date().toISOString(),
+        parentId: formData.parentId || null,
       };
       setCategories([...categories, newCategory]);
     }
@@ -113,6 +124,11 @@ const Categories: React.FC = () => {
   };
 
   const handleDeleteCategory = (id: string) => {
+    const hasChild = categories.some((c) => c.parentId === id);
+    if (hasChild) {
+      alert("Cannot delete category that has subcategories. Remove subcategories first.");
+      return;
+    }
     const category = categories.find((c) => c.id === id);
     if (category && category.productCount > 0) {
       alert("Cannot delete category with products. Remove products first.");
@@ -133,6 +149,19 @@ const Categories: React.FC = () => {
 
   const totalPages = Math.ceil(categories.length / rowsPerPage);
 
+  const parentOptions = categories.filter((c) => !c.parentId);
+
+  const formatDateTime = (value: string) =>
+    new Date(value).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
   return (
     <div className="relative flex flex-col min-h-screen">
       <Header />
@@ -152,7 +181,7 @@ const Categories: React.FC = () => {
             </Typography>
             <Button
               variant="contained"
-              sx={{ 
+              sx={{
                 bgcolor: "#C3937C",
                 "&:hover": {
                   bgcolor: "#A67C5A",
@@ -172,9 +201,7 @@ const Categories: React.FC = () => {
                   <TableHead sx={{ bgcolor: "rgba(195, 147, 124, 0.1)" }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>
-                        Description
-                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Parent</TableCell>
                       <TableCell sx={{ fontWeight: 600 }} align="center">
                         Products
                       </TableCell>
@@ -199,11 +226,16 @@ const Categories: React.FC = () => {
                           <TableCell sx={{ fontWeight: 500 }}>
                             {category.name}
                           </TableCell>
-                          <TableCell>{category.description}</TableCell>
+                              <TableCell>
+                                {category.parentId
+                                  ? categories.find((c) => c.id === category.parentId)?.name ||
+                                    "—"
+                                  : "—"}
+                              </TableCell>
                           <TableCell align="center">
                             <Chip label={category.productCount} size="small" />
                           </TableCell>
-                          <TableCell>{category.createdAt}</TableCell>
+                          <TableCell>{formatDateTime(category.createdAt)}</TableCell>
                           <TableCell align="center">
                             <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
                               <IconButton
@@ -280,29 +312,74 @@ const Categories: React.FC = () => {
         <DialogContent
           sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}
         >
-          <TextField
-            label="Category Name"
-            fullWidth
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-          <TextField
-            label="Description"
-            fullWidth
-            multiline
-            rows={3}
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-          />
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              label="Category Name"
+              variant="outlined"
+              fullWidth
+              sx={{
+                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#a67c66',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#a67c66',
+                },
+                '& .MuiOutlinedInput-root.Mui-focused': {
+                  backgroundColor: '#f8f3f0',
+                },
+              }}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+            <TextField
+              select
+              label="Parent Category (optional)"
+              variant="outlined"
+              fullWidth
+              value={formData.parentId}
+              onChange={(e) =>
+                setFormData({ ...formData, parentId: e.target.value })
+              }
+              helperText="Chỉ 1 cấp con. Chọn trống nếu là category cha."
+              sx={{
+                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#a67c66',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#a67c66',
+                },
+                '& .MuiOutlinedInput-root.Mui-focused': {
+                  backgroundColor: '#f8f3f0',
+                },
+              }}
+            >
+              <MenuItem value="">(Không chọn)</MenuItem>
+              {parentOptions
+                .filter((c) => c.id !== editingCategory?.id)
+                .map((parent) => (
+                  <MenuItem key={parent.id} value={parent.id}>
+                    {parent.name}
+                  </MenuItem>
+                ))}
+            </TextField>
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button
+            sx={{
+              color: "#f1efee",
+              bgcolor: "#C3937C",
+              "&:hover": {
+                bgcolor: "#A67C5A",
+              },
+            }}
+            onClick={handleCloseDialog}>
+            Cancel
+          </Button>
           <Button
             onClick={handleSaveCategory}
             variant="contained"
-            sx={{ 
+            sx={{
               bgcolor: "#C3937C",
               "&:hover": {
                 bgcolor: "#A67C5A",
@@ -337,20 +414,18 @@ const Categories: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Divider />
-
-              <Box>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
-                  Description
-                </Typography>
-                <Typography variant="body1">
-                  {viewingCategory.description || "No description provided"}
-                </Typography>
-              </Box>
-
-              <Divider />
-
               <Box sx={{ display: "flex", gap: 3 }}>
+                <Box>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                    Parent
+                  </Typography>
+                  <Typography variant="body1">
+                    {viewingCategory.parentId
+                      ? categories.find((c) => c.id === viewingCategory.parentId)?.name ||
+                        "—"
+                      : "—"}
+                  </Typography>
+                </Box>
                 <Box>
                   <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
                     Total Products
@@ -359,11 +434,11 @@ const Categories: React.FC = () => {
                     label={viewingCategory.productCount}
                     size="small"
                     sx={{
-                      bgcolor: viewingCategory.productCount > 0 
-                        ? "rgba(195, 147, 124, 0.1)" 
+                      bgcolor: viewingCategory.productCount > 0
+                        ? "rgba(195, 147, 124, 0.1)"
                         : "rgba(0, 0, 0, 0.05)",
-                      color: viewingCategory.productCount > 0 
-                        ? "#C3937C" 
+                      color: viewingCategory.productCount > 0
+                        ? "#C3937C"
                         : "text.secondary",
                     }}
                   />
@@ -373,11 +448,7 @@ const Categories: React.FC = () => {
                     Created Date
                   </Typography>
                   <Typography variant="body1">
-                    {new Date(viewingCategory.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {formatDateTime(viewingCategory.createdAt)}
                   </Typography>
                 </Box>
               </Box>
@@ -396,27 +467,16 @@ const Categories: React.FC = () => {
           <Button onClick={() => {
             setViewDialogOpen(false);
             setViewingCategory(null);
-          }}>
-            Close
-          </Button>
-          <Button
-            onClick={() => {
-              if (viewingCategory) {
-                handleOpenDialog(viewingCategory);
-                setViewDialogOpen(false);
-                setViewingCategory(null);
-              }
-            }}
-            variant="contained"
-            sx={{ 
+          }}
+            sx={{
+              color: "#f1efee",
               bgcolor: "#C3937C",
               "&:hover": {
                 bgcolor: "#A67C5A",
               },
             }}
-            startIcon={<Edit size={18} />}
           >
-            Edit
+            Cancel
           </Button>
         </DialogActions>
       </Dialog>
