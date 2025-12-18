@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+jwt:
+  secret: gsdg9824tgwnau81039p2o3tgrnewjfvshdua8oi24kgqewihod
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/user/**
+            - id: main-service
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/main/**
+            - id: worker-service
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/worker/**
