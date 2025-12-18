@@ -1,19 +1,5 @@
 CREATE TYPE setting_type AS ENUM ('int', 'string', 'bool', 'json');
 
-
-CREATE TABLE "user" (
-    id BIGSERIAL PRIMARY KEY,
-    fullname VARCHAR(255) NOT NULL,
-    seller_upgraded BOOLEAN NOT NULL DEFAULT FALSE,
-    avatar TEXT NOT NULL,
-    address TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    verified BOOLEAN NOT NULL,
-    "like" INTEGER NOT NULL,
-    dislike INTEGER NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE product (
     id BIGSERIAL PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL,
@@ -23,8 +9,8 @@ CREATE TABLE product (
     seller_id BIGINT NOT NULL,
     buy_now_price DECIMAL(15, 5),
     minimum_bid_step DECIMAL(15, 5),
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
-    end_at TIMESTAMPZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    end_at TIMESTAMPTZ NOT NULL,
     auto_extend_enabled BOOLEAN NOT NULL,
     bid_count INTEGER NOT NULL
 );
@@ -33,14 +19,14 @@ CREATE TABLE wishlist (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE blacklist (
     id BIGSERIAL PRIMARY KEY,
     bidder_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE bid_history (
@@ -48,7 +34,7 @@ CREATE TABLE bid_history (
     bidder_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
     price DECIMAL(15, 5) NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE categories (
@@ -60,7 +46,7 @@ CREATE TABLE categories (
 CREATE TABLE product_descriptions (
     id SERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     content TEXT NOT NULL,
     created_by BIGINT NOT NULL
 );
@@ -69,14 +55,14 @@ CREATE TABLE product_category (
     id BIGSERIAL PRIMARY KEY,
     category_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE product_pictures (
     id SERIAL PRIMARY KEY,
     image_url TEXT NOT NULL,
     product_id INT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE system_settings (
@@ -85,8 +71,8 @@ CREATE TABLE system_settings (
     value TEXT,
     type setting_type,
     description TEXT,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_by BIGINT NOT NULL
 );
 
@@ -96,7 +82,7 @@ CREATE TABLE user_reviews (
     seller_id BIGINT,
     status SMALLINT DEFAULT 1,
     comment TEXT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE order_reviews (
@@ -105,13 +91,13 @@ CREATE TABLE order_reviews (
     user_id BIGINT,
     status SMALLINT DEFAULT 1,
     comment TEXT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE request_upgrade_seller (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_done BOOLEAN NOT NULL
 );
 
@@ -120,7 +106,7 @@ CREATE TABLE chat_messages (
     order_id BIGINT,
     sender_id BIGINT,
     message TEXT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE answer (
@@ -128,8 +114,8 @@ CREATE TABLE answer (
     user_id BIGINT NOT NULL,
     question_id BIGINT NOT NULL,
     content TEXT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPZ
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE questions (
@@ -137,8 +123,8 @@ CREATE TABLE questions (
     user_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
     content TEXT NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPZ
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE orders (
@@ -147,7 +133,7 @@ CREATE TABLE orders (
     buyer_id BIGINT,
     seller_id BIGINT,
     amount DECIMAL(15,5) NOT NULL,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_cancelled BOOLEAN DEFAULT FALSE,
     has_shipping_address BOOLEAN DEFAULT FALSE,
     cancelled_reason TEXT
@@ -157,7 +143,7 @@ CREATE TABLE order_shippings (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT,
     shipping_address TEXT NOT NULL,
-    shipped_at TIMESTAMPZ NOT NULL DEFAULT NOW(),
+    shipped_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delivery_status SMALLINT DEFAULT 0
 );
 
@@ -167,7 +153,7 @@ CREATE TABLE order_payments (
     payment_method SMALLINT DEFAULT 0,
     bidder_payment_status SMALLINT DEFAULT 0,
     seller_payment_status SMALLINT DEFAULT 0,
-    created_at TIMESTAMPZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 

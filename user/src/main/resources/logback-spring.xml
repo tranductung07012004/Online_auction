@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%thread)] %cyan(%logger{40}) : %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- File appender với rotation -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/midterm-api-latest.log</file>
+        
+        <!-- Rolling policy: theo thời gian và kích thước -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- File pattern: logs/film-api.2024-01-15.1.log -->
+            <fileNamePattern>logs/midterm-api.%d{yyyy-MM-dd-HH-mm}.%i.log</fileNamePattern>
+            
+            <!-- Giới hạn kích thước file: 1MB -->
+            <maxFileSize>1MB</maxFileSize>
+            <maxHistory>5</maxHistory>
+            
+            <!-- Tổng kích thước tối đa: 1GB -->
+            <totalSizeCap>1GB</totalSizeCap>
+            
+            <!-- Clean up files cũ -->
+            <cleanHistoryOnStart>false</cleanHistoryOnStart>
+        </rollingPolicy>
+        
+        <!-- JSON encoder giống console -->
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <version/>
+                <logLevel/>
+                <loggerName/>
+                <threadName/>
+                <message/>
+                <mdc/>
+                <stackTrace/>
+                <context/>
+                <pattern>
+                    <pattern>
+                        {
+                        "application": "midterm-api",
+                        "environment": "development",
+                        "request_id": "%X{requestId:-}",
+                        "user_id": "%X{userId:-}",
+                        "endpoint": "%X{endpoint:-}",
+                        "method": "%X{method:-}",
+                        "response_time": "%X{responseTime:-}",
+                        "status_code": "%X{statusCode:-}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- Async appender để tăng performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <!-- Chỉ ghi logs từ LoggingApplication và LoggingInterceptor -->
+    <logger name="com.project.midterm" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <logger name="com.project.midterm.interceptor.LoggingInterceptor" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <!-- Tắt logs từ các framework khác -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.springframework.web.servlet" level="WARN"/>
+    <logger name="org.springframework.orm.jpa" level="WARN"/>
+    <logger name="org.springframework.data.jpa" level="WARN"/>
+    <logger name="org.springframework.boot" level="WARN"/>
+
+    <!-- Root logger chỉ ghi ERROR -->
+    <root level="ERROR">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

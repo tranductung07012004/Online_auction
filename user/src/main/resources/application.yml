@@ -1,1 +1,42 @@
-spring.application.name=user
+server:
+  port: 8081
+
+spring:
+  application:
+    name: midterm
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db1
+    username: user
+    password: 123
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+  # kafka: 
+  #   bootstrap-servers: localhost:9092
+  #   producer:
+  #     key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #     value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #     acks: all
+  #     retries: 3  # Số lần retry khi gửi thất bại
+  #     properties:
+  #       enable.idempotence: true  # Đảm bảo không gửi duplicate message
+  #       max.in.flight.requests.per.connection: 5
+  #   consumer:
+  #     key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  #     value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  #     group-id: midterm-consumer-group
+  #     auto-offset-reset: earliest
+  #     properties:
+  #       spring.json.trusted.packages: "*"  # Cho phép deserialize tất cả các package
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+jwt:
+  secret: gsdg9824tgwnau81039p2o3tgrnewjfvshdua8oi24kgqewihod
+  expiration_access: 36000000 # milliseconds, tinh ra la = 15 * 60 * 1000
+  expiration_refresh: 604800000 # milliseconds, tinh ra la = 7 * 24 * 60 * 1000
+
+
