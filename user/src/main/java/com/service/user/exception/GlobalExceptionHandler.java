@@ -1,9 +1,7 @@
 package com.service.user.exception;
 
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.service.user.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -34,13 +32,17 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<?> handleApplicationException(ApplicationException ex) {
+        Map<String, Object> errorData = new HashMap<>();
+        errorData.put("errorCode", ex.getErrorCode());
+
         return ResponseEntity
                 .status(400)
-                .body(new ApiResponse<>(ex.getMessage(), null));
+                .body(new ApiResponse<>(ex.getMessage(), errorData));
     }
 
     /**
-     * Fallback handler for any other RuntimeException not caught by specific handlers.
+     * Fallback handler for any other RuntimeException not caught by specific
+     * handlers.
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-// @Service
+@Service
 @RequiredArgsConstructor
 public class KafkaProducerServiceImpl implements KafkaProducerService {
 
@@ -27,7 +27,7 @@ public class KafkaProducerServiceImpl implements KafkaProducerService {
                 .messageId(UUID.randomUUID().toString())
                 .eventType(eventType)
                 .payload(payload)
-                .source("midterm-service")
+                .source("user-service")
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -41,7 +41,7 @@ public class KafkaProducerServiceImpl implements KafkaProducerService {
                 .messageId(UUID.randomUUID().toString())
                 .eventType(eventType)
                 .payload(payload)
-                .source("midterm-service")
+                .source("user-service")
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -63,7 +63,7 @@ public class KafkaProducerServiceImpl implements KafkaProducerService {
                 .messageId(UUID.randomUUID().toString())
                 .eventType(eventType)
                 .payload(payload)
-                .source("midterm-service")
+                .source("user-service")
                 .timestamp(LocalDateTime.now())
                 .build();
 

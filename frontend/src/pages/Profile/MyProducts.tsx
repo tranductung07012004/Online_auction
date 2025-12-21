@@ -503,9 +503,9 @@ export default function MyProductsPage(): JSX.Element {
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {filter === 'active'
-                    ? 'You don't have any active auctions.'
+                    ? 'You do not have any active auctions.'
                     : filter === 'upcoming'
-                      ? 'You don't have any upcoming auctions.'
+                      ? 'You do not have any upcoming auctions.'
                       : 'No products with winners yet.'}
                 </Typography>
               </Paper>

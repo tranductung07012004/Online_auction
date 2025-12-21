@@ -13,7 +13,16 @@ public class RegisterRequest {
     @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
 
+    @NotBlank(message = "fullname is required")
+    private String fullname;
+
+    @NotBlank(message = "addredd is required")
+    private String address;
+
+    @NotBlank(message = "reCAPTCHA token is required")
+    private String recaptchaToken;
+
     @NotBlank(message = "Role is required")
-    @Pattern(regexp = "BIDDER|ADMIN|SELLER", message = "Invalid role, role must be BIDDER|ADMIN|SELLER")
+    @Pattern(regexp = "BIDDER|ADMIN", message = "Invalid role, role must be BIDDER|ADMIN")
     private String role;
 }
