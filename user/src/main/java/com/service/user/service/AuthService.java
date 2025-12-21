@@ -8,6 +8,8 @@ import com.service.user.dto.TokenPair;
 public interface AuthService {
     public void register(RegisterRequest req);
 
+    public void verifyRecaptchaToken(String recaptchaToken);
+
     public LoginResponse login(LoginRequest req);
 
     public void logout(String token);

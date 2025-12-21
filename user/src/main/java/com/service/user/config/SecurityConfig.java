@@ -17,8 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
 
-    // ----------This is not best practice, should have add authorization 
-    // at each endpoint.
+    // ----------This is not best practice, should have add authorization at each endpoint.
     // @Bean
     // public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     //     http.csrf(AbstractHttpConfigurer::disable)

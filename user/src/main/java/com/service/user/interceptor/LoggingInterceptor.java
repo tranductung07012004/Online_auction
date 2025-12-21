@@ -2,6 +2,7 @@ package com.service.user.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.user.exception.ApplicationException;
+import com.service.user.constants.ErrorCodes;
 import com.service.user.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -83,7 +84,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
                 }
             }
         } catch (Exception e) {
-            throw new ApplicationException("Token is not valid at LoggingInterceptor");
+            throw new ApplicationException(ErrorCodes.TOKEN_INVALID_INTERCEPTOR, "Token is not valid at LoggingInterceptor");
         }
 
         return "anonymous";

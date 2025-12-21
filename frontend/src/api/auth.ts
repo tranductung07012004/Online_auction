@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'http://localhost:8080',
   withCredentials: true, // Cấu hình gửi cookie kèm theo request
   headers: {
     'Content-Type': 'application/json',
@@ -26,13 +26,17 @@ API.interceptors.response.use(response => {
 });
 
 export interface RegisterData {
-  username: string;
+  fullname: string;
   email: string;
   password: string;
+  address: string;
+  role?: string;
+   // Token from Google reCAPTCHA v2 (frontend sends to backend for verification)
+   recaptchaToken?: string;
 }
 
 export interface LoginData {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -59,12 +63,13 @@ export interface ResetPasswordData {
   confirmPassword: string;
 }
 
-export const register = async (data: RegisterData): Promise<{ userId: string; email: string; message: string }> => {
+export const register = async (data: RegisterData): Promise<{ message: string }> => {
   try {
-    console.log('Registering user:', data.email);
-    const response = await API.post('/auth/register', data);
-    console.log('Registration response:', response.data);
-    return response.data;
+    const response = await API.post('/api/user/auth/register', data);
+    // Backend returns ApiResponse with structure: { message: string, data: T }
+    return {
+      message: response.data.message || 'Registration successful'
+    };
   } catch (error: any) {
     console.error('Registration error:', error);
     throw new Error(error.response?.data?.message || 'Registration failed');
@@ -73,7 +78,7 @@ export const register = async (data: RegisterData): Promise<{ userId: string; em
 
 export const login = async (data: LoginData): Promise<AuthResponse> => {
   try {
-    console.log('Logging in user:', data.username);
+    console.log('Logging in user:', data.email);
     const response = await API.post('/auth/login', data);
     console.log('Login response:', response.data);
     return response.data;
@@ -94,34 +99,6 @@ export const logout = async (): Promise<void> => {
   }
 }
 
-// Generate fake auth data for development
-const generateFakeAuthData = () => {
-  return {
-    userId: 'fake_user_id_123',
-    id: 'fake_user_id_123',
-    username: 'johndoe',
-    email: 'john.doe@example.com',
-    role: 'user',
-    isVerified: true,
-  };
-};
-
-export const getRoleAPI = async () => {
-  try {
-    console.log('Checking user role...');
-    const response = await API.get('/auth/me'); 
-    console.log('Role API response:', response.data);
-    return response.data;
-  } catch (error: any) {
-    // If it's a network error (backend not running), return fake data
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.warn('Backend not available, using fake auth data for development');
-      return generateFakeAuthData();
-    }
-    console.error('Error checking role:', error);
-    throw new Error(error.response?.data?.message || 'Failed to get user role');
-  }
-};
 
 export const verifyEmail = async (data: VerifyEmailData): Promise<{ message: string }> => {
   try {

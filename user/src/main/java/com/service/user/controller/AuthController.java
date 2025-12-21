@@ -21,6 +21,9 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+        // Verify Google reCAPTCHA token before processing registration
+        // this.authService.verifyRecaptchaToken(req.getRecaptchaToken());
+
         this.authService.register(req);
 
         return ResponseEntity

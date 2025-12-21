@@ -1,0 +1,42 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+    fields:
+      app: midterm-api
+      environment: development
+    fields_under_root: true
+
+# Processors để enrich data
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+# Output to Elasticsearch
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "midterm-logs-%{+yyyy.MM.dd}"
+  
+# Setup Kibana
+setup.kibana:
+  host: "kibana:5601"
+
+# Index template
+setup.template.name: "midterm-logs"
+setup.template.pattern: "midterm-logs-*"
+setup.ilm.enabled: false
+
+# Logging level
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644

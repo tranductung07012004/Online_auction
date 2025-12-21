@@ -1,6 +1,8 @@
 package com.service.user.security;
 
 import com.service.user.exception.ApplicationException;
+import com.service.user.constants.ErrorCodes;
+import com.service.user.constants.ErrorMessages;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -86,7 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String role = req.getHeader("X-user-role");
 
         if (userId == null || role == null) {
-            throw new ApplicationException(ApplicationException.UNAUTHORIZED);
+            throw new ApplicationException(ErrorCodes.UNAUTHORIZED, ErrorMessages.UNAUTHORIZED);
         }
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
