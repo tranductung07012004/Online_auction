@@ -45,4 +45,6 @@ recaptcha:
   secret: 6LdYXDAsAAAAAGdpKMehnyORcHKi3_P72u_UMiMB
   verify-url: https://www.google.com/recaptcha/api/siteverify
 
+otp:
+  expiry-minutes: 600
 

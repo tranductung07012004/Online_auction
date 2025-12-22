@@ -33,6 +33,9 @@ CREATE TABLE otp_codes (
     otp_hash VARCHAR(255) NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     used BOOLEAN DEFAULT FALSE,
-    retry_count INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX uq_active_otp
+ON otp_codes(user_id, email)
+WHERE used = false;

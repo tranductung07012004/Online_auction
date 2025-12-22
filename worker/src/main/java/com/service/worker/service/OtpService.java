@@ -1,5 +1,5 @@
 package com.service.worker.service;
 
 public interface OtpService {
-    public void generateAndSendOtp(Long userId, String email);
+    public void sendVerificationLink(Long userId, String email, String otpCode);
 }

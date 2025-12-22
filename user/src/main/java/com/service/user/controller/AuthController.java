@@ -1,9 +1,6 @@
 package com.service.user.controller;
 
-import com.service.user.dto.ApiResponse;
-import com.service.user.dto.LoginResponse;
-import com.service.user.dto.RegisterRequest;
-import com.service.user.dto.LoginRequest;
+import com.service.user.dto.*;
 import com.service.user.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -11,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.Cookie;
-import com.service.user.dto.TokenPair;
 
 @RestController
 @RequestMapping("/api/user/auth")
@@ -19,20 +15,31 @@ import com.service.user.dto.TokenPair;
 public class AuthController {
     private final AuthService authService;
 
+    // Tao 1 endpoint de verify otp code gui len kem gmail 
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtpToken(@Valid @RequestBody verifyOtpRequest req, HttpServletResponse res) {
+        this.authService.verifyOtpCode(req);
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("verify OTP successfully", null));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         // Verify Google reCAPTCHA token before processing registration
         // this.authService.verifyRecaptchaToken(req.getRecaptchaToken());
 
-        this.authService.register(req);
+        RegisterResponse res = this.authService.register(req);
 
         return ResponseEntity
                 .status(200)
-                .body(new ApiResponse<>("Register successfully", null));
+                .body(new ApiResponse<>("Register successfully", res));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req, HttpServletResponse res) {
+        // Verify Google reCAPTCHA token before processing login
+        //this.authService.verifyRecaptchaToken(req.getRecaptchaToken());
         LoginResponse token = this.authService.login(req);
         Cookie cookie = new Cookie("tdt", token.getRefreshToken());
         cookie.setHttpOnly(true);

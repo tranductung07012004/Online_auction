@@ -26,6 +26,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
                 || path.startsWith("/api/user/auth/register")
                 || path.startsWith("/api/user/auth/logout")
                 || path.startsWith("/api/user/auth/refresh")
+                || path.startsWith("/api/user/auth/verify-otp")
         ) {
             return chain.filter(exchange);
         }

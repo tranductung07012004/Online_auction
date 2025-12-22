@@ -79,7 +79,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (requestURI.startsWith("/api/user/auth/login") ||
             requestURI.startsWith("/api/user/auth/register") ||
             requestURI.startsWith("/api/user/auth/refresh") ||
-            requestURI.startsWith("/api/user/auth/logout")) {
+            requestURI.startsWith("/api/user/auth/logout") ||
+            requestURI.startsWith("/api/user/auth/verify-otp")) {
             filterChain.doFilter(req, res);
             return;
         }

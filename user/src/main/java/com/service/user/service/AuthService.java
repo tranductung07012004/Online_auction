@@ -1,12 +1,11 @@
 package com.service.user.service;
 
-import com.service.user.dto.LoginRequest;
-import com.service.user.dto.LoginResponse;
-import com.service.user.dto.RegisterRequest;
-import com.service.user.dto.TokenPair;
+import com.service.user.dto.*;
 
 public interface AuthService {
-    public void register(RegisterRequest req);
+    public void verifyOtpCode(verifyOtpRequest req);
+
+    public RegisterResponse register(RegisterRequest req);
 
     public void verifyRecaptchaToken(String recaptchaToken);
 
