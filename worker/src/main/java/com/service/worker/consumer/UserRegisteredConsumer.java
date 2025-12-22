@@ -38,13 +38,11 @@ public class UserRegisteredConsumer {
             logger.info("Received message - Key: {}, Partition: {}, Offset: {}, EventType: {}", 
                     key, partition, offset, message.getEventType());
 
-            // Kiểm tra event type
             if (!KafkaEventTypes.USER_REGISTERED.equals(message.getEventType())) {
                 shouldAck = true;
                 return;
             }
 
-            // Convert payload từ Object sang UserRegisteredEvent
             UserRegisteredEvent eventData = objectMapper.convertValue(
                     message.getPayload(),
                     UserRegisteredEvent.class
@@ -53,7 +51,6 @@ public class UserRegisteredConsumer {
                 logger.info("Processing USER_REGISTERED event - UserId: {}, Email: {}", 
                         eventData.getUserId(), eventData.getEmail());
 
-                // Xử lý logic của bạn ở đây
                 processUserRegisteredEvent(eventData);
 
                 shouldAck = true;
@@ -67,8 +64,8 @@ public class UserRegisteredConsumer {
         } catch (Exception e) {
             logger.error("Error processing message from topic {}: {}", 
                     KafkaTopics.REGISTER_EVENTS, e.getMessage(), e);
-            // Có thể implement retry logic hoặc dead letter queue ở đây
-            throw e; // Ném exception để Kafka retry
+            // can implement retry logic hoặc dead letter queue here
+            throw e; // for kafka to retry 
         } finally {
             if (shouldAck) {
                 acknowledgment.acknowledge();

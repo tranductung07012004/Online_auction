@@ -16,7 +16,6 @@ import java.security.SecureRandom;
 public class OtpServiceImpl implements OtpService {
 
     private static final Logger logger = LoggerFactory.getLogger(OtpServiceImpl.class);
-    private static final SecureRandom random = new SecureRandom();
 
     @Value("${otp.expiry-minutes}")
     private int otpExpiryMinutes;
@@ -30,7 +29,6 @@ public class OtpServiceImpl implements OtpService {
     @Override
     public void sendVerificationLink(Long userId, String email, String otpCode) {
         try {
-            // Build verification link with OTP code, email, and userId as query parameters
             String verificationLink = String.format("%s/verify-email?otp=%s&email=%s&userId=%d", 
                     frontendBaseUrl, otpCode, email, userId);
             
