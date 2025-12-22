@@ -38,6 +38,7 @@ export interface RegisterData {
 export interface LoginData {
   email: string;
   password: string;
+  recaptchaToken?: string;
 }
 
 export interface AuthResponse {
@@ -45,11 +46,36 @@ export interface AuthResponse {
   message: string;
   isVerified?: boolean;
   email?: string;
+  errorCode?: string;
+}
+
+export interface ApiResponse<T> {
+  message: string;
+  data: T;
+}
+
+export interface ErrorResponseData {
+  errorCode: string;
+  [key: string]: any;
+}
+
+export interface RegisterResponse {
+  email: string;
+  userId: number;
+  role: string;
+  message?: string;
+  errorCode?: string;
 }
 
 export interface VerifyEmailData {
   email: string;
   verificationCode: string;
+}
+
+export interface VerifyOtpRequest {
+  userId: number;
+  otp: string;
+  email: string;
 }
 
 export interface RequestPasswordResetData {
@@ -63,29 +89,17 @@ export interface ResetPasswordData {
   confirmPassword: string;
 }
 
-export const register = async (data: RegisterData): Promise<{ message: string }> => {
-  try {
+export const register = async (data: RegisterData): Promise<any> => {
+    console.log('Registering user:', data.email);
     const response = await API.post('/api/user/auth/register', data);
-    // Backend returns ApiResponse with structure: { message: string, data: T }
-    return {
-      message: response.data.message || 'Registration successful'
-    };
-  } catch (error: any) {
-    console.error('Registration error:', error);
-    throw new Error(error.response?.data?.message || 'Registration failed');
-  }
+  return response.data;    
 };
 
-export const login = async (data: LoginData): Promise<AuthResponse> => {
-  try {
-    console.log('Logging in user:', data.email);
-    const response = await API.post('/auth/login', data);
-    console.log('Login response:', response.data);
-    return response.data;
-  } catch (error: any) {
-    console.error('Login error:', error);
-    throw new Error(error.response?.data?.message || 'Login failed');
-  }
+export const login = async (data: LoginData): Promise<any> => {
+  console.log('Logging in user:', data.email);
+  const response = await API.post('/api/user/auth/login', data);
+  
+  return response.data;
 }; 
 
 export const logout = async (): Promise<void> => {
@@ -99,29 +113,12 @@ export const logout = async (): Promise<void> => {
   }
 }
 
+export const verifyOtp = async (data: VerifyOtpRequest): Promise<any> => {
 
-export const verifyEmail = async (data: VerifyEmailData): Promise<{ message: string }> => {
-  try {
-    console.log('Verifying email:', data.email);
-    const response = await API.post('/auth/verify-email', data);
-    console.log('Email verification response:', response.data);
+    console.log('Verifying OTP:', data);
+    const response = await API.post('/api/user/auth/verify-otp', data);
+    console.log('OTP verification response:', response.data);
     return response.data;
-  } catch (error: any) {
-    console.error('Email verification error:', error);
-    throw new Error(error.response?.data?.message || 'Email verification failed');
-  }
-};
-
-export const resendVerificationCode = async (email: string): Promise<{ message: string }> => {
-  try {
-    console.log('Resending verification code to:', email);
-    const response = await API.post('/auth/resend-verification', { email });
-    console.log('Resend verification response:', response.data);
-    return response.data;
-  } catch (error: any) {
-    console.error('Resend verification error:', error);
-    throw new Error(error.response?.data?.message || 'Failed to resend verification code');
-  }
 };
 
 export const requestPasswordReset = async (data: RequestPasswordResetData): Promise<{ message: string }> => {

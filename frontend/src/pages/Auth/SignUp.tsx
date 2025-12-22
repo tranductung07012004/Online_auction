@@ -117,8 +117,6 @@ const SignUp: React.FC = () => {
 
   const { setAuthLoading, isAuthLoading } = useAuth();
 
-  // Get reCAPTCHA site key from environment variable or use a placeholder
-  // Replace with your actual reCAPTCHA site key
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_GOOGLE_RECAPTCHA_V2_CHECKBOX || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"; // This is Google's test key
 
   const {
@@ -127,7 +125,7 @@ const SignUp: React.FC = () => {
     getValues,
     formState: { errors },
   } = useForm<SignUpFormData>({
-    mode: 'onBlur', // Validate on blur
+    mode: 'onBlur', 
   });
 
   const handleRecaptchaChange = (value: string | null) => {
@@ -137,7 +135,6 @@ const SignUp: React.FC = () => {
   };
 
   const onSubmit = async (data: SignUpFormData) => {
-    // Check if reCAPTCHA is verified
     if (!recaptchaVerified) {
       setApiError("Please complete the reCAPTCHA verification");
       setNotification({
@@ -153,7 +150,6 @@ const SignUp: React.FC = () => {
     setAuthLoading(true);
 
     try {
-      // Add role and reCAPTCHA token for backend
       const { fullname, email, password, address } = data;
       const registerData = {
         fullname,
@@ -164,27 +160,24 @@ const SignUp: React.FC = () => {
         recaptchaToken: recaptchaToken || undefined
       };
       await registerApi(registerData);
-      // Show success notification
+      
       setNotification({
         type: 'success',
-        message: 'Registration successful! Please check your email.',
+        message: 'Registration successful! Please check your email to verify your account.',
         visible: true
       });
 
-      // Redirect to email verification page after successful registration
       setTimeout(() => {
-        navigate("/verify-email", {
-          state: { email: data.email },
-        });
+        navigate("/signin");
       }, 2000);
     } catch (err: any) {
-      setApiError(err.message);
+      const responseData = err.response?.data;
+      setApiError(responseData.message);
       setNotification({
         type: 'error',
-        message: 'Registration failed: ' + err.message,
+        message: 'Registration failed: ' + responseData.message,
         visible: true
       });
-      // Reset reCAPTCHA on error
       if (recaptchaRef.current) {
         recaptchaRef.current.reset();
         setRecaptchaVerified(false);

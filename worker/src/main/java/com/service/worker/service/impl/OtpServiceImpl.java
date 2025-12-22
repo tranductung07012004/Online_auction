@@ -1,7 +1,5 @@
 package com.service.worker.service.impl;
 
-import com.service.worker.entity.OtpCode;
-import com.service.worker.repository.OtpCodeRepository;
 import com.service.worker.service.OtpService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -9,12 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -25,62 +20,36 @@ public class OtpServiceImpl implements OtpService {
 
     @Value("${otp.expiry-minutes}")
     private int otpExpiryMinutes;
+    
+    @Value("${frontend.base-url}")
+    private String frontendBaseUrl;
 
-    private final OtpCodeRepository otpCodeRepository;
-    private final PasswordEncoder passwordEncoder;
+
     private final JavaMailSender mailSender;
 
     @Override
-    @Transactional
-    public void generateAndSendOtp(Long userId, String email) {
-        // Generate 6-digit OTP
-        String otpCode = this.generateOtp();
-        
-        // Hash the OTP before storing
-        String otpHash = this.passwordEncoder.encode(otpCode);
-        
-        // Calculate expiration time
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(otpExpiryMinutes);
-        
-        // Create and save OTP entity
-        OtpCode otpEntity = OtpCode.builder()
-                .userId(userId)
-                .email(email)
-                .purpose("VERIFY_EMAIL")
-                .otpHash(otpHash)
-                .expiresAt(expiresAt)
-                .used(false)
-                .retryCount(0)
-                .createdAt(LocalDateTime.now())
-                .build();
-        
-        this.otpCodeRepository.save(otpEntity);
-        logger.info("OTP saved to database for userId: {}, email: {}", userId, email);
-        
-        // Send email with OTP
-        this.sendOtpEmail(email, otpCode);
-        
-        logger.info("OTP generated and sent successfully for userId: {}, email: {}", userId, email);
-    }
-
-    private String generateOtp() {
-        // Generate 6-digit OTP (000000 to 999999)
-        int otp = 100000 + random.nextInt(900000);
-        return String.valueOf(otp);
-    }
-
-    private void sendOtpEmail(String to, String otpCode) {
+    public void sendVerificationLink(Long userId, String email, String otpCode) {
         try {
+            // Build verification link with OTP code, email, and userId as query parameters
+            String verificationLink = String.format("%s/verify-email?otp=%s&email=%s&userId=%d", 
+                    frontendBaseUrl, otpCode, email, userId);
+            
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject("Your OTP Code");
-            message.setText("This is your OTP code: " + otpCode + "\nIt will expire in " + otpExpiryMinutes + " minutes.");
+            message.setTo(email);
+            message.setSubject("Verify Your Email Address");
+            message.setText(String.format(
+                    "Welcome! Please verify your email address by clicking the link below:\n\n" +
+                    "%s\n\n" +
+                    "This link will expire in %d minutes.\n\n" +
+                    "If you did not create an account, please ignore this email.",
+                    verificationLink, otpExpiryMinutes
+            ));
             
             mailSender.send(message);
-            logger.info("OTP email sent successfully to: {}", to);
+            logger.info("Verification link email sent successfully to: {} for userId: {}", email, userId);
         } catch (Exception e) {
-            logger.error("Failed to send OTP email to: {}", to, e);
-            throw new RuntimeException("Failed to send OTP email", e);
+            logger.error("Failed to send verification link email to: {} for userId: {}", email, userId, e);
+            throw new RuntimeException("Failed to send verification link email", e);
         }
     }
 }

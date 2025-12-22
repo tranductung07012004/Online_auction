@@ -1,12 +1,11 @@
 package com.service.user.service.impl;
 
-import com.service.user.dto.LoginRequest;
-import com.service.user.dto.LoginResponse;
-import com.service.user.dto.RegisterRequest;
-import com.service.user.dto.RecaptchaResponse;
+import com.service.user.dto.*;
+import com.service.user.entity.OtpCode;
 import com.service.user.entity.RefreshToken;
 import com.service.user.entity.UserDetails;
 import com.service.user.exception.ApplicationException;
+import com.service.user.repository.OtpCodeRepository;
 import com.service.user.repository.RefreshTokenRepository;
 import com.service.user.repository.UserDetailsRepository;
 import com.service.user.repository.UserRepository;
@@ -23,14 +22,13 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import com.service.user.entity.User;
-import com.service.user.dto.TokenPair;
-import com.service.user.dto.UserRegisteredEvent;
 import com.service.user.service.KafkaProducerService;
 import com.service.user.constants.KafkaTopics;
 import com.service.user.constants.KafkaEventTypes;
 import com.service.user.constants.ErrorCodes;
 import com.service.user.constants.ErrorMessages;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -48,13 +46,19 @@ public class AuthServiceImpl implements AuthService {
 
     private final KafkaProducerService kafkaProducerService;
 
+    private final OtpCodeRepository otpCodeRepository;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
 
     @Value("${recaptcha.secret}")
     private String recaptchaSecret;
 
     @Value("${recaptcha.verify-url}")
     private String recaptchaVerifyUrl;
+
+    @Value("${otp.expiry-minutes}")
+    private int otpExpiryMinutes;
+
 
     @Override
     public void verifyRecaptchaToken(String recaptchaToken) {
@@ -70,7 +74,6 @@ public class AuthServiceImpl implements AuthService {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("secret", recaptchaSecret);
         body.add("response", recaptchaToken);
-        // remoteip is optional; we skip it for now
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -91,14 +94,15 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest req) {
         User user = this.userRepo.findByEmail(req.getEmail())
                 .orElseThrow(() -> new ApplicationException(ErrorCodes.USER_NOT_FOUND, ErrorMessages.USER_NOT_FOUND));
-        if (!encoder.matches(req.getPassword(), user.getPassword())) {
-            throw new ApplicationException(ErrorCodes.INVALID_PASSWORD, ErrorMessages.INVALID_PASSWORD);
-        }
         UserDetails userDetails = this.userDetailsRepo.findByUserId(user.getId())
                 .orElseThrow(() -> new ApplicationException(ErrorCodes.USER_NOT_FOUND, ErrorMessages.USER_NOT_FOUND));
         
         if (!userDetails.getVerified()) {
             throw new ApplicationException(ErrorCodes.USER_NOT_VERIFIED, ErrorMessages.USER_NOT_VERIFIED);
+        }
+        
+        if (!encoder.matches(req.getPassword(), user.getPassword())) {
+            throw new ApplicationException(ErrorCodes.INVALID_PASSWORD, ErrorMessages.INVALID_PASSWORD);
         }
         String accessToken = this.jwtUtil.generateAccessToken(user.getId().toString(), user.getRole());
         String refreshToken = this.jwtUtil.generateRefreshToken(user.getId().toString());
@@ -113,7 +117,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void register(RegisterRequest req) {
+    public RegisterResponse register(RegisterRequest req) {
         Optional<User> user = this.userRepo.findByEmail(req.getEmail());
         if (!user.isEmpty()) {
             throw new ApplicationException(ErrorCodes.USER_ALREADY_EXISTS, "User already exists with email: " + req.getEmail());
@@ -123,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
                 .password(encoder.encode(req.getPassword()))
                 .role(req.getRole())
                 .build();
-        this.userRepo.save(newUser);
+        User savedUser = this.userRepo.save(newUser);
 
         UserDetails userDetails = UserDetails.builder()
                 .user_id(newUser.getId())
@@ -136,11 +140,29 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         this.userDetailsRepo.save(userDetails);
 
-        // Publish user registered event to Kafka
-        // Sử dụng userId làm key để đảm bảo tất cả events của cùng user đi vào cùng partition
+        String otpCode = generateOtp();
+        
+        String otpHash = encoder.encode(otpCode);
+        
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(otpExpiryMinutes);
+        
+        OtpCode otpEntity = OtpCode.builder()
+                .userId(newUser.getId())
+                .email(newUser.getEmail())
+                .purpose("VERIFY_EMAIL")
+                .otpHash(otpHash)
+                .expiresAt(expiresAt)
+                .used(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        this.otpCodeRepository.save(otpEntity);
+
+        // Publish user registered event to Kafka with OTP code
         UserRegisteredEvent eventData = UserRegisteredEvent.builder()
                 .userId(newUser.getId())
                 .email(newUser.getEmail())
+                .otpCode(otpCode)
                 .build();
         kafkaProducerService.sendMessageWithKey(
                 KafkaTopics.REGISTER_EVENTS,
@@ -148,6 +170,13 @@ public class AuthServiceImpl implements AuthService {
                 KafkaEventTypes.USER_REGISTERED,
                 eventData
         );
+
+        RegisterResponse res = new RegisterResponse();
+        res.setEmail(savedUser.getEmail());
+        res.setRole(savedUser.getRole());
+        res.setUserId(savedUser.getId());
+
+        return res;
     }
 
     @Override
@@ -196,6 +225,45 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void logout(String refreshToken) {
         this.refreshTokenRepo.deleteByToken(refreshToken);
+    }
+
+    @Override
+    public void verifyOtpCode(verifyOtpRequest req) {
+        String email = req.getEmail();
+        Long userId = req.getUserId();
+        String otpCode = req.getOtp();
+
+
+        if (email == null || email.trim().isEmpty() || otpCode == null || otpCode.trim().isEmpty() || userId == null) {
+            throw new ApplicationException(ErrorCodes.INVALID_INPUT, ErrorMessages.INVALID_INPUT);
+        }
+
+        OtpCode otpCodeRecord = this.otpCodeRepository.findLatestActiveOtp(userId, email)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.OTP_NOT_FOUND, ErrorMessages.OTP_NOT_FOUND));
+
+        LocalDateTime expirationTime = otpCodeRecord.getCreatedAt().plusMinutes(otpExpiryMinutes);
+        if (expirationTime.isBefore(LocalDateTime.now())) {
+            throw new ApplicationException(ErrorCodes.OTP_EXPIRED, ErrorMessages.OTP_EXPIRED);
+        }
+
+        if (!encoder.matches(otpCode, otpCodeRecord.getOtpHash())) {
+            throw new ApplicationException(ErrorCodes.OTP_INVALID, ErrorMessages.OTP_INVALID);
+        }
+
+        otpCodeRecord.setUsed(true);
+        this.otpCodeRepository.save(otpCodeRecord);
+
+        UserDetails userDetails = this.userDetailsRepo.findByUserId(userId)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.USER_NOT_FOUND, ErrorMessages.USER_NOT_FOUND));
+        userDetails.setVerified(true);
+        this.userDetailsRepo.save(userDetails);
+    }
+
+    private String generateOtp() {
+        SecureRandom random = new SecureRandom();
+
+        int otp = 100000 + random.nextInt(900000);
+        return String.valueOf(otp);
     }
 
 }

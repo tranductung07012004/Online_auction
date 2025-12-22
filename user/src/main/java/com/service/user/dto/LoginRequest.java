@@ -5,6 +5,9 @@ import lombok.Data;
 
 @Data
 public class LoginRequest {
+    @NotBlank(message = "reCAPTCHA token is required")
+    private String recaptchaToken;
+    
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;

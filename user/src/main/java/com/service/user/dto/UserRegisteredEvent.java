@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class UserRegisteredEvent {
     private Long userId;
     private String email;
+    private String otpCode;
 }
 
 

@@ -1,4 +1,4 @@
-package com.service.worker.entity;
+package com.service.user.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -42,5 +42,7 @@ public class OtpCode {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }
+
+
 
 

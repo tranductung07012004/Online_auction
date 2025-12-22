@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { login } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 import { Notification } from '../../components/ui/Notification';
 
+interface SignInFormData {
+  email: string;
+  password: string;
+}
+
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -21,71 +25,92 @@ const SignIn: React.FC = () => {
     message: string;
     visible: boolean;
   }>({ type: 'info', message: '', visible: false });
+  const [recaptchaVerified, setRecaptchaVerified] = useState<boolean>(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
   
-  const { getRoleFromCookie, setAuthLoading, isAuthLoading } = useAuth();
+  const { setAuthLoading, isAuthLoading } = useAuth();
+  const { setAccessToken } = useAuthStore();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const RECAPTCHA_SITE_KEY = import.meta.env.VITE_GOOGLE_RECAPTCHA_V2_CHECKBOX;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInFormData>({
+    mode: 'onBlur',
+  });
+
+  const handleRecaptchaChange = (value: string | null) => {
+    setRecaptchaVerified(!!value);
+    setRecaptchaToken(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (data: SignInFormData) => {
+    if (!recaptchaVerified || !recaptchaToken) {
+      setError('Please complete the reCAPTCHA verification');
+      setNotification({
+        type: 'error',
+        message: 'Please complete the reCAPTCHA verification',
+        visible: true
+      });
+      return;
+    }
+
     setError('');
     setShowForgotPassword(false);
     setLoading(true);
     setAuthLoading(true);
 
     try {
-      const response = await login(formData);
+      const response = await login({ ...data, recaptchaToken });
       
-      // Kiểm tra xem tài khoản đã được xác thực email chưa
-      if (response.isVerified === false) {
-        setError('Your account is not verified. Please check your email and verify your account.');
-        
-        // Chuyển hướng đến trang xác thực email với email của người dùng
-        navigate('/verify-email', { 
-          state: { email: response.email } // Use the email returned from the API response
+      if (response.data?.errorCode) {
+        setError(response.message);
+        setNotification({
+          type: 'error',
+          message: response.message,
+          visible: true
         });
         return;
       }
       
-      // Get user role and set auth state
-      const role = await getRoleFromCookie();
-      console.log('User role:', role);
-      
-      // Show success notification
-      setNotification({
-        type: 'success',
-        message: role === 'admin' ? 'Admin login successful! Redirecting to dashboard...' : 'Login successful! Redirecting...',
-        visible: true
-      });
-      
-      // Redirect based on role - Admin goes to dashboard, users go to profile
-      if (role === 'admin') {
-        setTimeout(() => {
-          navigate('/admin/dashboard', { replace: true });
-        }, 500);
-      } else if (role === 'user') {
-        setTimeout(() => {
-          navigate('/profile', { replace: true });
-        }, 500);
+      // Luu accessToken vao zustand store (refresh token da nam trong cookie roi)
+      if (response.data) {
+        setAccessToken(response.data);
+        
+        const userRole = useAuthStore.getState().role;
+        console.log('User role:', userRole);
+        
+        setNotification({
+          type: 'success',
+          message: userRole === 'ADMIN' ? 'Admin login successful! Redirecting to dashboard...' : 'Login successful! Redirecting...',
+          visible: true
+        });
+        
+        if (userRole === 'ADMIN') {
+          setTimeout(() => {
+            navigate('/admin/dashboard', { replace: true });
+          }, 500);
+        } else if (userRole === 'BIDDER' || userRole === 'SELLER') {
+          setTimeout(() => {
+            navigate('/', { replace: true });
+          }, 500);
+        } 
+      } else {
+        throw new Error('Access token not received');
       }
     } catch (err: any) {
-      // Handle specific error codes
       const errorResponse = err.response?.data;
       
-      if (errorResponse?.errorCode === 'USER_NOT_FOUND') {
+      if (errorResponse.data?.errorCode === 'USER_NOT_FOUND') {
         setError('Account not found. Please register to create an account.');
-        // Add a button/link to registration page
-      } else if (errorResponse?.errorCode === 'INVALID_PASSWORD') {
+      } else if (errorResponse.data?.errorCode === 'INVALID_PASSWORD') {
         setError('Incorrect password. Did you forget your password?');
         setShowForgotPassword(true);
       } else {
-        setError(errorResponse?.message || err.message || 'Login failed');
+        setError(errorResponse?.message || err.message);
       }
       
       setNotification({
@@ -93,6 +118,12 @@ const SignIn: React.FC = () => {
         message: 'Login failed',
         visible: true
       });
+
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+      setRecaptchaVerified(false);
+      setRecaptchaToken(null);
     } finally {
       setLoading(false);
       setAuthLoading(false);
@@ -145,7 +176,7 @@ const SignIn: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email Input */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -153,13 +184,23 @@ const SignIn: React.FC = () => {
               </div>
               <input
                 type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
+                id="email"
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address'
+                  }
+                })}
                 placeholder="Email"
-                className="w-full pl-10 pr-3 py-3 border border-[#dfdfdf] rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c]"
+                className={`w-full pl-10 pr-3 py-3 border rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c] ${
+                  errors.email ? 'border-[#c3937c]' : 'border-[#dfdfdf]'
+                }`}
                 disabled={loading}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-[#c3937c] pl-3">{errors.email.message}</p>
+              )}
             </div>
 
             {/* Password Input */}
@@ -169,11 +210,18 @@ const SignIn: React.FC = () => {
               </div>
               <input
                 type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
+                id="password"
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters'
+                  }
+                })}
                 placeholder="Password"
-                className="w-full pl-10 pr-10 py-3 border border-[#dfdfdf] rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c]"
+                className={`w-full pl-10 pr-10 py-3 border rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c] ${
+                  errors.password ? 'border-[#c3937c]' : 'border-[#dfdfdf]'
+                }`}
                 disabled={loading}
               />
               <button
@@ -188,6 +236,9 @@ const SignIn: React.FC = () => {
                   <Eye className="h-5 w-5 text-[#999999]" />
                 )}
               </button>
+              {errors.password && (
+                <p className="mt-1 text-sm text-[#c3937c] pl-3">{errors.password.message}</p>
+              )}
             </div>
 
             <div className="flex justify-end">
@@ -196,10 +247,19 @@ const SignIn: React.FC = () => {
               </Link>
             </div>
 
+            <div className="flex justify-center">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={handleRecaptchaChange}
+                theme="light"
+              />
+            </div>
+
             {/* Login Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !recaptchaVerified}
               className="w-full py-3 bg-[#ead9c9] text-[#c3937c] rounded-full font-medium hover:bg-[#c3937c] hover:text-white transition-colors disabled:opacity-50 flex items-center justify-center"
             >
               {loading ? (
@@ -254,15 +314,15 @@ const SignIn: React.FC = () => {
           <div className="text-center space-y-4">
             <p className="text-xs text-[#999999]">
               Signing up means you agree to the{' '}
-              <a href="#" className="text-[#404040]">
+              <a className="text-[#404040]">
                 Privacy policy
               </a>
               ,{' '}
-              <a href="#" className="text-[#404040]">
+              <a className="text-[#404040]">
                 Terms of Services
               </a>{' '}
               and{' '}
-              <a href="#" className="text-[#404040]">
+              <a className="text-[#404040]">
                 Affiliate Terms
               </a>
               .
