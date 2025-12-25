@@ -46,7 +46,8 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
         if (userId == null || userRole == null) {
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             res.setContentType("application/json");
-            res.getWriter().write("{\"message\":\"Request is not authenticated\",\"error\":\"UNAUTHORIZED\"}");       
+            res.getWriter().write("{\"message\":\"Request is not authenticated\",\"error\":\"UNAUTHORIZED\"}");
+            return;
         }
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
