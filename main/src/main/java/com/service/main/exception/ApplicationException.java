@@ -1,18 +1,15 @@
 package com.service.main.exception;
 
+import lombok.Getter;
+
+@Getter
 public class ApplicationException extends RuntimeException {
 
-    public ApplicationException(String message) {
+    private final String errorCode;
+
+    public ApplicationException(String errorCode, String message) {
         super(message);
+        this.errorCode = errorCode;
     }
-
-    public ApplicationException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    // Common error messages for consistent usage
-    public static final String DUPLICATE_KEY = "Duplicate key";
-    public static final String RESOURCE_NOT_FOUND = "Resource not found";
-    public static final String VALIDATION_FAILED = "Validation failed";
 }
 

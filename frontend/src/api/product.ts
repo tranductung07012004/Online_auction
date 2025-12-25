@@ -38,27 +38,28 @@ export interface CreateProductData {
   additionalImages: File[];
 }
 
+// Create product request DTO matching backend
+export interface CreateProductRequest {
+  productName: string;
+  thumbnailUrl: string;
+  startPrice: number;
+  buyNowPrice?: number;
+  minimumBidStep: number;
+  endAt: string; // ISO 8601 format
+  autoExtendEnabled: boolean;
+  descriptionContent: string;
+  sellerId: number;
+  categoryIds: number[];
+  pictureUrls: string[];
+}
+
 // Create a new product
-export const createProduct = async (formData: FormData): Promise<Product> => {
-  try {
-    const response = await api.post('/product', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+export const createProduct = async (request: CreateProductRequest): Promise<Product> => {
+    const response = await api.post('/api/main/product', request);
 
-    if (response.data && response.data.success) {
-      return response.data.data;
-    }
 
-    throw new Error(response.data.message || 'Failed to create product');
-  } catch (error: any) {
-    console.error('Error creating product:', error);
-    if (error.response) {
-      throw new Error(error.response.data?.message || 'Failed to create product');
-    }
-    throw error;
-  }
+    return response.data; 
+
 };
 
 // Get all products

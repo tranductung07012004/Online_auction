@@ -3,13 +3,15 @@ package com.service.main.controller;
 import com.service.main.dto.ApiResponse;
 import com.service.main.dto.createCategoriesRequest;
 import com.service.main.dto.updateCategoriesRequest;
-import com.service.main.entity.Categories;
 import com.service.main.service.CategoriesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
+
+import com.service.main.dto.categoriesResponse;
 
 @RestController
 @RequestMapping("/api/main/categories")
@@ -17,20 +19,22 @@ import org.springframework.data.domain.Page;
 public class CategoriesController {
     private final CategoriesService categoriesService;
 
+    @PreAuthorize("hasRole('SELLER')")
     @PostMapping
     public ResponseEntity<?> createCategory(@Valid @RequestBody createCategoriesRequest req) {
-        Categories category = categoriesService.createCategory(req);
+        categoriesResponse category = categoriesService.createCategory(req);
         return ResponseEntity
                 .status(201)
                 .body(new ApiResponse<>("Category created successfully", category));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCategory(
             @PathVariable("id") Integer id,
             @Valid @RequestBody updateCategoriesRequest req
     ) {
-        Categories category = categoriesService.updateCategory(id, req);
+        categoriesResponse category = categoriesService.updateCategory(id, req);
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Category updated successfully", category));
@@ -42,7 +46,7 @@ public class CategoriesController {
         @RequestParam(value = "page", required = false, defaultValue = "0") int page,
         @RequestParam(value = "size", required = false, defaultValue = "10") int size
     ) {
-        Page<Categories> categories = categoriesService.searchCategories(name, page, size);
+        Page<categoriesResponse> categories = categoriesService.searchCategories(name, page, size);
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Search categories successfully", categories));
@@ -54,7 +58,7 @@ public class CategoriesController {
         @RequestParam(value = "page", required = false, defaultValue = "0") int page,
         @RequestParam(value = "size", required = false, defaultValue = "10") int size
     ) {
-        Page<Categories> categories = categoriesService.searchParentCategories(name, page, size);
+        Page<categoriesResponse> categories = categoriesService.searchParentCategories(name, page, size);
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Search parent categories successfully", categories));
@@ -66,7 +70,7 @@ public class CategoriesController {
         @RequestParam(value = "page", required = false, defaultValue = "0") int page,
         @RequestParam(value = "size", required = false, defaultValue = "10") int size
     ) {
-        Page<Categories> categories = categoriesService.searchChildCategories(name, page, size);
+        Page<categoriesResponse> categories = categoriesService.searchChildCategories(name, page, size);
 
         return ResponseEntity
                 .status(200)
