@@ -27,7 +27,7 @@ public interface CategoriesRepository extends JpaRepository<Categories, Integer>
       @Param("keyword") String name,
       Pageable pageable);
 
-    @Query(value = """
+  @Query(value = """
           SELECT *
           FROM categories
           WHERE parent_id IS NULL
@@ -38,7 +38,21 @@ public interface CategoriesRepository extends JpaRepository<Categories, Integer>
           WHERE parent_id IS NULL
             AND LOWER(name) LIKE LOWER(CONCAT('%', :keyword, '%'))
       """, nativeQuery = true)
-    Page<Categories> searchParentCategories(
-            @Param("keyword") String name,
-            Pageable pageable);
+  Page<Categories> searchParentCategories(
+          @Param("keyword") String name,
+          Pageable pageable);
+
+  @Query(value = """
+          SELECT COUNT(*)
+          FROM product_category
+          WHERE category_id = :categoryId
+      """, nativeQuery = true)
+  Long countProductsByCategoryId(@Param("categoryId") Integer categoryId);
+
+  @Query(value = """
+          SELECT COUNT(*)
+          FROM categories
+          WHERE parent_id = :categoryId
+      """, nativeQuery = true)
+  Long countChildCategoriesByParentId(@Param("categoryId") Integer categoryId);
 }

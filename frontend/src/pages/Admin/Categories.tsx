@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Container,
@@ -22,72 +22,177 @@ import {
   Stack,
   Pagination,
   MenuItem,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import { Edit, Trash2, Plus, Eye } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
+import api from "../../api/apiClient";
 
-interface Category {
-  id: string;
+// Backend DTOs
+interface CategoryApi {
+  id: number;
   name: string;
-  productCount: number;
-  createdAt: string;
-  parentId?: string | null;
+  parent_id: number | null;
+}
+
+interface ApiResponse<T> {
+  message: string;
+  data: T;
+}
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+// UI model
+interface Category {
+  id: number;
+  name: string;
+  parentId: number | null;
 }
 
 const Categories: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: "1",
-      name: "Electronics",
-      productCount: 45,
-      createdAt: "2024-01-01T10:00:00Z",
-      parentId: null,
-    },
-    {
-      id: "2",
-      name: "Fashion",
-      productCount: 68,
-      createdAt: "2024-01-02T12:30:00Z",
-      parentId: null,
-    },
-    {
-      id: "3",
-      name: "Home & Garden",
-      productCount: 32,
-      createdAt: "2024-01-03T09:15:00Z",
-      parentId: null,
-    },
-    {
-      id: "4",
-      name: "Smartphones",
-      productCount: 20,
-      createdAt: "2024-01-04T08:45:00Z",
-      parentId: "1",
-    },
-  ]);
-
+  const [categories, setCategories] = useState<Category[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({ name: "", parentId: "" });
 
-  // Pagination state
-  const [page, setPage] = useState(1);
+  const [formData, setFormData] = useState<{ name: string; parentId: string }>({
+    name: "",
+    parentId: "",
+  });
+
+  // Server-side pagination/search
+  const [page, setPage] = useState(1); // UI is 1-based
   const [rowsPerPage] = useState(10);
+  const [searchName, setSearchName] = useState("");
+
+  // Load states
+  const [loading, setLoading] = useState(false);
+  const [mutating, setMutating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Optional counts for deletion checks
+  const [productCountByCategoryId, setProductCountByCategoryId] = useState<
+    Record<number, number>
+  >({});
+  const [childCountByParentId, setChildCountByParentId] = useState<
+    Record<number, number>
+  >({});
+
+  const mapCategory = (c: CategoryApi): Category => ({
+    id: c.id,
+    name: c.name,
+    parentId: c.parent_id ?? null,
+  });
+
+  const fetchCountsForCurrentPage = async (cats: Category[]) => {
+    // Best-effort: if backend doesn't support these endpoints, we just skip.
+    try {
+      const ids = cats.map((c) => c.id);
+      if (ids.length === 0) return;
+
+      // Try common endpoints; ignore failures.
+      const [productCountsRes, childCountsRes] = await Promise.allSettled([
+        api.post<ApiResponse<Record<number, number>>>(
+          "/api/main/categories/admin/product-counts",
+          { ids }
+        ),
+        api.post<ApiResponse<Record<number, number>>>(
+          "/api/main/categories/admin/child-counts",
+          { ids }
+        ),
+      ]);
+
+      if (
+        productCountsRes.status === "fulfilled" &&
+        productCountsRes.value?.data?.data
+      ) {
+        setProductCountByCategoryId((prev) => ({
+          ...prev,
+          ...productCountsRes.value.data.data,
+        }));
+      }
+      if (
+        childCountsRes.status === "fulfilled" &&
+        childCountsRes.value?.data?.data
+      ) {
+        setChildCountByParentId((prev) => ({
+          ...prev,
+          ...childCountsRes.value.data.data,
+        }));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get<ApiResponse<PageResponse<CategoryApi>>>(
+        "/api/main/categories/search-norm",
+        {
+          params: {
+            name: searchName,
+            page: page - 1,
+            size: rowsPerPage,
+          },
+        }
+      );
+
+      const pageData = res.data.data;
+      const mapped = pageData.content.map(mapCategory);
+      setCategories(mapped);
+
+      // compute total pages from returned page data
+      setTotalPages(pageData.totalPages || 1);
+
+      // optional in-page counts
+      void fetchCountsForCurrentPage(mapped);
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message || e?.message || "Failed to load categories"
+      );
+      setCategories([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    void fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, rowsPerPage, searchName]);
+
+  const parentOptions = useMemo(
+    () => categories.filter((c) => c.parentId == null),
+    [categories]
+  );
 
   const handleOpenDialog = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
       setFormData({
         name: category.name,
-        parentId: category.parentId ?? "",
+        parentId: category.parentId ? String(category.parentId) : "",
       });
     } else {
       setEditingCategory(null);
       setFormData({ name: "", parentId: "" });
     }
+    setError(null);
     setOpenDialog(true);
   };
 
@@ -96,26 +201,52 @@ const Categories: React.FC = () => {
     setEditingCategory(null);
   };
 
-  const handleSaveCategory = () => {
-    if (editingCategory) {
-      setCategories(
-        categories.map((c) =>
-          c.id === editingCategory.id
-            ? { ...c, name: formData.name, parentId: formData.parentId || null }
-            : c
-        )
-      );
-    } else {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        name: formData.name,
-        productCount: 0,
-        createdAt: new Date().toISOString(),
-        parentId: formData.parentId || null,
-      };
-      setCategories([...categories, newCategory]);
+  const handleSaveCategory = async () => {
+    const name = formData.name.trim();
+    const parentIdNum = formData.parentId ? Number(formData.parentId) : null;
+
+    if (!name) {
+      setError("Category name is required");
+      return;
     }
-    handleCloseDialog();
+
+    if (
+      editingCategory &&
+      parentIdNum != null &&
+      parentIdNum === editingCategory.id
+    ) {
+      setError("Parent category cannot be itself");
+      return;
+    }
+
+    setMutating(true);
+    setError(null);
+    try {
+      if (editingCategory) {
+        await api.put<ApiResponse<CategoryApi>>(
+          `/api/main/categories/${editingCategory.id}`,
+          {
+            name,
+            parent_id: parentIdNum,
+          }
+        );
+      } else {
+        await api.post<ApiResponse<CategoryApi>>("/api/main/categories", {
+          name,
+          parent_id: parentIdNum,
+        });
+      }
+
+      handleCloseDialog();
+      // refresh
+      await fetchCategories();
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message || e?.message || "Failed to save category"
+      );
+    } finally {
+      setMutating(false);
+    }
   };
 
   const handleViewCategory = (category: Category) => {
@@ -123,44 +254,53 @@ const Categories: React.FC = () => {
     setViewDialogOpen(true);
   };
 
-  const handleDeleteCategory = (id: string) => {
-    const hasChild = categories.some((c) => c.parentId === id);
-    if (hasChild) {
-      alert("Cannot delete category that has subcategories. Remove subcategories first.");
+  const handleDeleteCategory = async (id: number) => {
+    const childCount = childCountByParentId[id] ?? 0;
+    if (childCount > 0) {
+      alert(
+        "Cannot delete category that has subcategories. Remove subcategories first."
+      );
       return;
     }
-    const category = categories.find((c) => c.id === id);
-    if (category && category.productCount > 0) {
+
+    const productCount = productCountByCategoryId[id] ?? 0;
+    if (productCount > 0) {
       alert("Cannot delete category with products. Remove products first.");
       return;
     }
-    setCategories(categories.filter((c) => c.id !== id));
+
+    if (!confirm("Delete this category?")) return;
+
+    setMutating(true);
+    setError(null);
+    try {
+      // Backend currently doesn't expose DELETE; if it exists, this will work.
+      // If not, you'll need to add DELETE endpoint in backend.
+      await api.delete(`/api/main/categories/${id}`);
+
+      // refresh, and if current page becomes empty after delete, go back one page
+      await fetchCategories();
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message || e?.message || "Failed to delete category"
+      );
+    } finally {
+      setMutating(false);
+    }
   };
 
   // Pagination logic
-  const handleChangePage = (_event: React.ChangeEvent<unknown>, newPage: number) => {
+  const handleChangePage = (
+    _event: React.ChangeEvent<unknown>,
+    newPage: number
+  ) => {
     setPage(newPage);
   };
 
-  const paginatedCategories = categories.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
-
-  const totalPages = Math.ceil(categories.length / rowsPerPage);
-
-  const parentOptions = categories.filter((c) => !c.parentId);
-
-  const formatDateTime = (value: string) =>
-    new Date(value).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
+  const formatDateTime = (_value: string) => {
+    // Backend currently doesn't return createdAt for categories; keep placeholder.
+    return "—";
+  };
 
   return (
     <div className="relative flex flex-col min-h-screen">
@@ -174,25 +314,47 @@ const Categories: React.FC = () => {
               justifyContent: "space-between",
               alignItems: "center",
               mb: 4,
+              gap: 2,
+              flexWrap: "wrap",
             }}
           >
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               Categories Management
             </Typography>
-            <Button
-              variant="contained"
-              sx={{
-                bgcolor: "#C3937C",
-                "&:hover": {
-                  bgcolor: "#A67C5A",
-                },
-              }}
-              startIcon={<Plus size={20} />}
-              onClick={() => handleOpenDialog()}
-            >
-              Add Category
-            </Button>
+
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <TextField
+                size="small"
+                label="Search"
+                value={searchName}
+                onChange={(e) => {
+                  setPage(1);
+                  setSearchName(e.target.value);
+                }}
+              />
+
+              <Button
+                variant="contained"
+                sx={{
+                  bgcolor: "#C3937C",
+                  "&:hover": {
+                    bgcolor: "#A67C5A",
+                  },
+                }}
+                startIcon={<Plus size={20} />}
+                onClick={() => handleOpenDialog()}
+                disabled={mutating}
+              >
+                Add Category
+              </Button>
+            </Box>
           </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
           <Card>
             <CardContent sx={{ p: 0 }}>
@@ -212,7 +374,13 @@ const Categories: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {paginatedCategories.length === 0 ? (
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                          <CircularProgress size={28} />
+                        </TableCell>
+                      </TableRow>
+                    ) : categories.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                           <Typography color="textSecondary">
@@ -221,23 +389,33 @@ const Categories: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      paginatedCategories.map((category) => (
+                      categories.map((category) => (
                         <TableRow key={category.id} hover>
                           <TableCell sx={{ fontWeight: 500 }}>
                             {category.name}
                           </TableCell>
-                              <TableCell>
-                                {category.parentId
-                                  ? categories.find((c) => c.id === category.parentId)?.name ||
-                                    "—"
-                                  : "—"}
-                              </TableCell>
-                          <TableCell align="center">
-                            <Chip label={category.productCount} size="small" />
+                          <TableCell>
+                            {category.parentId
+                              ? categories.find(
+                                  (c) => c.id === category.parentId
+                                )?.name || "—"
+                              : "—"}
                           </TableCell>
-                          <TableCell>{formatDateTime(category.createdAt)}</TableCell>
                           <TableCell align="center">
-                            <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                            <Chip
+                              label={productCountByCategoryId[category.id] ?? 0}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{formatDateTime("")}</TableCell>
+                          <TableCell align="center">
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 1,
+                                justifyContent: "center",
+                              }}
+                            >
                               <IconButton
                                 size="small"
                                 color="primary"
@@ -251,14 +429,18 @@ const Categories: React.FC = () => {
                                 color="primary"
                                 onClick={() => handleOpenDialog(category)}
                                 title="Edit"
+                                disabled={mutating}
                               >
                                 <Edit size={18} />
                               </IconButton>
                               <IconButton
                                 size="small"
                                 color="error"
-                                onClick={() => handleDeleteCategory(category.id)}
+                                onClick={() =>
+                                  handleDeleteCategory(category.id)
+                                }
                                 title="Delete"
+                                disabled={mutating}
                               >
                                 <Trash2 size={18} />
                               </IconButton>
@@ -317,19 +499,11 @@ const Categories: React.FC = () => {
               label="Category Name"
               variant="outlined"
               fullWidth
-              sx={{
-                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#a67c66',
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a67c66',
-                },
-                '& .MuiOutlinedInput-root.Mui-focused': {
-                  backgroundColor: '#f8f3f0',
-                },
-              }}
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              disabled={mutating}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
             />
             <TextField
               select
@@ -337,21 +511,11 @@ const Categories: React.FC = () => {
               variant="outlined"
               fullWidth
               value={formData.parentId}
+              disabled={mutating}
               onChange={(e) =>
                 setFormData({ ...formData, parentId: e.target.value })
               }
               helperText="Chỉ 1 cấp con. Chọn trống nếu là category cha."
-              sx={{
-                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#a67c66',
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a67c66',
-                },
-                '& .MuiOutlinedInput-root.Mui-focused': {
-                  backgroundColor: '#f8f3f0',
-                },
-              }}
             >
               <MenuItem value="">(Không chọn)</MenuItem>
               {parentOptions
@@ -369,24 +533,20 @@ const Categories: React.FC = () => {
             sx={{
               color: "#f1efee",
               bgcolor: "#C3937C",
-              "&:hover": {
-                bgcolor: "#A67C5A",
-              },
+              "&:hover": { bgcolor: "#A67C5A" },
             }}
-            onClick={handleCloseDialog}>
+            onClick={handleCloseDialog}
+            disabled={mutating}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleSaveCategory}
             variant="contained"
-            sx={{
-              bgcolor: "#C3937C",
-              "&:hover": {
-                bgcolor: "#A67C5A",
-              },
-            }}
+            disabled={mutating}
+            sx={{ bgcolor: "#C3937C", "&:hover": { bgcolor: "#A67C5A" } }}
           >
-            Save
+            {mutating ? "Saving..." : "Save"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -406,7 +566,11 @@ const Categories: React.FC = () => {
           {viewingCategory && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ mb: 0.5 }}
+                >
                   Category Name
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -414,49 +578,47 @@ const Categories: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 3 }}>
+              <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <Box>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Parent
                   </Typography>
                   <Typography variant="body1">
                     {viewingCategory.parentId
-                      ? categories.find((c) => c.id === viewingCategory.parentId)?.name ||
-                        "—"
+                      ? categories.find(
+                          (c) => c.id === viewingCategory.parentId
+                        )?.name || "—"
                       : "—"}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Total Products
                   </Typography>
                   <Chip
-                    label={viewingCategory.productCount}
+                    label={productCountByCategoryId[viewingCategory.id] ?? 0}
                     size="small"
-                    sx={{
-                      bgcolor: viewingCategory.productCount > 0
-                        ? "rgba(195, 147, 124, 0.1)"
-                        : "rgba(0, 0, 0, 0.05)",
-                      color: viewingCategory.productCount > 0
-                        ? "#C3937C"
-                        : "text.secondary",
-                    }}
                   />
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
-                    Created Date
-                  </Typography>
-                  <Typography variant="body1">
-                    {formatDateTime(viewingCategory.createdAt)}
-                  </Typography>
                 </Box>
               </Box>
 
-              {viewingCategory.productCount > 0 && (
+              {(productCountByCategoryId[viewingCategory.id] ?? 0) > 0 && (
                 <Box>
-                  <Typography variant="body2" color="warning.main" sx={{ fontStyle: "italic" }}>
-                    ⚠️ This category cannot be deleted because it contains products.
+                  <Typography
+                    variant="body2"
+                    color="warning.main"
+                    sx={{ fontStyle: "italic" }}
+                  >
+                    This category cannot be deleted because it contains
+                    products.
                   </Typography>
                 </Box>
               )}
@@ -464,19 +626,18 @@ const Categories: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setViewDialogOpen(false);
-            setViewingCategory(null);
-          }}
+          <Button
+            onClick={() => {
+              setViewDialogOpen(false);
+              setViewingCategory(null);
+            }}
             sx={{
               color: "#f1efee",
               bgcolor: "#C3937C",
-              "&:hover": {
-                bgcolor: "#A67C5A",
-              },
+              "&:hover": { bgcolor: "#A67C5A" },
             }}
           >
-            Cancel
+            Close
           </Button>
         </DialogActions>
       </Dialog>

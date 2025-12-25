@@ -50,11 +50,35 @@ public class CategoriesServiceImpl implements CategoriesService {
         return applyAndSaveUpdates(id, category, request.getName(), request.getParent_id());
     }
 
+    @Override
+    public Categories getCategoryById(Integer id) {
+        return categoriesRepository.findById(id)
+                .orElseThrow(() -> new ApplicationException("Category not found"));
+    }
+
+    @Override
+    public void deleteCategory(Integer id) {
+        Categories category = categoriesRepository.findById(id)
+                .orElseThrow(() -> new ApplicationException("Category not found"));
+
+        Long productCount = categoriesRepository.countProductsByCategoryId(id);
+        if (productCount != null && productCount > 0) {
+            throw new ApplicationException("Cannot delete category that has products. Please remove all products from this category first.");
+        }
+
+        Long childCount = categoriesRepository.countChildCategoriesByParentId(id);
+        if (childCount != null && childCount > 0) {
+            throw new ApplicationException("Cannot delete category that has child categories. Please delete or reassign child categories first.");
+        }
+
+        categoriesRepository.delete(category);
+    }
+
     private Categories applyAndSaveUpdates(Integer id, Categories category, String name, Integer parentId) {
         boolean hasNameUpdate = name != null && !name.trim().isEmpty();
         if (hasNameUpdate) {
             name = name.trim();
-            
+
             Categories existing = categoriesRepository.findByName(name);
             if (existing != null && !existing.getId().equals(id)) {
                 throw new ApplicationException("Category name already exists");
@@ -90,7 +114,7 @@ public class CategoriesServiceImpl implements CategoriesService {
         );
     }
 
-    @Override 
+    @Override
     public Page<Categories> searchParentCategories(String name, int page, int size) {
         if (name == null) {
             name = "";
@@ -102,7 +126,7 @@ public class CategoriesServiceImpl implements CategoriesService {
         );
     }
 
-    @Override 
+    @Override
     public Page<Categories> searchChildCategories(String name, int page, int size) {
         if (name == null) {
             name = "";
@@ -110,7 +134,7 @@ public class CategoriesServiceImpl implements CategoriesService {
         name = name.trim();
 
         return categoriesRepository.searchChildCategories(
-            name, 
+            name,
             PageRequest.of(page, size)
         );
     }
