@@ -2,14 +2,12 @@ package com.service.main.controller;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import com.service.main.service.ProductService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import com.service.main.dto.createProductRequest;
@@ -68,5 +66,20 @@ public class ProductController {
         return ResponseEntity
             .status(200)
             .body(new ApiResponse<>("Product retrieved successfully", product));
+    }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProductsByCategory(
+            @PathVariable Integer categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int size,
+            @RequestParam(defaultValue = "endAt,asc", required = false) String sort
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<ProductResponse> result = productService.getProductsByCategory(categoryId, pageable);
+
+        return ResponseEntity.ok(new ApiResponse<>("Products retrieved successfully", result));
     }
 }

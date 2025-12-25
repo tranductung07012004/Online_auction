@@ -1,6 +1,8 @@
 package com.service.main.repository;
 
 import com.service.main.entity.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -43,7 +45,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             """)
     List<Product> findTop5HighestCurrentPrice(@Param("now") OffsetDateTime now);
 
-
+    @Query("SELECT DISTINCT p FROM Product p " +
+            "JOIN p.productCategories pc " +
+            "WHERE pc.category.id = :categoryId")
+    Page<Product> findByCategoryId(@Param("categoryId") Integer categoryId, Pageable pageable);
 }
 
 
