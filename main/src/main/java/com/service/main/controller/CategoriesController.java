@@ -19,7 +19,7 @@ import com.service.main.dto.categoriesResponse;
 public class CategoriesController {
     private final CategoriesService categoriesService;
 
-    @PreAuthorize("hasRole('SELLER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<?> createCategory(@Valid @RequestBody createCategoriesRequest req) {
         categoriesResponse category = categoriesService.createCategory(req);
