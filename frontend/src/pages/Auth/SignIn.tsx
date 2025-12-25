@@ -28,7 +28,7 @@ const SignIn: React.FC = () => {
   const [recaptchaVerified, setRecaptchaVerified] = useState<boolean>(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA | null>(null);
-  
+
   const { setAuthLoading, isAuthLoading } = useAuth();
   const { setAccessToken } = useAuthStore();
 
@@ -65,7 +65,7 @@ const SignIn: React.FC = () => {
 
     try {
       const response = await login({ ...data, recaptchaToken });
-      
+
       if (response.data?.errorCode) {
         setError(response.message);
         setNotification({
@@ -75,20 +75,20 @@ const SignIn: React.FC = () => {
         });
         return;
       }
-      
+
       // Luu accessToken vao zustand store (refresh token da nam trong cookie roi)
       if (response.data) {
         setAccessToken(response.data);
-        
+
         const userRole = useAuthStore.getState().role;
         console.log('User role:', userRole);
-        
+
         setNotification({
           type: 'success',
           message: userRole === 'ADMIN' ? 'Admin login successful! Redirecting to dashboard...' : 'Login successful! Redirecting...',
           visible: true
         });
-        
+
         if (userRole === 'ADMIN') {
           setTimeout(() => {
             navigate('/admin/dashboard', { replace: true });
@@ -97,13 +97,13 @@ const SignIn: React.FC = () => {
           setTimeout(() => {
             navigate('/', { replace: true });
           }, 500);
-        } 
+        }
       } else {
         throw new Error('Access token not received');
       }
     } catch (err: any) {
       const errorResponse = err.response?.data;
-      
+
       if (errorResponse.data?.errorCode === 'USER_NOT_FOUND') {
         setError('Account not found. Please register to create an account.');
       } else if (errorResponse.data?.errorCode === 'INVALID_PASSWORD') {
@@ -112,7 +112,7 @@ const SignIn: React.FC = () => {
       } else {
         setError(errorResponse?.message || err.message);
       }
-      
+
       setNotification({
         type: 'error',
         message: 'Login failed',
@@ -133,7 +133,7 @@ const SignIn: React.FC = () => {
   const goToForgotPassword = () => {
     navigate('/forgot-password');
   };
-  
+
   const handleCloseNotification = () => {
     setNotification(prev => ({ ...prev, visible: false }));
   };
@@ -154,7 +154,7 @@ const SignIn: React.FC = () => {
         {isAuthLoading && (
           <LoadingOverlay message="Authenticating..." />
         )}
-        
+
         <div className="w-full max-w-md space-y-6 md:space-y-8">
           <h1 className="text-3xl font-medium text-[#c3937c] text-center">
             Login
@@ -165,7 +165,7 @@ const SignIn: React.FC = () => {
               {error}
               {showForgotPassword && (
                 <div className="mt-2">
-                  <button 
+                  <button
                     onClick={goToForgotPassword}
                     className="text-rose-700 underline hover:text-rose-800"
                   >
@@ -179,9 +179,6 @@ const SignIn: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email Input */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Mail className="h-5 w-5 text-[#999999]" />
-              </div>
               <input
                 type="email"
                 id="email"
@@ -193,52 +190,55 @@ const SignIn: React.FC = () => {
                   }
                 })}
                 placeholder="Email"
-                className={`w-full pl-10 pr-3 py-3 border rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c] ${
-                  errors.email ? 'border-[#c3937c]' : 'border-[#dfdfdf]'
-                }`}
+                className={`w-full pl-10 pr-3 py-3 border rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c] ${errors.email ? 'border-[#c3937c]' : 'border-[#dfdfdf]'
+                  }`}
                 disabled={loading}
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-[#c3937c] pl-3">{errors.email.message}</p>
-              )}
+              <p
+                className={`mt-1 text-sm pl-3 transition-all ${errors.email ? 'text-[#c3937c] visible' : 'invisible'
+                  }`}
+              >
+                {errors.email?.message ?? 'placeholder'}
+              </p>
             </div>
 
             {/* Password Input */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Lock className="h-5 w-5 text-[#999999]" />
+            <div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  {...register('password', {
+                    required: 'Password is required',
+                    minLength: {
+                      value: 8,
+                      message: 'Password must be at least 8 characters'
+                    }
+                  })}
+                  placeholder="Password"
+                  className={`w-full pl-10 pr-10 py-3 border rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c] ${errors.password ? 'border-[#c3937c]' : 'border-[#dfdfdf]'
+                    }`}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-[#999999]" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-[#999999]" />
+                  )}
+                </button>
               </div>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                {...register('password', {
-                  required: 'Password is required',
-                  minLength: {
-                    value: 8,
-                    message: 'Password must be at least 8 characters'
-                  }
-                })}
-                placeholder="Password"
-                className={`w-full pl-10 pr-10 py-3 border rounded-full focus:outline-none focus:ring-1 focus:ring-[#c3937c] ${
-                  errors.password ? 'border-[#c3937c]' : 'border-[#dfdfdf]'
-                }`}
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-                disabled={loading}
+              <p
+                className={`mt-1 text-sm pl-3 transition-all ${errors.password ? 'text-[#c3937c] visible' : 'invisible'
+                  }`}
               >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5 text-[#999999]" />
-                ) : (
-                  <Eye className="h-5 w-5 text-[#999999]" />
-                )}
-              </button>
-              {errors.password && (
-                <p className="mt-1 text-sm text-[#c3937c] pl-3">{errors.password.message}</p>
-              )}
+                {errors.password?.message ?? 'placeholder'}
+              </p>
             </div>
 
             <div className="flex justify-end">
@@ -343,7 +343,7 @@ const SignIn: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       <Notification
         type={notification.type}
         message={notification.message}

@@ -1,6 +1,6 @@
 package com.service.user.config;
 
-import com.service.user.security.JwtAuthenticationFilter;
+import com.service.user.security.HeaderAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtFilter;
+    private final HeaderAuthenticationFilter headerFilter;
 
     // ----------This is not best practice, should have add authorization at each endpoint.
     // @Bean
@@ -46,7 +46,7 @@ public class SecurityConfig {
             .requestMatchers("/api/user/auth/**").permitAll()
             .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(headerFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

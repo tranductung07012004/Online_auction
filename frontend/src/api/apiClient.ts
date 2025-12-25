@@ -1,8 +1,9 @@
 import axios from 'axios';
+import {useAuthStore} from '../stores/authStore';
 
 // Create and configure the API instance
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'http://localhost:8080',
   withCredentials: true, // Important for sending cookies with requests
   headers: {
     'Content-Type': 'application/json',
@@ -13,7 +14,13 @@ const api = axios.create({
 // Request interceptor for logging and modifying requests
 api.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    const token = useAuthStore.getState().accessToken;
+    console.log('hahahaha123:', token);
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
   (error) => {
