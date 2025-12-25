@@ -1,8 +1,5 @@
 package com.service.main.filter;
 
-
-import com.service.main.constants.ErrorCodes;
-import com.service.main.exception.ApplicationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

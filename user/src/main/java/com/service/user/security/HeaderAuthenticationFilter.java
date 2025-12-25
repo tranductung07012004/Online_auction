@@ -86,16 +86,19 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String userId = req.getHeader("X-user-id");
-        String role = req.getHeader("X-user-role");
+        String userRole = req.getHeader("X-user-role");
 
-        if (userId == null || role == null) {
-            throw new ApplicationException(ErrorCodes.UNAUTHORIZED, ErrorMessages.UNAUTHORIZED);
+        if (userId == null || userRole == null) {
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            res.setContentType("application/json");
+            res.getWriter().write("{\"message\":\"Request is not authenticated\",\"error\":\"UNAUTHORIZED\"}");
+            return;
         }
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 userId,
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                List.of(new SimpleGrantedAuthority("ROLE_" + userRole))
         );
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
         SecurityContextHolder.getContext().setAuthentication(auth);

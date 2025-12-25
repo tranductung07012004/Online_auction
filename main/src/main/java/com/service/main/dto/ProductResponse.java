@@ -19,8 +19,8 @@ public class ProductResponse {
     private BigDecimal currentPrice;
     private BigDecimal buyNowPrice;
     private BigDecimal minimumBidStep;
-    private Long topBidderId;
-    private Long sellerId;
+    private UserBasicInfoResponse seller;
+    private UserBasicInfoResponse topBidder;
     private Boolean autoExtendEnabled;
     private Integer bidCount;
     private OffsetDateTime createdAt;

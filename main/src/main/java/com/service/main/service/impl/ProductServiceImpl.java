@@ -2,6 +2,7 @@ package com.service.main.service.impl;
 
 import com.service.main.constants.ErrorCodes;
 import com.service.main.dto.ProductResponse;
+import com.service.main.dto.UserBasicInfoResponse;
 import com.service.main.dto.createProductRequest;
 import com.service.main.entity.Categories;
 import com.service.main.entity.Product;
@@ -14,7 +15,10 @@ import com.service.main.repository.ProductCategoryRepository;
 import com.service.main.repository.ProductRepository;
 import com.service.main.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.service.main.service.UserServiceClient;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -30,6 +34,13 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoriesRepository categoriesRepository;
     private final ProductCategoryRepository productCategoryRepository;
+    private final UserServiceClient userServiceClient;
+
+    @Override
+    public Page<ProductResponse> getProductsByCategory(Integer categoryId, Pageable pageable) {
+        Page<Product> productPage = productRepository.findByCategoryId(categoryId, pageable);
+        return productPage.map(this::mapToProductResponse);
+    }
 
     @Override
     public void createProduct(createProductRequest request) {
@@ -197,6 +208,10 @@ public class ProductServiceImpl implements ProductService {
                 ))
                 .collect(Collectors.toList());
 
+        UserBasicInfoResponse sellerInfo = product.getSellerId() == null ? null : userServiceClient.getUserBasicInfo(product.getSellerId());
+
+        UserBasicInfoResponse topBidderInfo = product.getTopBidderId() == null ? null : userServiceClient.getUserBasicInfo(product.getTopBidderId());
+
         return new ProductResponse(
                 product.getId(),
                 product.getProductName(),
@@ -205,8 +220,8 @@ public class ProductServiceImpl implements ProductService {
                 product.getCurrentPrice(),
                 product.getBuyNowPrice(),
                 product.getMinimumBidStep(),
-                product.getTopBidderId(),
-                product.getSellerId(),
+                sellerInfo,
+                topBidderInfo,
                 product.getAutoExtendEnabled(),
                 product.getBidCount(),
                 product.getCreatedAt(),
