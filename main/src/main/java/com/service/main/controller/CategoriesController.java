@@ -28,7 +28,7 @@ public class CategoriesController {
                 .body(new ApiResponse<>("Get all categories successfully", categoriesService.getAllCategories()));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SELLER')")
     @PostMapping
     public ResponseEntity<?> createCategory(@Valid @RequestBody createCategoriesRequest req) {
         categoriesResponse category = categoriesService.createCategory(req);
