@@ -4,6 +4,7 @@ import com.service.main.dto.ApiResponse;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +28,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(400)
                 .body(new ApiResponse<>("Validation failed", errors));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException ex) {
+        return ResponseEntity
+                .status(403)  // Forbidden
+                .body(new ApiResponse<>("You do not have permission to access this resource", null));
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, UnrecognizedPropertyException.class})

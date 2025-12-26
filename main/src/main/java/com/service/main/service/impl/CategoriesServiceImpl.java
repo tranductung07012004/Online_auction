@@ -159,5 +159,14 @@ public class CategoriesServiceImpl implements CategoriesService {
                 .map(categoriesResponse::new)
                 .toList();
     }
+
+    @Override
+    public Long countProductsByCategory(Integer categoryId) {
+        if (!categoriesRepository.existsById(categoryId)) {
+            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found");
+        }
+        Long count = categoriesRepository.countProductsByCategoryId(categoryId);
+        return count != null ? count : 0;
+    }
 }
 

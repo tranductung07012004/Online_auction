@@ -1,8 +1,5 @@
 package com.service.main.filter;
 
-
-import com.service.main.constants.ErrorCodes;
-import com.service.main.exception.ApplicationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,7 +41,8 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
         if (userId == null || userRole == null) {
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             res.setContentType("application/json");
-            res.getWriter().write("{\"message\":\"Request is not authenticated\",\"error\":\"UNAUTHORIZED\"}");       
+            res.getWriter().write("{\"message\":\"Request is not authenticated\",\"error\":\"UNAUTHORIZED\"}");
+            return;
         }
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(

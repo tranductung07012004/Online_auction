@@ -28,7 +28,7 @@ public class CategoriesController {
                 .body(new ApiResponse<>("Get all categories successfully", categoriesService.getAllCategories()));
     }
 
-    @PreAuthorize("hasRole('SELLER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<?> createCategory(@Valid @RequestBody createCategoriesRequest req) {
         categoriesResponse category = categoriesService.createCategory(req);
@@ -93,6 +93,15 @@ public class CategoriesController {
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Search child categories successfully", categories));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/product-count/{id}")
+    public ResponseEntity<?> getProductCountByCategory(@PathVariable("id") Integer categoryId) {
+        Long count = categoriesService.countProductsByCategory(categoryId);
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("Get product count successfully", count));
     }
 }
 

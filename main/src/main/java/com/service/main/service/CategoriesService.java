@@ -22,5 +22,7 @@ public interface CategoriesService {
     Page<categoriesResponse> searchParentCategories(String name, int page, int size);
 
     Page<categoriesResponse> searchChildCategories(String name, int page, int size);
+
+    Long countProductsByCategory(Integer categoryId);
 }
 
