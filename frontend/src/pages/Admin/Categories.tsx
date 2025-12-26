@@ -224,14 +224,14 @@ const Categories: React.FC = () => {
     try {
       if (editingCategory) {
         await api.put<ApiResponse<CategoryApi>>(
-          `/api/main/categories/${editingCategory.id}`,
+          `/api/main/admin/categories/${editingCategory.id}`,
           {
             name,
             parent_id: parentIdNum,
           }
         );
       } else {
-        await api.post<ApiResponse<CategoryApi>>("/api/main/categories", {
+        await api.post<ApiResponse<CategoryApi>>("/api/main/admin/categories", {
           name,
           parent_id: parentIdNum,
         });
@@ -274,11 +274,9 @@ const Categories: React.FC = () => {
     setMutating(true);
     setError(null);
     try {
-      // Backend currently doesn't expose DELETE; if it exists, this will work.
-      // If not, you'll need to add DELETE endpoint in backend.
-      await api.delete(`/api/main/categories/${id}`);
+      await api.delete(`/api/main/admin/categories/${id}`);
 
-      // refresh, and if current page becomes empty after delete, go back one page
+      // refresh
       await fetchCategories();
     } catch (e: any) {
       setError(

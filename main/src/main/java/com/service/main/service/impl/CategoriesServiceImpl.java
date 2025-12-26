@@ -11,27 +11,34 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 
+import com.service.main.constants.ErrorCodes;
+import com.service.main.constants.ErrorMessages;
+
+import com.service.main.dto.categoriesResponse;
+
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CategoriesServiceImpl implements CategoriesService {
     private final CategoriesRepository categoriesRepository;
 
     @Override
-    public Categories createCategory(createCategoriesRequest request) {
+    public categoriesResponse createCategory(createCategoriesRequest request) {
         String name = request.getName();
         if (name == null || name.trim().isEmpty()) {
-            throw new ApplicationException("Category name is required!");
+            throw new ApplicationException(ErrorCodes.VALIDATION_FAILED, ErrorMessages.CATEGORY_NAME_IS_REQUIRED);
         }
         name = name.trim();
 
         Categories existing = categoriesRepository.findByName(name);
         if (existing != null) {
-            throw new ApplicationException("Category name already exists");
+            throw new ApplicationException(ErrorCodes.DUPLICATE_KEY, ErrorMessages.CATEGORY_NAME_EXISTS);
         }
 
         Integer parentId = request.getParent_id();
         if (parentId != null && !categoriesRepository.existsById(parentId)) {
-            throw new ApplicationException("Parent category not found");
+            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, ErrorMessages.PARENT_CATEGORY_NOT_FOUND);
         }
 
         Categories category = Categories.builder()
@@ -39,39 +46,23 @@ public class CategoriesServiceImpl implements CategoriesService {
                 .parent_id(parentId)
                 .build();
 
-        return categoriesRepository.save(category);
+        Categories saved = categoriesRepository.save(category);
+        return new categoriesResponse(saved);
     }
 
     @Override
-    public Categories updateCategory(Integer id, updateCategoriesRequest request) {
+    public categoriesResponse updateCategory(Integer id, updateCategoriesRequest request) {
         Categories category = categoriesRepository.findById(id)
-                .orElseThrow(() -> new ApplicationException("Category not found"));
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found"));
 
-        return applyAndSaveUpdates(id, category, request.getName(), request.getParent_id());
-    }
+        Categories updated = applyAndSaveUpdates(
+                id,
+                category,
+                request.getName(),
+                request.getParent_id()
+        );
 
-    @Override
-    public Categories getCategoryById(Integer id) {
-        return categoriesRepository.findById(id)
-                .orElseThrow(() -> new ApplicationException("Category not found"));
-    }
-
-    @Override
-    public void deleteCategory(Integer id) {
-        Categories category = categoriesRepository.findById(id)
-                .orElseThrow(() -> new ApplicationException("Category not found"));
-
-        Long productCount = categoriesRepository.countProductsByCategoryId(id);
-        if (productCount != null && productCount > 0) {
-            throw new ApplicationException("Cannot delete category that has products. Please remove all products from this category first.");
-        }
-
-        Long childCount = categoriesRepository.countChildCategoriesByParentId(id);
-        if (childCount != null && childCount > 0) {
-            throw new ApplicationException("Cannot delete category that has child categories. Please delete or reassign child categories first.");
-        }
-
-        categoriesRepository.delete(category);
+        return new categoriesResponse(updated);
     }
 
     private Categories applyAndSaveUpdates(Integer id, Categories category, String name, Integer parentId) {
@@ -81,62 +72,92 @@ public class CategoriesServiceImpl implements CategoriesService {
 
             Categories existing = categoriesRepository.findByName(name);
             if (existing != null && !existing.getId().equals(id)) {
-                throw new ApplicationException("Category name already exists");
+                throw new ApplicationException(ErrorCodes.DUPLICATE_KEY, "Category name already exists");
             }
             category.setName(name);
         }
 
         if (parentId != null) {
             if (parentId.equals(id)) {
-                throw new ApplicationException("Parent category cannot be itself");
+                throw new ApplicationException(ErrorCodes.INVALID_INPUT, "Parent category cannot be itself");
             }
             if (!categoriesRepository.existsById(parentId)) {
-                throw new ApplicationException("Parent category not found");
+                throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Parent category not found");
             }
             category.setParent_id(parentId);
         }
 
         if (!hasNameUpdate && parentId == null) {
-            throw new ApplicationException("No fields to update");
+            throw new ApplicationException(ErrorCodes.INVALID_INPUT, "No fields to update");
         }
 
         return categoriesRepository.save(category);
     }
 
     @Override
-    public Page<Categories> searchCategories(String name, int page, int size) {
+    public Page<categoriesResponse> searchCategories(String name, int page, int size) {
         if (name == null) {
             name = "";
         }
-        return categoriesRepository.findByNameContainingIgnoreCase(
+        Page<Categories> categories = categoriesRepository.findByNameContainingIgnoreCase(
                 name.trim(),
             PageRequest.of(page, size)
         );
+
+        return categories.map(categoriesResponse::new);
     }
 
-    @Override
-    public Page<Categories> searchParentCategories(String name, int page, int size) {
+    @Override 
+    public Page<categoriesResponse> searchParentCategories(String name, int page, int size) {
         if (name == null) {
             name = "";
         }
         name = name.trim();
-        return categoriesRepository.searchParentCategories(
+        Page<Categories> categories = categoriesRepository.searchParentCategories(
             name,
             PageRequest.of(page, size)
         );
+        return categories.map(categoriesResponse::new);
     }
 
-    @Override
-    public Page<Categories> searchChildCategories(String name, int page, int size) {
+    @Override 
+    public Page<categoriesResponse> searchChildCategories(String name, int page, int size) {
         if (name == null) {
             name = "";
         }
         name = name.trim();
 
-        return categoriesRepository.searchChildCategories(
-            name,
+        Page<Categories> categories = categoriesRepository.searchChildCategories(
+            name, 
             PageRequest.of(page, size)
         );
+        return categories.map(categoriesResponse::new);
+    }
+
+    @Override
+    public void deleteCategory(Integer id) {
+        Categories category = categoriesRepository.findById(id)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found"));
+
+        Long productCount = categoriesRepository.countProductsByCategoryId(id);
+        if (productCount != null && productCount > 0) {
+            throw new ApplicationException(ErrorCodes.INVALID_INPUT, "Cannot delete category because it has associated products");
+        }
+
+        Long childCount = categoriesRepository.countChildCategoriesByParentId(id);
+        if (childCount != null && childCount > 0) {
+            throw new ApplicationException(ErrorCodes.INVALID_INPUT, "Cannot delete category because it has child categories");
+        }
+
+        categoriesRepository.delete(category);
+    }
+
+    @Override
+    public List<categoriesResponse> getAllCategories() {
+        return categoriesRepository.findAll()
+                .stream()
+                .map(categoriesResponse::new)
+                .toList();
     }
 }
 

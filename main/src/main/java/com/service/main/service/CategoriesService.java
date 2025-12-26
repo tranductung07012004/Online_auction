@@ -2,22 +2,25 @@ package com.service.main.service;
 
 import com.service.main.dto.createCategoriesRequest;
 import com.service.main.dto.updateCategoriesRequest;
-import com.service.main.entity.Categories;
 import org.springframework.data.domain.Page;
 
+import com.service.main.dto.categoriesResponse;
+
+import java.util.List;
+
 public interface CategoriesService {
-    Categories createCategory(createCategoriesRequest request);
+    categoriesResponse createCategory(createCategoriesRequest request);
 
-    Categories updateCategory(Integer id, updateCategoriesRequest request);
-
-    Categories getCategoryById(Integer id);
+    categoriesResponse updateCategory(Integer id, updateCategoriesRequest request);
 
     void deleteCategory(Integer id);
 
-    Page<Categories> searchCategories(String name, int page, int size);
+    List<categoriesResponse> getAllCategories();
 
-    Page<Categories> searchParentCategories(String name, int page, int size);
+    Page<categoriesResponse> searchCategories(String name, int page, int size);
 
-    Page<Categories> searchChildCategories(String name, int page, int size);
+    Page<categoriesResponse> searchParentCategories(String name, int page, int size);
+
+    Page<categoriesResponse> searchChildCategories(String name, int page, int size);
 }
 

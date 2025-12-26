@@ -4,17 +4,25 @@ import com.api.gateway.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements GlobalFilter {
 
     private final JwtUtil jwtUtil;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -33,16 +41,14 @@ public class JwtAuthenticationFilter implements GlobalFilter {
 
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+            return setUnauthorizedResponse(exchange, "Missing or invalid Authorization header");
         }
 
         String token = authHeader.substring(7);
         
         // Validate token
         if (!jwtUtil.isTokenValid(token)) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+            return setUnauthorizedResponse(exchange, "Invalid or expired token");
         }
 
         String userId = jwtUtil.getUserIdFromToken(token);
@@ -57,7 +63,26 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         ServerWebExchange modifiedExchange = exchange.mutate()
             .request(modifiedRequest)
             .build();
-
         return chain.filter(modifiedExchange);
+    }
+
+    private Mono<Void> setUnauthorizedResponse(ServerWebExchange exchange, String message) {
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        var errorResponse = Map.ofEntries(
+                Map.entry("message", message),
+                Map.entry("error", "UNAUTHORIZED"),
+                Map.entry("timestamp", System.currentTimeMillis()),
+                Map.entry("path", exchange.getRequest().getPath().toString())
+        );
+
+        try {
+            byte[] bytes = objectMapper.writeValueAsBytes(errorResponse);
+            DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bytes);
+            return exchange.getResponse().writeWith(Mono.just(buffer));
+        } catch (JsonProcessingException e) {
+            return exchange.getResponse().setComplete();
+        }
     }
 }
