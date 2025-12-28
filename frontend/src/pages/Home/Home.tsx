@@ -4,7 +4,7 @@ import Footer from '../../components/footer';
 import BannerSection from './sections/BannerSection';
 import TopFiveLastSoon from './sections/TopFiveLastSoon';
 import TopFiveHighestPrice from './sections/TopFiveHighestPrice';
-import TopFiveBidCount from './sections/TopFiveBidCount'; 
+import TopFiveBidCount from './sections/TopFiveBidCount';
 
 const HomeNew: React.FC = () => {
   return (

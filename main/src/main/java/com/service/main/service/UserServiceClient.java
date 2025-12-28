@@ -1,8 +1,8 @@
 package com.service.main.service;
 
-import com.service.main.dto.UserBasicInfoResponse;
+import com.service.main.dto.UserInfoResponse;
 
 public interface UserServiceClient {
-    UserBasicInfoResponse getUserBasicInfo(Long userId);
+    UserInfoResponse getUserBasicInfo(Long userId);
 }
 

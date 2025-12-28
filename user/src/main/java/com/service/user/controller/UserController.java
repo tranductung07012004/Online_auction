@@ -1,7 +1,7 @@
 package com.service.user.controller;
 
 import com.service.user.dto.ApiResponse;
-import com.service.user.dto.UserBasicInfoResponse;
+import com.service.user.dto.UserInfoResponse;
 import com.service.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +14,11 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/{userId}/basic-info")
+    @GetMapping("/{userId}/info")
     public ResponseEntity<?> getUserBasicInfo(
             @PathVariable Long userId
     ) {
-        UserBasicInfoResponse res = userService.getUserBasicInfo(userId);
+        UserInfoResponse res = userService.getUserBasicInfo(userId);
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Get user basic info successfully", res));

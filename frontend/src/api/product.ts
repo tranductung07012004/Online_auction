@@ -53,6 +53,54 @@ export interface CreateProductRequest {
   pictureUrls: string[];
 }
 
+// API Response interfaces for top products
+export interface ProductResponseFromAPI {
+  id: number;
+  productName: string;
+  thumbnailUrl: string;
+  startPrice: number;
+  currentPrice: number;
+  buyNowPrice: number | null;
+  minimumBidStep: number;
+  seller: {
+    id: number;
+    fullname: string;
+    avatar: string | null;
+    assessment: number;
+  };
+  topBidder: {
+    id: number;
+    fullname: string;
+    avatar: string | null;
+    assessment: number;
+  } | null;
+  autoExtendEnabled: boolean;
+  bidCount: number;
+  createdAt: string;
+  endAt: string;
+  categories: Array<{
+    id: number;
+    name: string;
+    parentId: number | null;
+  }>;
+  descriptions: Array<{
+    id: number;
+    content: string;
+    createdAt: string;
+    createdBy: number;
+  }>;
+  pictures: Array<{
+    id: number;
+    imageUrl: string;
+    createdAt: string;
+  }>;
+}
+
+export interface ApiResponse<T> {
+  message: string;
+  data: T;
+}
+
 // Create a new product
 export const createProduct = async (request: CreateProductRequest): Promise<Product> => {
     const response = await api.post('/api/main/product', request);
@@ -255,5 +303,159 @@ export const allowBidder = async (
     }
     throw error;
   }
+};
+
+
+
+// Get top 5 products ending soon
+export const getTop5EndingSoon = async (): Promise<any> => {
+    const response = await api.get<ApiResponse<ProductResponseFromAPI[]>>(
+      '/api/main/product/top-ending-soon'
+    );
+
+    return response.data;
+};
+
+// Get top 5 products with most bid count
+export const getTop5MostBidCount = async (): Promise<any> => {
+    const response = await api.get<ApiResponse<ProductResponseFromAPI[]>>(
+      '/api/main/product/most-bid-count'
+    );
+
+    return response.data;
+};
+
+// Get top 5 products with highest current price
+export const getTop5HighestCurrentPrice = async (): Promise<any> => {
+    const response = await api.get<ApiResponse<ProductResponseFromAPI[]>>(
+      '/api/main/product/highest-current-price'
+    );
+
+    return response.data;
+};
+
+// Get product by ID from main service
+export const getProductByIdFromMain = async (productId: string | number): Promise<ProductResponseFromAPI> => {
+    const response = await api.get<ApiResponse<ProductResponseFromAPI>>(
+      `/api/main/product/${productId}`
+    );
+
+    return response.data.data;
+};
+
+// Get products by category from main service
+export const getProductsByCategory = async (
+  categoryId: number,
+  page: number = 0,
+  size: number = 5
+): Promise<ProductResponseFromAPI[]> => {
+  const response = await api.get<ApiResponse<{
+    content: ProductResponseFromAPI[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+  }>>(
+    `/api/main/product/category/${categoryId}`,
+    {
+      params: { page, size }
+    }
+  );
+
+  return response.data.data.content;
+};
+
+// Question and Answer interfaces
+export interface QuestionUser {
+  id: number;
+  fullname: string;
+  avatar: string | null;
+  assessment: number;
+}
+
+export interface QuestionAnswer {
+  id: number;
+  user: QuestionUser;
+  questionId: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuestionResponse {
+  id: number;
+  user: QuestionUser;
+  productId: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  answers: QuestionAnswer[];
+}
+
+export interface QuestionsPageResponse {
+  content: QuestionResponse[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      sorted: boolean;
+      empty: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  totalPages: number;
+  totalElements: number;
+  last: boolean;
+  size: number;
+  number: number;
+  sort: {
+    sorted: boolean;
+    empty: boolean;
+    unsorted: boolean;
+  };
+  numberOfElements: number;
+  first: boolean;
+  empty: boolean;
+}
+
+// Get questions by product ID from main service
+export const getQuestionsByProductId = async (
+  productId: string | number,
+  page: number = 0,
+  size: number = 10
+): Promise<QuestionsPageResponse> => {
+  const response = await api.get<ApiResponse<QuestionsPageResponse>>(
+    `/api/main/questions/product/${productId}`,
+    {
+      params: { page, size }
+    }
+  );
+
+  return response.data.data;
+};
+
+// Create question request interface
+export interface CreateQuestionRequest {
+  productId: number;
+  content: string;
+}
+
+// Create question
+export const createQuestion = async (
+  productId: string | number,
+  content: string
+): Promise<QuestionResponse> => {
+  const response = await api.post<ApiResponse<QuestionResponse>>(
+    '/api/main/questions',
+    {
+      productId: typeof productId === 'string' ? parseInt(productId, 10) : productId,
+      content: content.trim()
+    }
+  );
+
+  return response.data.data;
 };
 
