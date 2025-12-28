@@ -1,6 +1,7 @@
 package com.service.main.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,8 +20,8 @@ public class ProductResponse {
     private BigDecimal currentPrice;
     private BigDecimal buyNowPrice;
     private BigDecimal minimumBidStep;
-    private UserBasicInfoResponse seller;
-    private UserBasicInfoResponse topBidder;
+    private UserInfo seller;
+    private UserInfo topBidder;
     private Boolean autoExtendEnabled;
     private Integer bidCount;
     private OffsetDateTime createdAt;
@@ -56,5 +57,7 @@ public class ProductResponse {
         private String imageUrl;
         private OffsetDateTime createdAt;
     }
+
+
 }
 

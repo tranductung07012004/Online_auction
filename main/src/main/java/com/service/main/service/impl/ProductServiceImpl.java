@@ -2,7 +2,8 @@ package com.service.main.service.impl;
 
 import com.service.main.constants.ErrorCodes;
 import com.service.main.dto.ProductResponse;
-import com.service.main.dto.UserBasicInfoResponse;
+import com.service.main.dto.UserInfo;
+import com.service.main.dto.UserInfoResponse;
 import com.service.main.dto.createProductRequest;
 import com.service.main.entity.Categories;
 import com.service.main.entity.Product;
@@ -208,9 +209,11 @@ public class ProductServiceImpl implements ProductService {
                 ))
                 .collect(Collectors.toList());
 
-        UserBasicInfoResponse sellerInfo = product.getSellerId() == null ? null : userServiceClient.getUserBasicInfo(product.getSellerId());
+        UserInfoResponse sellerInfoRes = product.getSellerId() == null ? null : userServiceClient.getUserBasicInfo(product.getSellerId());
 
-        UserBasicInfoResponse topBidderInfo = product.getTopBidderId() == null ? null : userServiceClient.getUserBasicInfo(product.getTopBidderId());
+        UserInfoResponse topBidderInfoRes = product.getTopBidderId() == null ? null : userServiceClient.getUserBasicInfo(product.getTopBidderId());
+
+
 
         return new ProductResponse(
                 product.getId(),
@@ -220,8 +223,8 @@ public class ProductServiceImpl implements ProductService {
                 product.getCurrentPrice(),
                 product.getBuyNowPrice(),
                 product.getMinimumBidStep(),
-                sellerInfo,
-                topBidderInfo,
+                formatUserInfo(sellerInfoRes),
+                formatUserInfo(topBidderInfoRes),
                 product.getAutoExtendEnabled(),
                 product.getBidCount(),
                 product.getCreatedAt(),
@@ -230,6 +233,35 @@ public class ProductServiceImpl implements ProductService {
                 descriptions,
                 pictures
         );
+    }
+
+    public static UserInfo formatUserInfo(UserInfoResponse user) {
+
+        if (user == null) {
+            return null;
+        }
+
+        Double like = user.getLike().doubleValue();
+        Double dislike = user.getDislike().doubleValue();
+
+        UserInfo formattedUser = UserInfo
+                .builder()
+                .id(user.getId())
+                .avatar(user.getAvatar())
+                .fullname(user.getFullname())
+                .build();
+
+        if (like == 0 && dislike == 0) {
+            formattedUser.setAssessment(null);
+        } else if (dislike == 1  && like == 0) {
+            formattedUser.setAssessment(null);
+            // First assessment for a user maybe not accurate
+            // so let them have another chance by set it to null
+            // meaning that they have not received any assessments yet.
+        } else {
+            formattedUser.setAssessment(like / (like + dislike) * 10);
+        }
+        return formattedUser;
     }
 
     private void validatePrices(createProductRequest request) {

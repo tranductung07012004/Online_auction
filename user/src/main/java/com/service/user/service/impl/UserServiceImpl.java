@@ -1,7 +1,7 @@
 package com.service.user.service.impl;
 
 import com.service.user.constants.ErrorCodes;
-import com.service.user.dto.UserBasicInfoResponse;
+import com.service.user.dto.UserInfoResponse;
 import com.service.user.entity.User;
 import com.service.user.entity.UserDetails;
 import com.service.user.exception.ApplicationException;
@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
     private final UserDetailsRepository userDetailsRepo;
 
     @Override
-    public UserBasicInfoResponse getUserBasicInfo(Long userId) {
+    public UserInfoResponse getUserBasicInfo(Long userId) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() ->
                         new ApplicationException(
@@ -36,10 +36,12 @@ public class UserServiceImpl implements UserService {
                         )
                 );
 
-        return new UserBasicInfoResponse(
+        return new UserInfoResponse(
                 user.getId(),
                 details.getFullname(),
-                details.getAvatar()
+                details.getAvatar(),
+                details.getLike_count(),
+                details.getDislike_count()
         );
     }
 }

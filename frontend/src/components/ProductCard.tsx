@@ -1,4 +1,4 @@
-import React, { JSX, useMemo, useState, useEffect } from 'react';
+import { JSX, useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Card,
@@ -11,82 +11,113 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import { useSystemSettingStore } from '../stores/systemSettingStore';
 
 interface SellerProps {
   id: number;
-  avatar: string;
+  avatar: string | null;
   fullname: string;
 }
 
 interface BidderProps {
   id: number;
-  avatar: string;
+  avatar: string | null;
   fullname: string;
 }
 
 export interface ProductCardProps {
   id: number;
-  product_name: string;
-  thumpnail_url: string;
+  productName: string;
+  thumbnailUrl: string;
   seller: SellerProps;
-  buy_now_price: number | null; // Can be null if no buy now price
-  minimum_bid_step: number;
-  start_at: string | Date;
-  end_at: string | Date;
-  current_price: number; // Current price (highest bid)
-  highest_bidder: BidderProps | null; // Thông tin bidder đang đặt giá cao nhất
-  created_at?: string | Date; // Product posted date
-  posted_at?: string | Date; // Product posted date (alias)
-  bid_count: number; // Current bid count
+  buyNowPrice: number | null; // Can be null if no buy now price
+  minimumBidStep: number;
+  startAt?: string | Date; // Optional, will use createdAt if not provided
+  endAt: string | Date;
+  currentPrice: number; // Current price (highest bid)
+  topBidder: BidderProps | null; // Thông tin bidder đang đặt giá cao nhất
+  createdAt: string | Date; // Product posted date
+  bidCount: number; // Current bid count
 }
 
 export default function ProductCard({
   id,
-  product_name,
-  thumpnail_url,
+  productName,
+  thumbnailUrl,
   seller,
-  buy_now_price,
-  minimum_bid_step,
-  start_at,
-  end_at,
-  current_price,
-  highest_bidder,
-  created_at,
-  posted_at,
-  bid_count,
+  buyNowPrice,
+  minimumBidStep,
+  startAt,
+  endAt,
+  currentPrice,
+  topBidder,
+  createdAt,
+  bidCount,
 }: ProductCardProps): JSX.Element {
   // State cho countdown timer
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  
+  // Lấy thông tin threshold từ Zustand store để xác định product sắp ended
+  const timeRemainingThreshold = useSystemSettingStore((state) => state.timeRemaining);
 
-  // Tính toán status dựa trên start_at và end_at
+  // Tính toán status dựa trên startAt, endAt và system setting
   const status = useMemo(() => {
     const now = new Date();
-    const start = new Date(start_at);
-    const end = new Date(end_at);
+    const start = new Date(startAt || createdAt);
+    const end = new Date(endAt);
 
+    // Trạng thái 1: Upcoming - chưa bắt đầu
     if (now < start) {
       return { label: 'Upcoming', color: 'info' as const };
-    } else if (now >= start && now <= end) {
-      const timeRemaining = end.getTime() - now.getTime();
-      const hoursRemaining = timeRemaining / (1000 * 60 * 60);
-      
-      if (hoursRemaining < 24) {
-        return { label: 'Last Promotion', color: 'error' as const };
-      } else if (hoursRemaining < 72) {
-        return { label: 'Almost Booked', color: 'warning' as const };
-      } else {
-        return { label: 'Available', color: 'success' as const };
-      }
-    } else {
-      return { label: 'Ended', color: 'default' as const };
     }
-  }, [start_at, end_at]);
+
+    // Trạng thái 4: Ended - đã kết thúc
+    if (now > end) {
+      return { label: 'Ended', color: 'info' as const };
+    }
+
+    // Tính thời gian còn lại (milliseconds)
+    const timeRemainingMs = end.getTime() - now.getTime();
+
+    // Nếu không có setting từ store, mặc định là Available
+    if (!timeRemainingThreshold) {
+      return { label: 'Available', color: 'info' as const };
+    }
+
+    // Chuyển đổi threshold từ store thành milliseconds
+    let thresholdMs = 0;
+    const { time, format } = timeRemainingThreshold;
+
+    switch (format.toLowerCase()) {
+      case 'hour':
+        thresholdMs = time * 60 * 60 * 1000;
+        break;
+      case 'minute':
+        thresholdMs = time * 60 * 1000;
+        break;
+      case 'day':
+        thresholdMs = time * 24 * 60 * 60 * 1000;
+        break;
+      default:
+        // Mặc định là hour nếu format không hợp lệ
+        thresholdMs = time * 60 * 60 * 1000;
+    }
+
+    // So sánh thời gian còn lại với threshold
+    if (timeRemainingMs <= thresholdMs) {
+      // Trạng thái 3: Ended Soon - sắp kết thúc (màu nổi bật)
+      return { label: 'Ended Soon', color: 'error' as const };
+    } else {
+      // Trạng thái 2: Available - đang diễn ra bình thường
+      return { label: 'Available', color: 'info' as const };
+    }
+  }, [startAt, endAt, createdAt, timeRemainingThreshold]);
 
   // Tính toán thời gian còn lại
   useEffect(() => {
     const calculateTimeRemaining = () => {
       const now = new Date();
-      const end = new Date(end_at);
+      const end = new Date(endAt);
       const diff = end.getTime() - now.getTime();
 
       if (diff <= 0) {
@@ -114,7 +145,7 @@ export default function ProductCard({
     const interval = setInterval(calculateTimeRemaining, 1000);
 
     return () => clearInterval(interval);
-  }, [end_at]);
+  }, [endAt]);
 
   // Format giá tiền
   const formatPrice = (price: number) => {
@@ -125,7 +156,7 @@ export default function ProductCard({
   };
 
   // Lấy ngày đăng sản phẩm
-  const postedDate = created_at || posted_at || start_at;
+  const postedDate = createdAt || startAt || endAt;
 
   return (
     <Card
@@ -148,8 +179,8 @@ export default function ProductCard({
         <Link to={`/product/${id}`} style={{ textDecoration: 'none' }}>
           <CardMedia
             component="img"
-            image={thumpnail_url || '/placeholder.svg'}
-            alt={product_name}
+            image={thumbnailUrl || '/placeholder.svg'}
+            alt={productName}
             sx={{
               width: '100%',
               height: 400,
@@ -197,7 +228,7 @@ export default function ProductCard({
               minHeight: '2.8em',
             }}
           >
-            {product_name}
+            {productName}
           </Typography>
 
           {/* Current Price */}
@@ -210,7 +241,7 @@ export default function ProductCard({
                 fontSize: '1.25rem',
               }}
             >
-              {formatPrice(current_price)}
+              {formatPrice(currentPrice)}
             </Typography>
             <Typography
               variant="caption"
@@ -224,7 +255,7 @@ export default function ProductCard({
           </Box>
 
           {/* Highest Bidder Information */}
-          {highest_bidder && (
+          {topBidder && (
             <Box
               sx={{
                 display: 'flex',
@@ -236,8 +267,8 @@ export default function ProductCard({
               }}
             >
               <Avatar
-                src={highest_bidder.avatar}
-                alt={highest_bidder.fullname}
+                src={topBidder.avatar || '/placeholder-user.jpg'}
+                alt={topBidder.fullname}
                 sx={{ width: 32, height: 32 }}
               />
               <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -251,7 +282,7 @@ export default function ProductCard({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {highest_bidder.fullname}
+                  {topBidder.fullname}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -267,7 +298,7 @@ export default function ProductCard({
           )}
 
           {/* Buy Now Price (if available) */}
-          {buy_now_price !== null && (
+          {buyNowPrice !== null && (
             <Box>
               <Typography
                 variant="body1"
@@ -277,7 +308,7 @@ export default function ProductCard({
                   fontSize: '0.9375rem',
                 }}
               >
-                {formatPrice(buy_now_price)}
+                {formatPrice(buyNowPrice)}
               </Typography>
               <Typography
                 variant="caption"
@@ -303,10 +334,14 @@ export default function ProductCard({
                 display: 'block',
               }}
             >
-              Posted: {new Date(postedDate).toLocaleDateString('en-US', {
+              Posted:{' '}
+              {new Date(postedDate).toLocaleString('vi-VN', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
               })}
             </Typography>
           </Box>
@@ -334,7 +369,7 @@ export default function ProductCard({
                 fontSize: '0.75rem',
               }}
             >
-              Bid Count: <strong>{bid_count}</strong>
+              Bid Count: <strong>{bidCount}</strong>
             </Typography>
           </Box>
         </Stack>

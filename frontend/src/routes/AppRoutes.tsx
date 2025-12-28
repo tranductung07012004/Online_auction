@@ -45,7 +45,7 @@ const AboutPage = lazy(() => import("../pages/About/About"));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "admin" | "user";
+  requiredRole?: 'ADMIN' | 'BIDDER' | 'SELLER' | null;
 }
 
 // Protected Route component
@@ -73,8 +73,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 const AppRoutes = () => {
   const routes = [
     { path: "/", element: <HomeNew /> },
-    { path: "/pdp", element: <PDP /> },
-    { path: "/pdp/:id", element: <PDP /> },
+    { path: "/product-page", element: <PDP /> },
+    { path: "/product-page/:id", element: <PDP /> },
     // { path: '/product/:id', element: <PDP /> },
     { path: "/pcp", element: <PCP /> },
     { path: "/appointment", element: <Appointment /> },

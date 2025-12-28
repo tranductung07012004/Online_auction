@@ -69,8 +69,7 @@ CREATE TABLE product_pictures (
 CREATE TABLE system_settings (
     id SERIAL PRIMARY KEY,
     key VARCHAR(100) UNIQUE,
-    value TEXT,
-    type setting_type,
+    value JSONB NOT NULL,
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
