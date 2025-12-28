@@ -1,7 +1,7 @@
 package com.service.main.service.impl;
 
 import com.service.main.dto.ApiResponse;
-import com.service.main.dto.UserBasicInfoResponse;
+import com.service.main.dto.UserInfoResponse;
 import com.service.main.service.UserServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,24 +30,24 @@ public class UserServiceClientImpl implements UserServiceClient {
     private String userServiceUrl;
     
     @Override
-    public UserBasicInfoResponse getUserBasicInfo(Long userId) {
+    public UserInfoResponse getUserBasicInfo(Long userId) {
         if (userId == null) {
             return null;
         }
         
         try {
-            String url = userServiceUrl + "/api/user/internal/" + userId + "/basic-info";
+            String url = userServiceUrl + "/api/user/internal/" + userId + "/info";
             
             // Get authentication info from SecurityContext
             HttpHeaders headers = createHeadersWithAuth();
             
             HttpEntity<?> entity = new HttpEntity<>(headers);
             
-            ResponseEntity<ApiResponse<UserBasicInfoResponse>> response = restTemplate.exchange(
+            ResponseEntity<ApiResponse<UserInfoResponse>> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                new ParameterizedTypeReference<ApiResponse<UserBasicInfoResponse>>() {}
+                    new ParameterizedTypeReference<>() {}
             );
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {

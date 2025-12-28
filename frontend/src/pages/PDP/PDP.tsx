@@ -11,269 +11,133 @@ import BidderManagement from './pdp/bidder-management';
 import ProductCard from '../../components/ProductCard';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
-import { getDressById, Dress } from '../../api/dress';
+import { getProductByIdFromMain, getProductsByCategory, ProductResponseFromAPI, getQuestionsByProductId, QuestionResponse } from '../../api/product';
 import { useAuth } from '../../context/AuthContext';
 import { Box, Container, Typography } from '@mui/material';
-import axios from 'axios';
 
-// Interface for similar products matching ProductCard props
-interface SimilarProduct {
-  id: number;
-  product_name: string;
-  thumpnail_url: string;
-  seller: {
-    id: number;
-    avatar: string;
-    fullname: string;
-  };
-  buy_now_price: number | null;
-  minimum_bid_step: number;
-  start_at: string | Date;
-  end_at: string | Date;
-  current_price: number;
-  highest_bidder: {
-    id: number;
-    avatar: string;
-    fullname: string;
-  } | null;
-  created_at?: string | Date;
-  posted_at?: string | Date;
-  bid_count: number;
-}
+// 3. Các field hiển thị từ API:
+// Product name, images, prices, seller, top bidder, description, categories, bid count, auction end time
+// 4. Fake data vẫn dùng cho:
+// Reviews/Q&A (chưa có API)
 
 export default function ProductDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { checkAuthStatus, userId, role } = useAuth();
-  const [dress, setDress] = useState<Dress | null>(null);
-  const [similarProducts, setSimilarProducts] = useState<SimilarProduct[]>([]);
+  const [product, setProduct] = useState<ProductResponseFromAPI | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<ProductResponseFromAPI[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const [refreshQuestions, setRefreshQuestions] = useState<boolean>(false);
   const [questions, setQuestions] = useState<any[]>([]);
-  
-  // Fake Q&A data
-  const fakeQuestions = [
-    {
-      _id: '1',
-      username: 'Nguyễn Thị Mai',
-      date: new Date('2024-12-01'),
-      questionText: 'Is size S available for this product? I want to order urgently.',
-      icon: '/placeholder-user.jpg',
-      images: [],
-      answer: {
-        username: 'Seller',
-        date: new Date('2024-12-02'),
-        answerText: 'Yes, we currently have size S in stock. You can place your order right away!',
-        icon: '/placeholder-user.jpg'
-      }
-    },
-    {
-      _id: '2',
-      username: 'Trần Văn Hoàng',
-      date: new Date('2024-11-28'),
-      questionText: 'What is the fabric material of this product? Is it stretchy?',
-      icon: '/placeholder-user.jpg',
-      images: [],
-      answer: {
-        username: 'Seller',
-        date: new Date('2024-11-29'),
-        answerText: 'The product is made from premium silk fabric with slight stretch, very comfortable to wear.',
-        icon: '/placeholder-user.jpg'
-      }
-    },
-    {
-      _id: '3',
-      username: 'Lê Thị Hương',
-      date: new Date('2024-11-25'),
-      questionText: 'How long does delivery take? I need it before December 5th.',
-      icon: '/placeholder-user.jpg',
-      images: [],
-      answer: {
-        username: 'Seller',
-        date: new Date('2024-11-26'),
-        answerText: 'Delivery time is 2-3 days. If you order today, you will definitely receive it before December 5th!',
-        icon: '/placeholder-user.jpg'
-      }
-    },
-    {
-      _id: '4',
-      username: 'Phạm Minh Tuấn',
-      date: new Date('2024-11-20'),
-      questionText: 'Does the shop have a return policy? What if the size doesn\'t fit?',
-      icon: '/placeholder-user.jpg',
-      images: [],
-      answer: null
-    },
-    {
-      _id: '5',
-      username: 'Vũ Thị Lan',
-      date: new Date('2024-11-15'),
-      questionText: 'Can this product be machine washed? Will it fade?',
-      icon: '/placeholder-user.jpg',
-      images: [],
-      answer: {
-        username: 'Seller',
-        date: new Date('2024-11-16'),
-        answerText: 'The product can be machine washed on gentle cycle. We recommend hand washing to maintain the best shape. The product does not fade!',
-        icon: '/placeholder-user.jpg'
-      }
-    },
-    {
-      _id: '6',
-      username: 'Đỗ Văn Bình',
-      date: new Date('2024-11-10'),
-      questionText: 'What occasions can this be worn for? I\'m looking for a party dress.',
-      icon: '/placeholder-user.jpg',
-      images: [],
-      answer: {
-        username: 'Seller',
-        date: new Date('2024-11-11'),
-        answerText: 'This product is perfect for parties, events, or elegant outings. Elegant design that flatters your figure!',
-        icon: '/placeholder-user.jpg'
-      }
-    }
-  ];
+  const [questionsLoading, setQuestionsLoading] = useState<boolean>(false);
 
   // Bid dialog state
   const [bidDialogOpen, setBidDialogOpen] = useState<boolean>(false);
   
-  // Fake data for auction
-  const [fakeAuctionData, setFakeAuctionData] = useState({
-    currentPrice: 1500000,
-    minimumBidStep: 50000,
-    isEnded: false, // For testing, set to false to allow bidding
-  });
-
-  // Generate fake similar products (same subcategory)
-  const generateSimilarProducts = (currentProductId: string | undefined): SimilarProduct[] => {
-    const now = new Date();
-    const sellers = [
-      { id: 1, avatar: '/placeholder-user.jpg', fullname: 'Nguyễn Văn A' },
-      { id: 2, avatar: '/placeholder-user.jpg', fullname: 'Trần Thị B' },
-      { id: 3, avatar: '/placeholder-user.jpg', fullname: 'Lê Văn C' },
-      { id: 4, avatar: '/placeholder-user.jpg', fullname: 'Phạm Thị D' },
-      { id: 5, avatar: '/placeholder-user.jpg', fullname: 'Hoàng Văn E' },
-    ];
-
-    const bidders = [
-      { id: 6, avatar: '/placeholder-user.jpg', fullname: 'Lý Văn F' },
-      { id: 7, avatar: '/placeholder-user.jpg', fullname: 'Đỗ Thị G' },
-      { id: 8, avatar: '/placeholder-user.jpg', fullname: 'Bùi Văn H' },
-      { id: 9, avatar: '/placeholder-user.jpg', fullname: 'Vũ Thị I' },
-      { id: 10, avatar: '/placeholder-user.jpg', fullname: 'Đinh Văn J' },
-    ];
-
-    const productNames = [
-      'Tranh the ki trong',
-      'De tam de che',
-      'Da hoi ao dai',
-      'Thang canh ky phong',
-      'Thanh guom cua vua Louis III',
-      'Chen thanh',
-      'Ke huy diet',
-      'Hung thu tiec tan',
-      'Tranh cua picasso',
-      'Nguoi dep to lua',
-      'Mot ngay nang',
-      'Berserk',
-    ];
-
-    // Generate 5 similar products, excluding current product
-    // If currentProductId is not a number, just take first 5
-    const filteredNames = currentProductId 
-      ? productNames.filter((_, index) => (index + 1).toString() !== currentProductId)
-      : productNames;
-    
-    return filteredNames
-      .slice(0, 5)
-      .map((name, index) => {
-        const startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 7));
-        
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 14) + 7);
-        
-        const buyNowPrice = Math.floor(Math.random() * 5000000) + 1000000; // 1M - 6M VND
-        const minBidStep = Math.floor(buyNowPrice * 0.05);
-        const currentPrice = Math.floor(buyNowPrice * (0.6 + Math.random() * 0.3)); // 60-90% of buy now price
-        const bidCount = Math.floor(Math.random() * 50) + 1; // 1-50 bids
-        const hasHighestBidder = Math.random() > 0.2; // 80% chance of having a bidder
-        const postedDate = new Date(startDate);
-        postedDate.setDate(postedDate.getDate() - Math.floor(Math.random() * 3)); // Posted 0-3 days before start
-
-        return {
-          id: index + 100, // Use different IDs to avoid conflicts
-          product_name: name,
-          thumpnail_url: '/placeholder.svg',
-          seller: sellers[Math.floor(Math.random() * sellers.length)],
-          buy_now_price: Math.random() > 0.1 ? buyNowPrice : null, // 90% have buy now price
-          minimum_bid_step: minBidStep,
-          start_at: startDate.toISOString(),
-          end_at: endDate.toISOString(),
-          current_price: currentPrice,
-          highest_bidder: hasHighestBidder ? bidders[Math.floor(Math.random() * bidders.length)] : null,
-          created_at: postedDate.toISOString(),
-          bid_count: bidCount,
-        };
-      });
-  };
+  // Check if auction has ended
+  const isAuctionEnded = product ? new Date(product.endAt) < new Date() : false;
 
   useEffect(() => {
-    const fetchDressData = async () => {
+    const fetchProductData = async () => {
       try {
         setLoading(true);
         
-        // Always generate similar products first (even if no ID)
-        const fakeSimilarProducts = generateSimilarProducts(id);
-        console.log('Generated similar products:', fakeSimilarProducts);
-        setSimilarProducts(fakeSimilarProducts);
-        
-        // If no ID provided, use a default dress or redirect
+        // If no ID provided, use a default view
         if (!id) {
-          console.warn('No dress ID provided, using default view');
-          // Set fake questions for default view
-          setQuestions(fakeQuestions);
+          console.warn('No product ID provided, using default view');
           setLoading(false);
           return;
         }
         
-        // Fetch dress data
-        const dressData = await getDressById(id);
-        // Log full dress data to check description structure
-        console.log('Fetched dress data:', JSON.stringify(dressData, null, 2));
-        console.log('Description object:', dressData.description);
+        // Fetch product data from main service
+        const productData = await getProductByIdFromMain(id);
+        console.log('Fetched product data:', JSON.stringify(productData, null, 2));
         
-        setDress(dressData);
+        setProduct(productData);
 
-        // Fetch questions (Q&A) - Use fake data if API fails
-        try {
-          const response = await axios.get(`http://localhost:3000/dress/${id}/questions`);
-          if (response.data && response.data.success) {
-            setQuestions(response.data.data);
+        // Fetch similar products by category
+        if (productData.categories && productData.categories.length > 0) {
+          try {
+            const firstCategoryId = productData.categories[0].id;
+            const similarProductsData = await getProductsByCategory(firstCategoryId, 0, 5);
+            
+            // Filter out current product from similar products
+            const filteredSimilarProducts = similarProductsData.filter(
+              (p) => p.id !== productData.id
+            );
+            
+            console.log('Fetched similar products:', filteredSimilarProducts);
+            setSimilarProducts(filteredSimilarProducts);
+          } catch (error: any) {
+            console.error('Failed to fetch similar products:', error);
+            // Don't set error state, just log and leave similarProducts empty
+            setSimilarProducts([]);
           }
-        } catch (questionError) {
-          console.error('Failed to fetch questions:', questionError);
-          // Use fake questions as fallback
-          setQuestions(fakeQuestions);
+        } else {
+          setSimilarProducts([]);
         }
         
         setError(null);
-      } catch (error) {
-        console.error('Failed to fetch dress data:', error);
-        setError('Failed to load dress details. Please try again later.');
-        // Still generate similar products even on error
-        const fakeSimilarProducts = generateSimilarProducts(id);
-        console.log('Generated similar products (fallback):', fakeSimilarProducts);
-        setSimilarProducts(fakeSimilarProducts);
+      } catch (error: any) {
+        console.error('Failed to fetch product data:', error);
+        setError(error.response?.data?.message || 'Failed to load product details. Please try again later.');
+        setSimilarProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDressData();
-  }, [id, refreshQuestions, userId, role]);
+    fetchProductData();
+  }, [id, userId, role]);
+
+  // Fetch questions separately
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      if (!id) {
+        setQuestions([]);
+        return;
+      }
+
+      try {
+        setQuestionsLoading(true);
+        // Fetch questions with a large page size to get all questions
+        // ReviewList component handles client-side pagination
+        const questionsData = await getQuestionsByProductId(id, 0, 100);
+        
+        // Map API response to format expected by ReviewList
+        const mappedQuestions = questionsData.content.map((question: QuestionResponse) => {
+          const firstAnswer = question.answers && question.answers.length > 0 ? question.answers[0] : null;
+          
+          return {
+            _id: question.id.toString(),
+            username: question.user.fullname,
+            date: new Date(question.createdAt),
+            questionText: question.content,
+            icon: question.user.avatar || '/placeholder-user.jpg',
+            images: [],
+            answer: firstAnswer ? {
+              username: firstAnswer.user.fullname,
+              date: new Date(firstAnswer.createdAt),
+              answerText: firstAnswer.content,
+              icon: firstAnswer.user.avatar || '/placeholder-user.jpg'
+            } : null
+          };
+        });
+        
+        setQuestions(mappedQuestions);
+      } catch (error: any) {
+        console.error('Failed to fetch questions:', error);
+        // Don't set error state, just log and leave questions empty
+        setQuestions([]);
+      } finally {
+        setQuestionsLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [id, refreshQuestions]);
   
   // Handle bid button click
   const handleBid = async () => {
@@ -286,7 +150,7 @@ export default function ProductDetailPage(): JSX.Element {
       return;
     }
 
-    if (fakeAuctionData.isEnded) {
+    if (isAuctionEnded) {
       toast.error('The auction has ended');
       return;
     }
@@ -298,19 +162,17 @@ export default function ProductDetailPage(): JSX.Element {
   // Handle bid confirmation
   const handleBidConfirm = (bidAmount: number) => {
     console.log('Bid confirmed:', bidAmount);
-    // Update current price (fake data)
-    setFakeAuctionData(prev => ({
-      ...prev,
-      currentPrice: bidAmount,
-    }));
+    // TODO: Call API to place bid
+    // For now, just show success message
     toast.success('Bid placed successfully!');
+    // Refresh product data to get updated current price
+    if (id) {
+      getProductByIdFromMain(id).then(setProduct).catch(console.error);
+    }
   };
 
-  // Format price
-  const price = dress?.purchasePrice || dress?.dailyRentalPrice || 0;
-
-  // Check if bid can be placed - fake data: always enabled unless auction ended
-  const isBidEnabled = !fakeAuctionData.isEnded;
+  // Check if bid can be placed
+  const isBidEnabled = !isAuctionEnded && product !== null;
 
   // Handle question submission
   const handleQuestionSubmitted = () => {
@@ -324,7 +186,7 @@ export default function ProductDetailPage(): JSX.Element {
       <div className="min-h-screen bg-white">
         <Header />
         <div className="flex justify-center items-center h-[60vh]">
-          <p className="text-lg text-gray-600">Loading dress details...</p>
+          <p className="text-lg text-gray-600">Loading product details...</p>
         </div>
         <Footer />
       </div>
@@ -360,13 +222,32 @@ export default function ProductDetailPage(): JSX.Element {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Product Gallery */}
           <ProductGallery 
-            images={dress?.images || ["pic1.jpg"]} 
+            images={(() => {
+              const images: string[] = [];
+              
+              // Add thumbnail first if it exists
+              if (product?.thumbnailUrl) {
+                images.push(product.thumbnailUrl);
+              }
+              
+              // Add all pictures, avoiding duplicates
+              if (product?.pictures && product.pictures.length > 0) {
+                product.pictures.forEach(picture => {
+                  if (picture.imageUrl && !images.includes(picture.imageUrl)) {
+                    images.push(picture.imageUrl);
+                  }
+                });
+              }
+              
+              // Fallback if no images
+              return images.length > 0 ? images : ["pic1.jpg"];
+            })()} 
           />
 
           {/* Product Info */}
           <div className="space-y-6">
             <div className="flex justify-between items-start">
-              <h1 className="text-2xl font-medium text-[#333333]">{dress?.name || "Eliza Satin"}</h1>
+              <h1 className="text-2xl font-medium text-[#333333]">{product?.productName || "Product Name"}</h1>
               <button className="text-[#333333]">
                 <Heart className="w-6 h-6" />
               </button>
@@ -380,25 +261,42 @@ export default function ProductDetailPage(): JSX.Element {
                   {new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
                     currency: 'VND',
-                  }).format(fakeAuctionData.currentPrice)}
+                  }).format(product?.currentPrice || 0)}
                 </div>
               </div>
+              {product?.buyNowPrice && (
+                <div>
+                  <span className="text-sm text-gray-600">Buy Now Price:</span>
+                  <div className="text-xl font-semibold text-[#333333]">
+                    {new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND',
+                    }).format(product.buyNowPrice)}
+                  </div>
+                </div>
+              )}
               <div>
                 <span className="text-sm text-gray-600">Minimum Bid Step:</span>
                 <div className="text-xl font-semibold text-[#333333]">
                   {new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
                     currency: 'VND',
-                  }).format(fakeAuctionData.minimumBidStep)}
+                  }).format(product?.minimumBidStep || 0)}
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600">Bid Count:</span>
+                <div className="text-lg text-[#333333]">
+                  {product?.bidCount || 0} bids
                 </div>
               </div>
             </div>
             
             {/* Display auction status */}
             <p className="text-sm text-gray-600">
-              {fakeAuctionData.isEnded 
+              {isAuctionEnded 
                 ? "Auction Ended" 
-                : "Auction in Progress"}
+                : `Auction ends: ${product?.endAt ? new Date(product.endAt).toLocaleString('vi-VN') : 'N/A'}`}
             </p>
 
             {/* Bid Button */}
@@ -411,7 +309,7 @@ export default function ProductDetailPage(): JSX.Element {
               disabled={!isBidEnabled}
               onClick={handleBid}
             >
-              {fakeAuctionData.isEnded 
+              {isAuctionEnded 
                 ? 'Auction Ended' 
                 : 'Place Bid'
               }
@@ -419,69 +317,120 @@ export default function ProductDetailPage(): JSX.Element {
             </button>
 
             {/* Seller Information */}
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <h3 className="text-lg font-medium text-[#333333] mb-4">Seller Information</h3>
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="/placeholder-user.jpg" 
-                    alt="Seller" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-[#333333]">Nguyễn Văn A</div>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <svg
-                          key={star}
-                          className={`w-4 h-4 ${star <= 4 ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      ))}
+            {product?.seller && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <h3 className="text-lg font-medium text-[#333333] mb-4">Seller Information</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={product.seller.avatar || "/placeholder-user.jpg"} 
+                      alt="Seller" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-[#333333]">{product.seller.fullname}</div>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => {
+                          // Assessment is on 0-10 scale, map directly to stars
+                          const filledStars = product.seller.assessment ? Math.round(product.seller.assessment) : 0;
+                          return (
+                            <svg
+                              key={star}
+                              className={`w-4 h-4 ${star <= filledStars ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          );
+                        })}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {product.seller.assessment ? product.seller.assessment.toFixed(1) : 'N/A'}
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-600">4.5 (128 reviews)</span>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Highest Bidder Information */}
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <h3 className="text-lg font-medium text-[#333333] mb-4">Highest Bidder</h3>
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="/placeholder-user.jpg" 
-                    alt="Highest Bidder" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-[#333333]">Trần Thị B</div>
-                  <div className="text-sm text-gray-600 mt-1">Current bid: ${(price * 1.1).toFixed(2)}</div>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <svg
-                          key={star}
-                          className={`w-4 h-4 ${star <= 5 ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      ))}
+            {/* Top Bidder Information */}
+            {product?.topBidder && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <h3 className="text-lg font-medium text-[#333333] mb-4">Highest Bidder</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={product.topBidder.avatar || "/placeholder-user.jpg"} 
+                      alt="Highest Bidder" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-[#333333]">{product.topBidder.fullname}</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Current bid: {new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND',
+                      }).format(product.currentPrice)}
                     </div>
-                    <span className="text-sm text-gray-600">5.0 (56 reviews)</span>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => {
+                          // Assessment is on 0-10 scale, map directly to stars
+                          const filledStars = product.topBidder?.assessment ? Math.round(product.topBidder.assessment) : 0;
+                          return (
+                            <svg
+                              key={star}
+                              className={`w-4 h-4 ${star <= filledStars ? 'text-[#f4b740] fill-[#f4b740]' : 'text-gray-300'}`}
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          );
+                        })}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {product.topBidder.assessment ? product.topBidder.assessment.toFixed(1) : 'N/A'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+            
+            {/* Product Description */}
+            {product?.descriptions && product.descriptions.length > 0 && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <h3 className="text-lg font-medium text-[#333333] mb-4">Description</h3>
+                <div 
+                  className="text-sm text-gray-700 prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ 
+                    __html: product.descriptions[product.descriptions.length - 1].content 
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Categories */}
+            {product?.categories && product.categories.length > 0 && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <h3 className="text-lg font-medium text-[#333333] mb-4">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.categories.map((category) => (
+                    <span 
+                      key={category.id}
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                    >
+                      {category.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -510,11 +459,18 @@ export default function ProductDetailPage(): JSX.Element {
             
             {/* Question List */}
             <div className="lg:col-span-2">
-              <ReviewList 
-                dressId={id || ''} 
-                reviews={questions} 
-                onRefresh={handleQuestionSubmitted} 
-              />
+              {questionsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="w-6 h-6 border-2 border-gray-300 border-t-[#ead9c9] rounded-full animate-spin"></div>
+                  <span className="ml-2 text-gray-500">Loading questions...</span>
+                </div>
+              ) : (
+                <ReviewList 
+                  dressId={id || ''} 
+                  reviews={questions} 
+                  onRefresh={handleQuestionSubmitted} 
+                />
+              )}
             </div>
           </div>
         </div>
@@ -549,11 +505,11 @@ export default function ProductDetailPage(): JSX.Element {
                 gap: 3,
               }}
             >
-              {similarProducts.map((product) => (
+              {similarProducts.map((similarProduct) => (
                 <Box
-                  key={product.id}
+                  key={similarProduct.id}
                   onClick={() => {
-                    navigate(`/product/${product.id}`);
+                    navigate(`/product-page/${similarProduct.id}`);
                     window.scrollTo(0, 0);
                   }}
                   sx={{
@@ -564,7 +520,27 @@ export default function ProductDetailPage(): JSX.Element {
                     },
                   }}
                 >
-                  <ProductCard {...product} />
+                  <ProductCard 
+                    id={similarProduct.id}
+                    productName={similarProduct.productName}
+                    thumbnailUrl={similarProduct.thumbnailUrl}
+                    seller={{
+                      id: similarProduct.seller.id,
+                      avatar: similarProduct.seller.avatar || null,
+                      fullname: similarProduct.seller.fullname,
+                    }}
+                    buyNowPrice={similarProduct.buyNowPrice}
+                    minimumBidStep={similarProduct.minimumBidStep}
+                    endAt={similarProduct.endAt}
+                    currentPrice={similarProduct.currentPrice}
+                    topBidder={similarProduct.topBidder ? {
+                      id: similarProduct.topBidder.id,
+                      avatar: similarProduct.topBidder.avatar || null,
+                      fullname: similarProduct.topBidder.fullname,
+                    } : null}
+                    createdAt={similarProduct.createdAt}
+                    bidCount={similarProduct.bidCount}
+                  />
                 </Box>
               ))}
             </Box>
@@ -580,8 +556,8 @@ export default function ProductDetailPage(): JSX.Element {
         open={bidDialogOpen}
         onClose={() => setBidDialogOpen(false)}
         onConfirm={handleBidConfirm}
-        currentPrice={fakeAuctionData.currentPrice}
-        minimumBidStep={fakeAuctionData.minimumBidStep}
+        currentPrice={product?.currentPrice || 0}
+        minimumBidStep={product?.minimumBidStep || 0}
       />
     </div>
   );
