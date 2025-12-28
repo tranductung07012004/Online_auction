@@ -16,6 +16,8 @@ import com.service.main.constants.ErrorMessages;
 
 import com.service.main.dto.categoriesResponse;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CategoriesServiceImpl implements CategoriesService {
@@ -67,7 +69,7 @@ public class CategoriesServiceImpl implements CategoriesService {
         boolean hasNameUpdate = name != null && !name.trim().isEmpty();
         if (hasNameUpdate) {
             name = name.trim();
-            
+
             Categories existing = categoriesRepository.findByName(name);
             if (existing != null && !existing.getId().equals(id)) {
                 throw new ApplicationException(ErrorCodes.DUPLICATE_KEY, "Category name already exists");
@@ -130,6 +132,41 @@ public class CategoriesServiceImpl implements CategoriesService {
             PageRequest.of(page, size)
         );
         return categories.map(categoriesResponse::new);
+    }
+
+    @Override
+    public void deleteCategory(Integer id) {
+        Categories category = categoriesRepository.findById(id)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found"));
+
+        Long productCount = categoriesRepository.countProductsByCategoryId(id);
+        if (productCount != null && productCount > 0) {
+            throw new ApplicationException(ErrorCodes.INVALID_INPUT, "Cannot delete category because it has associated products");
+        }
+
+        Long childCount = categoriesRepository.countChildCategoriesByParentId(id);
+        if (childCount != null && childCount > 0) {
+            throw new ApplicationException(ErrorCodes.INVALID_INPUT, "Cannot delete category because it has child categories");
+        }
+
+        categoriesRepository.delete(category);
+    }
+
+    @Override
+    public List<categoriesResponse> getAllCategories() {
+        return categoriesRepository.findAll()
+                .stream()
+                .map(categoriesResponse::new)
+                .toList();
+    }
+
+    @Override
+    public Long countProductsByCategory(Integer categoryId) {
+        if (!categoriesRepository.existsById(categoryId)) {
+            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found");
+        }
+        Long count = categoriesRepository.countProductsByCategoryId(categoryId);
+        return count != null ? count : 0;
     }
 }
 

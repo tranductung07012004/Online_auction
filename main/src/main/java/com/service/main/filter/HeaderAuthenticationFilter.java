@@ -33,8 +33,6 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
 //            return;
 //        }
 
-        System.out.println("akkjhjajsdhjahsjfjusdhjfbjdf");
-
 
         String userId = req.getHeader("X-user-id");
         String userRole = req.getHeader("X-user-role");

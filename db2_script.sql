@@ -40,7 +40,7 @@ CREATE TABLE bid_history (
 
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     parent_id INTEGER
 );
 
@@ -54,7 +54,7 @@ CREATE TABLE product_descriptions (
 
 CREATE TABLE product_category (
     id BIGSERIAL PRIMARY KEY,
-    category_id BIGINT NOT NULL,
+    category_id INTEGER NOT NULL,
     product_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -62,7 +62,7 @@ CREATE TABLE product_category (
 CREATE TABLE product_pictures (
     id SERIAL PRIMARY KEY,
     image_url TEXT NOT NULL,
-    product_id INT NOT NULL,
+    product_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -181,12 +181,10 @@ CREATE TABLE order_payments (
 -- ALTER TABLE product_descriptions ADD CONSTRAINT fk_product_descriptions_created_by FOREIGN KEY (created_by) REFERENCES "user"(id);
 
 -- -- product_category
--- -- Note: category_id is BIGINT, but categories.id is SERIAL (INT), potential type mismatch; assuming adjustment or cast if needed
 -- ALTER TABLE product_category ADD CONSTRAINT fk_product_category_category_id FOREIGN KEY (category_id) REFERENCES categories(id);
 -- ALTER TABLE product_category ADD CONSTRAINT fk_product_category_product_id FOREIGN KEY (product_id) REFERENCES product(id);
 
 -- -- product_pictures
--- -- Note: Assuming typo in reference, should be product(id) instead of categories(id); also type INT vs BIGINT
 -- ALTER TABLE product_pictures ADD CONSTRAINT fk_product_pictures_product_id FOREIGN KEY (product_id) REFERENCES product(id);
 
 -- -- system_settings
