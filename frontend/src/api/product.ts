@@ -459,3 +459,35 @@ export const createQuestion = async (
   return response.data.data;
 };
 
+// Create answer request interface
+export interface CreateAnswerRequest {
+  questionId: number;
+  content: string;
+}
+
+// Answer response interface
+export interface AnswerResponse {
+  id: number;
+  user: QuestionUser;
+  questionId: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Create answer
+export const createAnswer = async (
+  questionId: string | number,
+  content: string
+): Promise<AnswerResponse> => {
+  const response = await api.post<ApiResponse<AnswerResponse>>(
+    '/api/main/questions/answers',
+    {
+      questionId: typeof questionId === 'string' ? parseInt(questionId, 10) : questionId,
+      content: content.trim()
+    }
+  );
+
+  return response.data.data;
+};
+

@@ -60,6 +60,7 @@ public class QuestionController {
     public ResponseEntity<ApiResponse<AnswerResponse>> createAnswer(
             @Valid @RequestBody CreateAnswerRequest request
     ) {
+        System.out.print("11111111111111111111111111111");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         Long currentUserId = Long.valueOf(authentication.getName());

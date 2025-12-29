@@ -10,6 +10,8 @@ import {
   Alert,
 } from '@mui/material';
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { createAutoBid } from '../../../api/bidderManagement';
 
 interface BidDialogProps {
   open: boolean;
@@ -17,6 +19,7 @@ interface BidDialogProps {
   onConfirm: (bidAmount: number) => void;
   currentPrice: number;
   minimumBidStep: number;
+  productId: string | number;
 }
 
 type BidResult = 'success' | 'pending' | 'failed' | null;
@@ -27,13 +30,14 @@ export default function BidDialog({
   onConfirm,
   currentPrice,
   minimumBidStep,
+  productId,
 }: BidDialogProps) {
   const [bidAmount, setBidAmount] = useState<string>('');
   const [bidResult, setBidResult] = useState<BidResult>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate suggested bid amount
-  const suggestedAmount = currentPrice + minimumBidStep + 10000;
+  const suggestedAmount = currentPrice + minimumBidStep;
 
   // Initialize bid amount when dialog opens
   useEffect(() => {
@@ -52,27 +56,34 @@ export default function BidDialog({
 
     setIsSubmitting(true);
 
-    // Simulate API call with fake data
-    // Randomly choose one of the 3 scenarios for testing
-    const randomScenario = Math.floor(Math.random() * 3);
+    try {
+      // Call API to create auto bid
+      await createAutoBid({
+        productId: typeof productId === 'string' ? parseInt(productId, 10) : productId,
+        maxPrice: amount,
+      });
 
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-
-    // Fake data scenarios:
-    // 0: Success (rating >= 8/10)
-    // 1: Pending (never bid before)
-    // 2: Failed (rating < 8/10)
-
-    if (randomScenario === 0) {
+      // Success
       setBidResult('success');
       onConfirm(amount); // Update price immediately
-    } else if (randomScenario === 1) {
-      setBidResult('pending');
-    } else {
-      setBidResult('failed');
+    } catch (error: any) {
+      console.error('Error creating auto bid:', error);
+      
+      // Handle error based on status code or error message
+      const errorMessage = error.response?.data?.message || 'Không thể đấu giá. Vui lòng thử lại.';
+      toast.error(errorMessage);
+      
+      // Set result based on error (you can customize this based on error codes)
+      if (error.response?.status === 400) {
+        // Validation error or business logic error
+        setBidResult('failed');
+      } else {
+        // Other errors
+        setBidResult('failed');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -102,21 +113,21 @@ export default function BidDialog({
       fullWidth
     >
       <DialogTitle sx={{ color: '#e79846', fontWeight: 600 }}>
-        Đặt giá đấu giá
+        Place you bid
       </DialogTitle>
       <DialogContent>
         <Box sx={{ py: 2 }}>
           {bidResult === null ? (
             <>
               <Typography variant="body2" sx={{ mb: 2, color: '#666666' }}>
-                Giá hiện tại: <strong>{formatPrice(currentPrice)}</strong>
+                Current price: <strong>{formatPrice(currentPrice)}</strong>
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, color: '#666666' }}>
-                Bước giá tối thiểu: <strong>{formatPrice(minimumBidStep)}</strong>
+                Minimum bid step: <strong>{formatPrice(minimumBidStep)}</strong>
               </Typography>
 
               <Typography variant="body2" sx={{ mb: 1, color: '#333333', fontWeight: 500 }}>
-                Số tiền hệ thống đề nghị:
+                Max price that you should afford:
               </Typography>
               <Typography variant="h6" sx={{ mb: 3, color: '#e89b3e', fontWeight: 600 }}>
                 {formatPrice(suggestedAmount)}
@@ -124,7 +135,7 @@ export default function BidDialog({
 
               <TextField
                 fullWidth
-                label="Nhập giá đấu giá của bạn"
+                label="Place the max price that you can afford here"
                 type="number"
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
@@ -154,7 +165,7 @@ export default function BidDialog({
                 }}
                 helperText={
                   !isBidValid() && bidAmount !== ''
-                    ? `Giá phải lớn hơn ${formatPrice(currentPrice)}`
+                    ? `Price must be at least ${formatPrice(currentPrice + minimumBidStep)}`
                     : ''
                 }
                 error={!isBidValid() && bidAmount !== ''}
@@ -171,11 +182,11 @@ export default function BidDialog({
               {bidResult === 'success' && (
                 <Alert severity="success" sx={{ mb: 2 }}>
                   <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
-                    Đấu giá thành công!
+                    Placed bid successfully!
                   </Typography>
                   <Typography variant="body2">
-                    Bạn đã đấu giá thành công với số tiền {formatPrice(parseFloat(bidAmount))}.
-                    Điểm đánh giá của bạn đạt yêu cầu (≥ 8/10).
+                    You are the winner with the price of{formatPrice(parseFloat(bidAmount))}.
+                    Because it is more than buy now price
                   </Typography>
                 </Alert>
               )}
@@ -221,7 +232,7 @@ export default function BidDialog({
         {bidResult === null ? (
           <>
             <Button onClick={handleClose} color="inherit">
-              Hủy
+              Cancel
             </Button>
             <Button
               onClick={handleConfirm}
@@ -239,7 +250,7 @@ export default function BidDialog({
                 },
               }}
             >
-              {isSubmitting ? 'Đang xử lý...' : 'Xác nhận'}
+              {isSubmitting ? 'Processing...' : 'Confirm'}
             </Button>
           </>
         ) : (
