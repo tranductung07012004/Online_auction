@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 
 const API = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: "http://localhost:3000",
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 export interface UserSettings {
@@ -55,14 +55,14 @@ const generateFakeUserProfile = (): UserProfile => {
   const now = new Date();
   const createdAt = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
   const updatedAt = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days ago
-  
+
   return {
-    _id: 'fake_user_id_123',
-    email: 'john.doe@example.com',
-    fullName: 'John Doe',
-    role: 'user',
+    _id: "fake_user_id_123",
+    email: "john.doe@example.com",
+    fullName: "John Doe",
+    role: "user",
     isVerified: true,
-    profileImageUrl: '/placeholder-user.jpg',
+    profileImageUrl: "/placeholder-user.jpg",
     settings: {
       emailNotifications: true,
       smsNotifications: false,
@@ -70,7 +70,7 @@ const generateFakeUserProfile = (): UserProfile => {
       promotions: true,
       accountActivity: true,
       darkMode: false,
-      language: 'vi',
+      language: "vi",
     },
     createdAt: createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
@@ -80,27 +80,31 @@ const generateFakeUserProfile = (): UserProfile => {
 // Get user profile
 export const getUserProfile = async (): Promise<UserProfile> => {
   try {
-    const response = await API.get('/users/profile');
+    const response = await API.get("/users/profile");
     return response.data.data;
   } catch (error: any) {
     // If it's a network error (backend not running), return fake data
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.warn('Backend not available, using fake profile data for development');
+    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+      console.warn(
+        "Backend not available, using fake profile data for development"
+      );
       return generateFakeUserProfile();
     }
-    throw new Error(error.response?.data?.message || 'Failed to fetch profile');
+    throw new Error(error.response?.data?.message || "Failed to fetch profile");
   }
 };
 
 // Update user profile
-export const updateProfile = async (data: UpdateProfileData): Promise<UserProfile> => {
+export const updateProfile = async (
+  data: UpdateProfileData
+): Promise<UserProfile> => {
   try {
-    const response = await API.put('/users/profile', data);
+    const response = await API.put("/users/profile", data);
     return response.data.data;
   } catch (error: any) {
     // If it's a network error (backend not running), return fake updated data
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.warn('Backend not available, simulating profile update');
+    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+      console.warn("Backend not available, simulating profile update");
       const fakeProfile = generateFakeUserProfile();
       return {
         ...fakeProfile,
@@ -108,56 +112,72 @@ export const updateProfile = async (data: UpdateProfileData): Promise<UserProfil
         updatedAt: new Date().toISOString(),
       };
     }
-    throw new Error(error.response?.data?.message || 'Failed to update profile');
+    throw new Error(
+      error.response?.data?.message || "Failed to update profile"
+    );
   }
 };
 
 // Update password
-export const updatePassword = async (data: UpdatePasswordData): Promise<{ message: string }> => {
+export const updatePassword = async (
+  data: UpdatePasswordData
+): Promise<{ message: string }> => {
   try {
-    const response = await API.put('/users/password', data);
+    const response = await API.put("/users/password", data);
     return response.data.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to update password');
+    throw new Error(
+      error.response?.data?.message || "Failed to update password"
+    );
   }
 };
 
 // Update username
-export const updateUsername = async (data: UpdateUsernameData): Promise<UserProfile> => {
+export const updateUsername = async (
+  data: UpdateUsernameData
+): Promise<UserProfile> => {
   try {
-    const response = await API.put('/users/username', data);
+    const response = await API.put("/users/username", data);
     return response.data.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to update username');
+    throw new Error(
+      error.response?.data?.message || "Failed to update username"
+    );
   }
 };
 
 // Upload profile image
-export const uploadProfileImage = async (formData: FormData): Promise<{ imageUrl: string }> => {
+export const uploadProfileImage = async (
+  formData: FormData
+): Promise<{ imageUrl: string }> => {
   try {
-    const response = await API.post('/users/profile/image', formData, {
+    const response = await API.post("/users/profile/image", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
   } catch (error: any) {
     // If it's a network error (backend not running), return fake image URL
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.warn('Backend not available, simulating image upload');
-      return { imageUrl: '/placeholder-user.jpg' };
+    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+      console.warn("Backend not available, simulating image upload");
+      return { imageUrl: "/placeholder-user.jpg" };
     }
-    throw new Error(error.response?.data?.message || 'Failed to upload image');
+    throw new Error(error.response?.data?.message || "Failed to upload image");
   }
 };
 
 // Update user settings
-export const updateUserSettings = async (data: UserSettings): Promise<UserProfile> => {
+export const updateUserSettings = async (
+  data: UserSettings
+): Promise<UserProfile> => {
   try {
-    const response = await API.put('/users/settings', data);
+    const response = await API.put("/users/settings", data);
     return response.data.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to update settings');
+    throw new Error(
+      error.response?.data?.message || "Failed to update settings"
+    );
   }
 };
 
@@ -166,33 +186,40 @@ export interface SellerRequest {
   _id?: string;
   userId: string;
   reason?: string;
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: "pending" | "approved" | "rejected";
   createdAt?: string;
   updatedAt?: string;
 }
 
 // Send request to become seller
-export const sendSellerRequest = async (reason?: string): Promise<SellerRequest> => {
+export const sendSellerRequest = async (
+  reason?: string
+): Promise<SellerRequest> => {
   try {
-    const response = await API.post('/users/seller-request', { reason });
+    const response = await API.post("/users/seller-request", { reason });
     return response.data.data || response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to send seller request');
+    throw new Error(
+      error.response?.data?.message || "Failed to send seller request"
+    );
   }
 };
 
 // Get seller request status
-export const getSellerRequestStatus = async (): Promise<SellerRequest | null> => {
-  try {
-    const response = await API.get('/users/seller-request');
-    return response.data.data || response.data || null;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      return null; // No request found
+export const getSellerRequestStatus =
+  async (): Promise<SellerRequest | null> => {
+    try {
+      const response = await API.get("/users/seller-request");
+      return response.data.data || response.data || null;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null; // No request found
+      }
+      throw new Error(
+        error.response?.data?.message || "Failed to get seller request status"
+      );
     }
-    throw new Error(error.response?.data?.message || 'Failed to get seller request status');
-  }
-};
+  };
 
 // Watchlist Interfaces
 export interface WatchlistItem {
@@ -227,23 +254,27 @@ export interface WatchlistItem {
 // Get watchlist
 export const getWatchlist = async (): Promise<WatchlistItem[]> => {
   try {
-    const response = await API.get('/users/watchlist');
+    const response = await API.get("/users/watchlist");
     return response.data.data || response.data || [];
   } catch (error: any) {
     if (error.response?.status === 404) {
       return [];
     }
-    throw new Error(error.response?.data?.message || 'Failed to get watchlist');
+    throw new Error(error.response?.data?.message || "Failed to get watchlist");
   }
 };
 
 // Add product to watchlist
-export const addToWatchlist = async (productId: string): Promise<WatchlistItem> => {
+export const addToWatchlist = async (
+  productId: string
+): Promise<WatchlistItem> => {
   try {
-    const response = await API.post('/users/watchlist', { productId });
+    const response = await API.post("/users/watchlist", { productId });
     return response.data.data || response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to add to watchlist');
+    throw new Error(
+      error.response?.data?.message || "Failed to add to watchlist"
+    );
   }
 };
 
@@ -252,7 +283,9 @@ export const removeFromWatchlist = async (productId: string): Promise<void> => {
   try {
     await API.delete(`/users/watchlist/${productId}`);
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to remove from watchlist');
+    throw new Error(
+      error.response?.data?.message || "Failed to remove from watchlist"
+    );
   }
 };
 
@@ -286,19 +319,19 @@ export interface BiddingItem {
     bid_count: number;
   };
   isWinning?: boolean; // Whether user is currently the highest bidder
-  status?: 'active' | 'won' | 'lost'; // Status of the bid
+  status?: "active" | "won" | "lost"; // Status of the bid
 }
 
 // Get user's active bidding products (products user has bid on that are still active)
 export const getMyBids = async (): Promise<BiddingItem[]> => {
   try {
-    const response = await API.get('/users/my-bids');
+    const response = await API.get("/users/my-bids");
     return response.data.data || response.data || [];
   } catch (error: any) {
     if (error.response?.status === 404) {
       return [];
     }
-    throw new Error(error.response?.data?.message || 'Failed to get my bids');
+    throw new Error(error.response?.data?.message || "Failed to get my bids");
   }
 };
 
@@ -326,7 +359,7 @@ export interface SellerProduct {
   created_at?: string | Date;
   posted_at?: string | Date;
   bid_count: number;
-  status: 'active' | 'won' | 'upcoming'; // active = auction in progress, won = has winner, upcoming = not yet started
+  status: "active" | "won" | "upcoming"; // active = auction in progress, won = has winner, upcoming = not yet started
   winningBidder?: {
     id: number;
     avatar: string;
@@ -339,13 +372,15 @@ export interface SellerProduct {
 // Get seller's products
 export const getMyProducts = async (): Promise<SellerProduct[]> => {
   try {
-    const response = await API.get('/users/my-products');
+    const response = await API.get("/users/my-products");
     return response.data.data || response.data || [];
   } catch (error: any) {
     if (error.response?.status === 404) {
       return [];
     }
-    throw new Error(error.response?.data?.message || 'Failed to get my products');
+    throw new Error(
+      error.response?.data?.message || "Failed to get my products"
+    );
   }
 };
 
@@ -353,23 +388,28 @@ export const getMyProducts = async (): Promise<SellerProduct[]> => {
 export interface ReviewBidderData {
   productId: string;
   bidderId: string;
-  reviewType: 'like' | 'dislike'; // Changed from rating to like/dislike
+  reviewType: "like" | "dislike"; // Changed from rating to like/dislike
   reviewText: string;
 }
 
 export const reviewBidder = async (data: ReviewBidderData): Promise<void> => {
   try {
-    await API.post('/users/review-bidder', data);
+    await API.post("/users/review-bidder", data);
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to review bidder');
+    throw new Error(error.response?.data?.message || "Failed to review bidder");
   }
 };
 
 // Cancel transaction with bidder
-export const cancelTransaction = async (productId: string, bidderId: string): Promise<void> => {
+export const cancelTransaction = async (
+  productId: string,
+  bidderId: string
+): Promise<void> => {
   try {
-    await API.post('/users/cancel-transaction', { productId, bidderId });
+    await API.post("/users/cancel-transaction", { productId, bidderId });
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to cancel transaction');
+    throw new Error(
+      error.response?.data?.message || "Failed to cancel transaction"
+    );
   }
-}; 
+};

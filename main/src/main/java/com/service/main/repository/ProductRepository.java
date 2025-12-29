@@ -49,6 +49,100 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "JOIN p.productCategories pc " +
             "WHERE pc.category.id = :categoryId")
     Page<Product> findByCategoryId(@Param("categoryId") Integer categoryId, Pageable pageable);
+
+    // Dashboard queries
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.endAt > :now")
+    long countActiveAuctions(@Param("now") OffsetDateTime now);
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.endAt <= :now")
+    long countEndedAuctions(@Param("now") OffsetDateTime now);
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.endAt > :now AND p.endAt <= :endingSoon")
+    long countEndingSoonAuctions(@Param("now") OffsetDateTime now, @Param("endingSoon") OffsetDateTime endingSoon);
+
+    @Query("SELECT COALESCE(SUM(p.bidCount), 0) FROM Product p")
+    long sumTotalBids();
+
+    @Query("SELECT MAX(p.currentPrice) FROM Product p WHERE p.endAt > :now")
+    java.math.BigDecimal findHighestCurrentPrice(@Param("now") OffsetDateTime now);
+
+    @Query("SELECT AVG(p.startPrice) FROM Product p")
+    java.math.BigDecimal findAverageStartPrice();
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.createdAt >= :startDate")
+    long countProductsCreatedAfter(@Param("startDate") OffsetDateTime startDate);
+
+    List<Product> findTop10ByOrderByCreatedAtDesc();
+
+    // ==================== Admin Product Management Queries ====================
+    
+    // Search products with filters
+    @Query("""
+        SELECT p FROM Product p 
+        WHERE (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:sellerId IS NULL OR p.sellerId = :sellerId)
+        ORDER BY p.createdAt DESC
+    """)
+    Page<Product> findAllWithFilters(
+        @Param("search") String search,
+        @Param("sellerId") Long sellerId,
+        Pageable pageable
+    );
+
+    // Search active products only
+    @Query("""
+        SELECT p FROM Product p 
+        WHERE p.endAt > :now
+        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:sellerId IS NULL OR p.sellerId = :sellerId)
+        ORDER BY p.createdAt DESC
+    """)
+    Page<Product> findActiveWithFilters(
+        @Param("now") OffsetDateTime now,
+        @Param("search") String search,
+        @Param("sellerId") Long sellerId,
+        Pageable pageable
+    );
+
+    // Search ended products only
+    @Query("""
+        SELECT p FROM Product p 
+        WHERE p.endAt <= :now
+        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:sellerId IS NULL OR p.sellerId = :sellerId)
+        ORDER BY p.createdAt DESC
+    """)
+    Page<Product> findEndedWithFilters(
+        @Param("now") OffsetDateTime now,
+        @Param("search") String search,
+        @Param("sellerId") Long sellerId,
+        Pageable pageable
+    );
+
+    // Count products with bids
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.bidCount > 0")
+    long countProductsWithBids();
+
+    // Count products without bids
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.bidCount = 0")
+    long countProductsWithoutBids();
+
+    // Find products by seller with pagination
+    Page<Product> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
+
+    // Find products by category with admin filters
+    @Query("""
+        SELECT DISTINCT p FROM Product p 
+        JOIN p.productCategories pc 
+        WHERE pc.category.id = :categoryId
+        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY p.createdAt DESC
+    """)
+    Page<Product> findByCategoryWithFilters(
+        @Param("categoryId") Integer categoryId,
+        @Param("search") String search,
+        Pageable pageable
+    );
 }
 
 

@@ -1,4 +1,4 @@
-package com.service.main.dto;
+package com.service.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,10 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserInfo {
-    private Long id;
+public class UpdateUserDetailsRequest {
     private String fullname;
-    private String email;
     private String avatar;
-    private Double assessment;
+    private String address;
 }

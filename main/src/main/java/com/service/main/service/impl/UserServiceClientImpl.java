@@ -91,5 +91,19 @@ public class UserServiceClientImpl implements UserServiceClient {
         
         return headers;
     }
+
+    @Override
+    public com.service.main.dto.UserInfo getUserInfoById(Long userId) {
+        UserInfoResponse response = getUserBasicInfo(userId);
+        if (response == null) {
+            return null;
+        }
+        return com.service.main.dto.UserInfo.builder()
+                .id(response.getId())
+                .fullname(response.getFullname())
+                .avatar(response.getAvatar())
+                .email(null) // UserInfoResponse doesn't have email, need to add if needed
+                .build();
+    }
 }
 

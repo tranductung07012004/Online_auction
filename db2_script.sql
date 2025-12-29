@@ -113,13 +113,6 @@ CREATE TABLE order_reviews (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE request_upgrade_seller (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    is_done BOOLEAN NOT NULL
-);
-
 CREATE TABLE chat_messages (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT,

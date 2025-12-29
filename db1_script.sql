@@ -39,3 +39,25 @@ CREATE TABLE otp_codes (
 CREATE UNIQUE INDEX uq_active_otp
 ON otp_codes(user_id, email)
 WHERE used = false;
+
+-- Seller Request table for upgrade to seller role
+CREATE TABLE seller_requests (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    reason TEXT NOT NULL,
+    business_name VARCHAR(500),
+    business_address VARCHAR(500),
+    phone_number VARCHAR(50),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    admin_note TEXT,
+    reviewed_by BIGINT,
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_seller_request_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_seller_request_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_seller_requests_user_id ON seller_requests(user_id);
+CREATE INDEX idx_seller_requests_status ON seller_requests(status);
+CREATE INDEX idx_seller_requests_created_at ON seller_requests(created_at DESC);
