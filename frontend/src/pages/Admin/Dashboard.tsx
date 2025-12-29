@@ -1,119 +1,133 @@
 import React, { useState, useEffect } from "react";
-import { Box, Container, Card, CardContent, Typography } from "@mui/material";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
+  Box,
+  Container,
+  Card,
+  CardContent,
+  Typography,
+  CircularProgress,
+  Alert,
+  Avatar,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
+import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  AreaChart,
-  Area,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
 } from "recharts";
 import {
-  ShoppingCart,
   Users,
   Package,
-  TrendingUp,
   Gavel,
-  UserPlus,
-  UserCheck,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
-
-interface DashboardStats {
-  totalProducts: number;
-  totalUsers: number;
-  totalOrders: number;
-  totalRevenue: number;
-}
-
-interface MonthlyData {
-  month: string;
-  revenue: number;
-  newAuctions: number;
-  newUsers: number;
-  newSellerUpgrades: number;
-}
+import * as adminDashboardApi from "../../api/adminDashboard";
+import type {
+  AdminDashboardUserStats,
+  AdminDashboardStats,
+  RecentUserDTO,
+  RecentProductDTO,
+} from "../../api/adminDashboard";
 
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalProducts: 0,
-    totalUsers: 0,
-    totalOrders: 0,
-    totalRevenue: 0,
-  });
-  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [userStats, setUserStats] = useState<AdminDashboardUserStats | null>(
+    null
+  );
+  const [productStats, setProductStats] = useState<AdminDashboardStats | null>(
+    null
+  );
+  const [recentUsers, setRecentUsers] = useState<RecentUserDTO[]>([]);
+  const [recentProducts, setRecentProducts] = useState<RecentProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mock data - replace with API calls later
-    const mockStats: DashboardStats = {
-      totalProducts: 156,
-      totalUsers: 2450,
-      totalOrders: 5230,
-      totalRevenue: 125000000,
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [
+          userStatsRes,
+          productStatsRes,
+          recentUsersRes,
+          recentProductsRes,
+        ] = await Promise.all([
+          adminDashboardApi.getUserStatistics(),
+          adminDashboardApi.getDashboardStats(),
+          adminDashboardApi.getRecentUsers(5),
+          adminDashboardApi.getRecentProducts(5),
+        ]);
+
+        setUserStats(userStatsRes.data.data);
+        setProductStats(productStatsRes.data.data);
+        setRecentUsers(recentUsersRes.data.data);
+        setRecentProducts(recentProductsRes.data.data);
+      } catch (e: unknown) {
+        console.error("Failed to fetch dashboard data", e);
+        const err = e as { response?: { data?: { message?: string } } };
+        setError(
+          err?.response?.data?.message || "Failed to load dashboard data"
+        );
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Mock data based on system requirements:
-    // - New auction platforms
-    // - Revenue
-    // - New users
-    // - Bidder upgraded to seller
-    const mockMonthlyData: MonthlyData[] = [
-      {
-        month: "January",
-        revenue: 45000000,
-        newAuctions: 45,
-        newUsers: 320,
-        newSellerUpgrades: 12,
-      },
-      {
-        month: "February",
-        revenue: 38000000,
-        newAuctions: 38,
-        newUsers: 280,
-        newSellerUpgrades: 10,
-      },
-      {
-        month: "March",
-        revenue: 52000000,
-        newAuctions: 52,
-        newUsers: 410,
-        newSellerUpgrades: 15,
-      },
-      {
-        month: "April",
-        revenue: 48000000,
-        newAuctions: 48,
-        newUsers: 360,
-        newSellerUpgrades: 13,
-      },
-      {
-        month: "May",
-        revenue: 55000000,
-        newAuctions: 55,
-        newUsers: 450,
-        newSellerUpgrades: 18,
-      },
-      {
-        month: "June",
-        revenue: 62000000,
-        newAuctions: 62,
-        newUsers: 520,
-        newSellerUpgrades: 20,
-      },
-    ];
-
-    setStats(mockStats);
-    setMonthlyData(mockMonthlyData);
-    setLoading(false);
+    fetchDashboardData();
   }, []);
+
+  // Pie chart colors
+  const COLORS = ["#C3937C", "#1976D2", "#388E3C", "#F57C00", "#9C27B0"];
+
+  // Prepare data for user role pie chart
+  const userRoleData = userStats
+    ? [
+        { name: "Admins", value: userStats.adminCount },
+        { name: "Sellers", value: userStats.sellerCount },
+        { name: "Bidders", value: userStats.bidderCount },
+      ]
+    : [];
+
+  // Prepare data for auction status pie chart
+  const auctionStatusData = productStats
+    ? [
+        { name: "Active", value: productStats.activeAuctions },
+        { name: "Ended", value: productStats.endedAuctions },
+        { name: "Ending Soon", value: productStats.endingSoonAuctions },
+      ]
+    : [];
+
+  // Prepare data for seller requests bar chart
+  const sellerRequestsData = userStats
+    ? [
+        { name: "Pending", value: userStats.pendingSellerRequests },
+        { name: "Approved", value: userStats.approvedSellerRequests },
+        { name: "Rejected", value: userStats.rejectedSellerRequests },
+      ]
+    : [];
+
+  // Prepare data for top categories
+  const topCategoriesData = productStats?.topCategories || [];
 
   const StatCard: React.FC<{
     icon: React.ReactNode;
@@ -175,9 +189,7 @@ const Dashboard: React.FC = () => {
                 fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
               }}
             >
-              {typeof value === "number" && label.includes("Revenue")
-                ? `${(value / 1000000).toFixed(1)}M`
-                : value.toLocaleString()}
+              {typeof value === "number" ? value.toLocaleString() : value}
             </Typography>
           </Box>
         </Box>
@@ -185,439 +197,770 @@ const Dashboard: React.FC = () => {
     </Card>
   );
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const getRoleColor = (
+    role: string
+  ): "error" | "primary" | "success" | "default" => {
+    switch (role?.toUpperCase()) {
+      case "ADMIN":
+        return "error";
+      case "SELLER":
+        return "primary";
+      case "BIDDER":
+        return "success";
+      default:
+        return "default";
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="relative flex flex-col min-h-screen">
+        <Header />
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            bgcolor: "#fdfcf9",
+          }}
+        >
+          <CircularProgress sx={{ color: "#C3937C" }} />
+        </Box>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="relative flex flex-col min-h-screen">
+        <Header />
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            bgcolor: "#fdfcf9",
+            p: 4,
+          }}
+        >
+          <Alert severity="error">{error}</Alert>
+        </Box>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col min-h-screen">
       <Header />
 
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
+        sx={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          bgcolor: "#fdfcf9",
+          p: { xs: 2, sm: 3, md: 4 },
+          flexGrow: 1,
+        }}
       >
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            bgcolor: "#fdfcf9",
-            p: { xs: 2, sm: 3, md: 4 },
-          }}
-        >
-          <Container maxWidth="lg" sx={{ width: "100%" }}>
-            <Typography
-              variant="h4"
-              sx={{
-                mb: { xs: 3, sm: 4 },
-                fontWeight: 600,
-                fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
-              }}
-            >
-              Dashboard
-            </Typography>
+        <Container maxWidth="lg" sx={{ width: "100%" }}>
+          <Typography
+            variant="h4"
+            sx={{
+              mb: { xs: 3, sm: 4 },
+              fontWeight: 600,
+              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+            }}
+          >
+            Dashboard
+          </Typography>
 
-            {/* Stats Cards */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 3, // khoảng cách giữa các card
-                mb: { xs: 3, sm: 4 },
-              }}
-            >
-              <Box sx={{ flex: 1 }}>
-                <StatCard
-                  icon={<Package size={28} />}
-                  label="Total Products"
-                  value={stats.totalProducts}
-                  color="#C3937C"
-                />
-              </Box>
-
-              <Box sx={{ flex: 1 }}>
-                <StatCard
-                  icon={<Users size={28} />}
-                  label="Total Users"
-                  value={stats.totalUsers}
-                  color="#1976D2"
-                />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <StatCard
-                  icon={<ShoppingCart size={28} />}
-                  label="Total Orders"
-                  value={stats.totalOrders}
-                  color="#388E3C"
-                />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <StatCard
-                  icon={<TrendingUp size={28} />}
-                  label="Total Revenue"
-                  value={stats.totalRevenue}
-                  color="#F57C00"
-                />
-              </Box>
+          {/* Stats Cards */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 3,
+              mb: { xs: 3, sm: 4 },
+              flexWrap: { xs: "wrap", md: "nowrap" },
+            }}
+          >
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <StatCard
+                icon={<Package size={28} />}
+                label="Total Products"
+                value={productStats?.totalProducts || 0}
+                color="#C3937C"
+              />
             </Box>
 
-            {/* Charts */}
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <StatCard
+                icon={<Users size={28} />}
+                label="Total Users"
+                value={userStats?.totalUsers || 0}
+                color="#1976D2"
+              />
+            </Box>
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <StatCard
+                icon={<Gavel size={28} />}
+                label="Active Auctions"
+                value={productStats?.activeAuctions || 0}
+                color="#388E3C"
+              />
+            </Box>
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <StatCard
+                icon={<Clock size={28} />}
+                label="Pending Requests"
+                value={userStats?.pendingSellerRequests || 0}
+                color="#F57C00"
+              />
+            </Box>
+          </Box>
+
+          {/* Charts Row 1 */}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: 2, sm: 3 },
+              mb: { xs: 3, sm: 4 },
+            }}
+          >
+            {/* User Roles Pie Chart */}
             <Box
               sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: { xs: 2, sm: 3 },
-                mb: { xs: 3, sm: 4 },
+                flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
               }}
             >
-              {/* Revenue Chart */}
-              <Box
+              <Card
                 sx={{
-                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
-                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+                  height: "100%",
+                  transition: "box-shadow 0.2s",
+                  "&:hover": {
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
                 }}
               >
-                <Card
-                  sx={{
-                    height: "100%",
-                    transition: "box-shadow 0.2s",
-                    "&:hover": {
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <Users size={24} color="#1976D2" />
+                    <Typography
+                      variant="h6"
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 2,
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
                       }}
                     >
-                      <TrendingUp size={24} color="#F57C00" />
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: { xs: "1rem", sm: "1.25rem" },
-                        }}
+                      Users by Role
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={userRoleData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
                       >
-                        Monthly Revenue
-                      </Typography>
-                    </Box>
-                    <ResponsiveContainer
-                      width="100%"
-                      height={300}
-                      minHeight={250}
-                    >
-                      <AreaChart
-                        data={monthlyData}
-                        margin={{
-                          top: 5,
-                          right: 10,
-                          left: 0,
-                          bottom: 5,
-                        }}
-                      >
-                        <defs>
-                          <linearGradient
-                            id="colorRevenue"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor="#F57C00"
-                              stopOpacity={0.3}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="#F57C00"
-                              stopOpacity={0}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="month"
-                          style={{ fontSize: "0.875rem" }}
-                        />
-                        <YAxis
-                          style={{ fontSize: "0.875rem" }}
-                          tickFormatter={(value) =>
-                            `${(value / 1000000).toFixed(0)}M`
-                          }
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            fontSize: "0.875rem",
-                            borderRadius: "8px",
-                          }}
-                          formatter={(value: number) => [
-                            `${(value / 1000000).toFixed(1)}M VND`,
-                            "Revenue",
-                          ]}
-                        />
-                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
-                        <Area
-                          type="monotone"
-                          dataKey="revenue"
-                          stroke="#F57C00"
-                          strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#colorRevenue)"
-                          name="Revenue (VND)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </Box>
-
-              {/* New Auctions Chart */}
-              <Box
-                sx={{
-                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
-                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
-                }}
-              >
-                <Card
-                  sx={{
-                    height: "100%",
-                    transition: "box-shadow 0.2s",
-                    "&:hover": {
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 2,
-                      }}
-                    >
-                      <Gavel size={24} color="#C3937C" />
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: { xs: "1rem", sm: "1.25rem" },
-                        }}
-                      >
-                        New Auction Products (Platforms) created 
-                      </Typography>
-                    </Box>
-                    <ResponsiveContainer
-                      width="100%"
-                      height={300}
-                      minHeight={250}
-                    >
-                      <BarChart
-                        data={monthlyData}
-                        margin={{
-                          top: 5,
-                          right: 10,
-                          left: 0,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="month"
-                          style={{ fontSize: "0.875rem" }}
-                        />
-                        <YAxis style={{ fontSize: "0.875rem" }} />
-                        <Tooltip
-                          contentStyle={{
-                            fontSize: "0.875rem",
-                            borderRadius: "8px",
-                          }}
-                          formatter={(value: number) => [
-                            `${value} platforms`,
-                            "New auction platforms",
-                          ]}
-                        />
-                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
-                        <Bar
-                          dataKey="newAuctions"
-                          fill="#C3937C"
-                          name="New Auction Platforms"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </Box>
-
-              {/* New Users Chart */}
-              <Box
-                sx={{
-                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
-                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
-                }}
-              >
-                <Card
-                  sx={{
-                    height: "100%",
-                    transition: "box-shadow 0.2s",
-                    "&:hover": {
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 2,
-                      }}
-                    >
-                      <UserPlus size={24} color="#1976D2" />
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: { xs: "1rem", sm: "1.25rem" },
-                        }}
-                      >
-                        New Users
-                      </Typography>
-                    </Box>
-                    <ResponsiveContainer
-                      width="100%"
-                      height={300}
-                      minHeight={250}
-                    >
-                      <LineChart
-                        data={monthlyData}
-                        margin={{
-                          top: 5,
-                          right: 10,
-                          left: 0,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="month"
-                          style={{ fontSize: "0.875rem" }}
-                        />
-                        <YAxis style={{ fontSize: "0.875rem" }} />
-                        <Tooltip
-                          contentStyle={{
-                            fontSize: "0.875rem",
-                            borderRadius: "8px",
-                          }}
-                          formatter={(value: number) => [
-                            `${value} users`,
-                            "New users",
-                          ]}
-                        />
-                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
-                        <Line
-                          type="monotone"
-                          dataKey="newUsers"
-                          stroke="#1976D2"
-                          strokeWidth={2}
-                          name="New Users"
-                          dot={{ r: 4 }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </Box>
-
-              {/* New Seller Upgrades Chart */}
-              <Box
-                sx={{
-                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
-                  minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
-                }}
-              >
-                <Card
-                  sx={{
-                    height: "100%",
-                    transition: "box-shadow 0.2s",
-                    "&:hover": {
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        mb: 2,
-                      }}
-                    >
-                      <UserCheck size={24} color="#388E3C" />
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: { xs: "1rem", sm: "1.25rem" },
-                        }}
-                      >
-                        New Seller Upgrades from Bidders
-                      </Typography>
-                    </Box>
-                    <ResponsiveContainer
-                      width="100%"
-                      height={300}
-                      minHeight={250}
-                    >
-                      <BarChart
-                        data={monthlyData}
-                        margin={{
-                          top: 5,
-                          right: 10,
-                          left: 0,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="month"
-                          style={{ fontSize: "0.875rem" }}
-                        />
-                        <YAxis style={{ fontSize: "0.875rem" }} />
-                        <Tooltip
-                          contentStyle={{
-                            fontSize: "0.875rem",
-                            borderRadius: "8px",
-                          }}
-                          formatter={(value: number) => [
-                            `${value} users`,
-                            "Seller upgrades",
-                          ]}
-                        />
-                        <Legend wrapperStyle={{ fontSize: "0.875rem" }} />
-                        <Bar
-                          dataKey="newSellerUpgrades"
-                          fill="#388E3C"
-                          name="New Seller Upgrades"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </Box>
+                        {userRoleData.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
             </Box>
-          </Container>
-        </Box>
+
+            {/* Auction Status Pie Chart */}
+            <Box
+              sx={{
+                flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+              }}
+            >
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "box-shadow 0.2s",
+                  "&:hover": {
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <Gavel size={24} color="#388E3C" />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
+                      Auction Status
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={auctionStatusData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {auctionStatusData.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Seller Requests Bar Chart */}
+            <Box
+              sx={{
+                flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+              }}
+            >
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "box-shadow 0.2s",
+                  "&:hover": {
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <AlertCircle size={24} color="#F57C00" />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
+                      Seller Upgrade Requests
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={sellerRequestsData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="value"
+                        name="Requests"
+                        radius={[8, 8, 0, 0]}
+                      >
+                        <Cell fill="#F57C00" />
+                        <Cell fill="#388E3C" />
+                        <Cell fill="#D32F2F" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Top Categories Bar Chart */}
+            <Box
+              sx={{
+                flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+              }}
+            >
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "box-shadow 0.2s",
+                  "&:hover": {
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <Package size={24} color="#C3937C" />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
+                      Top Categories
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={topCategoriesData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis
+                        dataKey="categoryName"
+                        type="category"
+                        width={100}
+                      />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="productCount"
+                        name="Products"
+                        fill="#C3937C"
+                        radius={[0, 8, 8, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          {/* Recent Data Tables */}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: 2, sm: 3 },
+              mb: { xs: 3, sm: 4 },
+            }}
+          >
+            {/* Recent Users Table */}
+            <Box
+              sx={{
+                flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+              }}
+            >
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "box-shadow 0.2s",
+                  "&:hover": {
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <Users size={24} color="#1976D2" />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
+                      Recent Users
+                    </Typography>
+                  </Box>
+                  <TableContainer component={Paper} elevation={0}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>User</TableCell>
+                          <TableCell>Role</TableCell>
+                          <TableCell>Joined</TableCell>
+                          <TableCell>Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {recentUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Avatar
+                                  src={user.avatar}
+                                  sx={{ width: 32, height: 32 }}
+                                >
+                                  {user.fullname?.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="body2" fontWeight={500}>
+                                    {user.fullname}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="textSecondary"
+                                  >
+                                    {user.email}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={user.role}
+                                size="small"
+                                color={getRoleColor(user.role)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {formatDate(user.createdAt)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              {user.verified ? (
+                                <CheckCircle size={18} color="#388E3C" />
+                              ) : (
+                                <XCircle size={18} color="#D32F2F" />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {recentUsers.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Typography variant="body2" color="textSecondary">
+                                No recent users
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Recent Products Table */}
+            <Box
+              sx={{
+                flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                minWidth: { xs: "100%", lg: "calc(50% - 12px)" },
+              }}
+            >
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "box-shadow 0.2s",
+                  "&:hover": {
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 2,
+                    }}
+                  >
+                    <Package size={24} color="#C3937C" />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "1rem", sm: "1.25rem" },
+                      }}
+                    >
+                      Recent Products
+                    </Typography>
+                  </Box>
+                  <TableContainer component={Paper} elevation={0}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Product</TableCell>
+                          <TableCell>Bids</TableCell>
+                          <TableCell>Price</TableCell>
+                          <TableCell>Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {recentProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Avatar
+                                  src={product.thumbnailUrl}
+                                  variant="rounded"
+                                  sx={{ width: 40, height: 40 }}
+                                >
+                                  <Package size={20} />
+                                </Avatar>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight={500}
+                                  sx={{
+                                    maxWidth: 120,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {product.productName}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {product.bidCount} bids
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>
+                                {product.currentPrice?.toLocaleString()} VND
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={product.isActive ? "ACTIVE" : "ENDED"}
+                                size="small"
+                                color={product.isActive ? "success" : "default"}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {recentProducts.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Typography variant="body2" color="textSecondary">
+                                No recent products
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          {/* Additional Stats Cards */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 3,
+              mb: { xs: 3, sm: 4 },
+              flexWrap: { xs: "wrap", md: "nowrap" },
+            }}
+          >
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <CheckCircle size={20} color="#388E3C" />
+                    <Typography variant="body2" color="textSecondary">
+                      Verified Users
+                    </Typography>
+                  </Box>
+                  <Typography variant="h5" fontWeight={600}>
+                    {userStats?.verifiedUsers || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <XCircle size={20} color="#D32F2F" />
+                    <Typography variant="body2" color="textSecondary">
+                      Unverified Users
+                    </Typography>
+                  </Box>
+                  <Typography variant="h5" fontWeight={600}>
+                    {userStats?.unverifiedUsers || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <Gavel size={20} color="#F57C00" />
+                    <Typography variant="body2" color="textSecondary">
+                      Ending Soon
+                    </Typography>
+                  </Box>
+                  <Typography variant="h5" fontWeight={600}>
+                    {productStats?.endingSoonAuctions || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+            <Box sx={{ flex: { xs: "1 1 45%", md: 1 } }}>
+              <Card
+                sx={{
+                  height: "100%",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <Package size={20} color="#9C27B0" />
+                    <Typography variant="body2" color="textSecondary">
+                      Total Categories
+                    </Typography>
+                  </Box>
+                  <Typography variant="h5" fontWeight={600}>
+                    {productStats?.totalCategories || 0}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+        </Container>
       </Box>
 
       <Footer />

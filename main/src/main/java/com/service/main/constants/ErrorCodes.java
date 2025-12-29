@@ -7,5 +7,5 @@ public class ErrorCodes {
     public static final String VALIDATION_FAILED = "VALIDATION_FAILED";
     public static final String INVALID_INPUT = "INVALID_INPUT";
     public static final String UNAUTHORIZED = "UNAUTHORIZED";
-
+    public static final String INVALID_ACTION = "INVALID_ACTION";
 }

@@ -31,7 +31,9 @@ import { Edit, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
 import { UserSearchBar } from "./components/UserSearchBar";
+import SellerRequestsPopup from "./components/SellerRequestsPopup";
 import * as adminUserApi from "../../api/adminUser";
+import * as sellerRequestApi from "../../api/sellerRequest";
 
 interface User {
   id: number;
@@ -60,7 +62,7 @@ const Users: React.FC = () => {
     role: string;
     verified: boolean;
   }>({
-    role: "CUSTOMER",
+    role: "BIDDER",
     verified: false,
   });
 
@@ -77,27 +79,57 @@ const Users: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Seller Requests Popup
+  const [sellerRequestsPopupOpen, setSellerRequestsPopupOpen] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  const fetchPendingRequestsCount = async () => {
+    try {
+      const response = await sellerRequestApi.getSellerRequestStatistics();
+      setPendingRequestsCount(response.data.data.pendingCount);
+    } catch (e) {
+      console.error("Failed to fetch pending requests count", e);
+    }
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      let response;
+      const response = await adminUserApi.getAllUsers();
+      const usersData = response.data.data;
+
+      // Client-side filtering
+      let filteredUsers = usersData;
+
+      // Filter by role if selected
       if (filterRole) {
-        response = await adminUserApi.getUsersByRole(
-          filterRole,
-          page - 1,
-          rowsPerPage
-        );
-      } else {
-        response = await adminUserApi.getAllUsers(
-          searchKeyword,
-          page - 1,
-          rowsPerPage
+        filteredUsers = filteredUsers.filter(
+          (user) => user.role === filterRole
         );
       }
 
-      const pageData = response.data.data;
-      setUsers(pageData.content);
-      setTotalPages(pageData.totalPages || 1);
+      // Filter by search keyword
+      if (searchKeyword) {
+        const keyword = searchKeyword.toLowerCase();
+        filteredUsers = filteredUsers.filter(
+          (user) =>
+            user.email.toLowerCase().includes(keyword) ||
+            (user.fullname && user.fullname.toLowerCase().includes(keyword)) ||
+            user.role.toLowerCase().includes(keyword)
+        );
+      }
+
+      // Calculate pagination
+      const totalItems = filteredUsers.length;
+      const calculatedTotalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+      setTotalPages(calculatedTotalPages);
+
+      // Get current page items
+      const startIndex = (page - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+      setUsers(paginatedUsers);
     } catch (e: any) {
       setUsers([]);
       setTotalPages(1);
@@ -110,6 +142,7 @@ const Users: React.FC = () => {
 
   useEffect(() => {
     void fetchUsers();
+    void fetchPendingRequestsCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage, searchKeyword, filterRole]);
 
@@ -122,7 +155,7 @@ const Users: React.FC = () => {
       });
     } else {
       setEditingUser(null);
-      setFormData({ role: "CUSTOMER", verified: false });
+      setFormData({ role: "BIDDER", verified: false });
     }
     setDialogError(null);
     setOpenDialog(true);
@@ -238,6 +271,37 @@ const Users: React.FC = () => {
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               Users Management
             </Typography>
+
+            {/* Nút Upgrade Requests nằm ở đây */}
+            <Button
+              variant="contained"
+              startIcon={<AlertCircle size={18} />}
+              onClick={() => setSellerRequestsPopupOpen(true)}
+              sx={{
+                bgcolor: "#C3937C",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": { bgcolor: "#A67C5A" },
+                borderRadius: 2,
+                px: 3,
+              }}
+            >
+              Upgrade Requests
+              {/* Hiển thị số lượng yêu cầu đang chờ */}
+              {pendingRequestsCount > 0 && (
+                <Chip
+                  label={pendingRequestsCount}
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    bgcolor: "white",
+                    color: "#C3937C",
+                    fontWeight: "bold",
+                    height: 20,
+                  }}
+                />
+              )}
+            </Button>
           </Box>
 
           {successMessage && (
@@ -260,19 +324,29 @@ const Users: React.FC = () => {
           )}
 
           {/* User Search Bar */}
-          <Box sx={{ mb: 3 }}>
-            <UserSearchBar
-              searchKeyword={searchKeyword}
-              filterRole={filterRole}
-              onSearchChange={(keyword) => {
-                setPage(1);
-                setSearchKeyword(keyword);
-              }}
-              onRoleFilterChange={(role) => {
-                setPage(1);
-                setFilterRole(role);
-              }}
-            />
+          <Box
+            sx={{
+              mb: 3,
+              display: "flex",
+              justifyContent: "center", // Căn giữa theo chiều ngang
+            }}
+          >
+            <Box sx={{ width: "100%", maxWidth: "800px" }}>
+              {" "}
+              {/* Giới hạn độ rộng tối đa để nhìn đẹp hơn */}
+              <UserSearchBar
+                searchKeyword={searchKeyword}
+                filterRole={filterRole}
+                onSearchChange={(keyword) => {
+                  setPage(1);
+                  setSearchKeyword(keyword);
+                }}
+                onRoleFilterChange={(role) => {
+                  setPage(1);
+                  setFilterRole(role);
+                }}
+              />
+            </Box>
           </Box>
 
           <Card>
@@ -515,9 +589,9 @@ const Users: React.FC = () => {
                   setFormData({ ...formData, role: e.target.value })
                 }
               >
-                <MenuItem value="CUSTOMER">Customer</MenuItem>
-                <MenuItem value="ADMIN">Admin</MenuItem>
-                <MenuItem value="PHOTOGRAPHER">Photographer</MenuItem>
+                <MenuItem value="BIDDER">BIDDER</MenuItem>
+                <MenuItem value="SELLER">SELLER</MenuItem>
+                <MenuItem value="ADMIN">ADMIN</MenuItem>
               </Select>
             </FormControl>
 
@@ -663,6 +737,16 @@ const Users: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Seller Requests Popup */}
+      <SellerRequestsPopup
+        open={sellerRequestsPopupOpen}
+        onClose={() => setSellerRequestsPopupOpen(false)}
+        onRequestProcessed={() => {
+          fetchUsers();
+          fetchPendingRequestsCount();
+        }}
+      />
 
       <Footer />
     </div>

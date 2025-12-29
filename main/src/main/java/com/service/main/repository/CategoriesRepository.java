@@ -55,4 +55,16 @@ public interface CategoriesRepository extends JpaRepository<Categories, Integer>
           WHERE parent_id = :categoryId
       """, nativeQuery = true)
   Long countChildCategoriesByParentId(@Param("categoryId") Integer categoryId);
+
+  // Dashboard: Get top categories by product count
+  @Query(value = """
+          SELECT c.id, c.name, COUNT(pc.id) as product_count
+          FROM categories c
+          LEFT JOIN product_category pc ON c.id = pc.category_id
+          WHERE c.parent_id IS NOT NULL
+          GROUP BY c.id, c.name
+          ORDER BY product_count DESC
+          LIMIT :limit
+      """, nativeQuery = true)
+  java.util.List<Object[]> findTopCategoriesByProductCount(@Param("limit") int limit);
 }

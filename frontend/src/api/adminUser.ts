@@ -34,15 +34,9 @@ export interface UpdateUserVerificationRequest {
   verified: boolean;
 }
 
-// Get all users with search and pagination
-export const getAllUsers = (
-  keyword: string = "",
-  page: number = 0,
-  size: number = 10
-) =>
-  api.get<ApiResponse<PageResponse<UserAdminResponse>>>("/api/user/admin/all", {
-    params: { keyword, page, size },
-  });
+// Get all users
+export const getAllUsers = () =>
+  api.get<ApiResponse<UserAdminResponse[]>>("/api/user/internal/all");
 
 // Get users by role
 export const getUsersByRole = (
