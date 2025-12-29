@@ -166,8 +166,9 @@ export default function CreateProduct() {
         navigate('/my-products');
       }, 1500);
     } catch (err: any) {
-      const errMessage = err.response?.data?.data?.errorCode || err.response?.data?.message || 'Failed to create product';
-      setError(errMessage);
+      const errorCode = err.response?.data?.data?.errorCode;
+      const errorMessage =  err.response?.data?.message || 'Failed to create product';
+      setError(errorMessage);
       console.error('Error creating product:', err);
     } finally {
       setLoading(false);

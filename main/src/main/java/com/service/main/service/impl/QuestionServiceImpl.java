@@ -87,7 +87,7 @@ public class QuestionServiceImpl implements QuestionService {
                 .toList();
 
         return new QuestionResponse(
-                q.getUserId(),
+                q.getId(),
                 user,
                 q.getProductId(),
                 q.getContent(),
@@ -99,8 +99,13 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public AnswerResponse createAnswer(CreateAnswerRequest request, Long currentUserId) {
-        Question question = questionRepository.findById(request.getQuestionId())
-                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Question not found"));
+         Question question = questionRepository.findById(request.getQuestionId())
+                 .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Question not found"));
+
+        long currentAnswerCount = answerRepository.countByQuestionId(question.getId());
+        if (currentAnswerCount >= 2) {
+            throw new ApplicationException(ErrorCodes.INVALID_OPERATION, "This question has already reached the maximum of 2 answers");
+        }
 
         OffsetDateTime now = OffsetDateTime.now();
 
@@ -111,6 +116,9 @@ public class QuestionServiceImpl implements QuestionService {
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+        System.out.println(currentUserId);
+        System.out.println(request.getQuestionId());
+
 
         Answer saved = answerRepository.save(answer);
 

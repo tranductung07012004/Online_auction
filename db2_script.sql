@@ -1,5 +1,3 @@
-CREATE TYPE setting_type AS ENUM ('int', 'string', 'bool', 'json');
-
 CREATE TABLE product (
     id BIGSERIAL PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL,
@@ -28,6 +26,27 @@ CREATE TABLE blacklist (
     bidder_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_by BIGINT NOT NULL
+);
+
+CREATE TABLE auto_bids (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    bidder_id BIGINT NOT NULL,
+    max_price DECIMAL(15,5) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ,
+    UNIQUE (product_id, bidder_id)
+);
+
+CREATE TABLE bid_requests (
+    id BIGSERIAL PRIMARY KEY,
+    bidder_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    seller_id BIGINT NOT NULL,
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_bid_requests_product_bidder UNIQUE (product_id, bidder_id)
 );
 
 CREATE TABLE bid_history (
