@@ -12,6 +12,7 @@ import ProductCard from '../../components/ProductCard';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
 import { getProductByIdFromMain, getProductsByCategory, ProductResponseFromAPI, getQuestionsByProductId, QuestionResponse } from '../../api/product';
+import { checkUserCanBid } from '../../api/bidderManagement';
 import { useAuth } from '../../context/AuthContext';
 import { Box, Container, Typography } from '@mui/material';
 
@@ -108,7 +109,16 @@ export default function ProductDetailPage(): JSX.Element {
         
         // Map API response to format expected by ReviewList
         const mappedQuestions = questionsData.content.map((question: QuestionResponse) => {
-          const firstAnswer = question.answers && question.answers.length > 0 ? question.answers[0] : null;
+          // Map all answers, not just the first one
+          const answers = question.answers && question.answers.length > 0 
+            ? question.answers.map((answer) => ({
+                id: answer.id.toString(),
+                username: answer.user.fullname,
+                date: new Date(answer.createdAt),
+                answerText: answer.content,
+                icon: answer.user.avatar || '/placeholder-user.jpg'
+              }))
+            : [];
           
           return {
             _id: question.id.toString(),
@@ -116,13 +126,7 @@ export default function ProductDetailPage(): JSX.Element {
             date: new Date(question.createdAt),
             questionText: question.content,
             icon: question.user.avatar || '/placeholder-user.jpg',
-            images: [],
-            answer: firstAnswer ? {
-              username: firstAnswer.user.fullname,
-              date: new Date(firstAnswer.createdAt),
-              answerText: firstAnswer.content,
-              icon: firstAnswer.user.avatar || '/placeholder-user.jpg'
-            } : null
+            answers: answers
           };
         });
         
@@ -155,8 +159,31 @@ export default function ProductDetailPage(): JSX.Element {
       return;
     }
 
-    // Open bid dialog
-    setBidDialogOpen(true);
+    // Check if user can bid on this product
+    try {
+      if (!id) {
+        toast.error('Product ID is missing');
+        return;
+      }
+
+      const canBid = await checkUserCanBid(id);
+      
+      // If API returns true (200 OK), user can bid
+      if (canBid) {
+        setBidDialogOpen(true);
+      }
+    } catch (error: any) {
+      console.error('Error checking if user can bid:', error);
+      
+      // Handle 400 Bad Request - user cannot bid
+      if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || 'You are not allowed to bid on this product. You may be blacklisted or need seller approval.';
+        toast.error(errorMessage);
+      } else {
+        // Handle other errors
+        toast.error(error.response?.data?.message || 'Failed to check bidding permission. Please try again.');
+      }
+    }
   };
 
   // Handle bid confirmation
@@ -436,7 +463,7 @@ export default function ProductDetailPage(): JSX.Element {
 
         {/* Transaction History Section */}
         <div className="mt-16">
-          <TransactionHistory />
+          <TransactionHistory productId={id} />
         </div>
 
         {/* Bidder Management Section - Visible to all users (for testing) */}
@@ -466,8 +493,7 @@ export default function ProductDetailPage(): JSX.Element {
                 </div>
               ) : (
                 <ReviewList 
-                  dressId={id || ''} 
-                  reviews={questions} 
+                  questions={questions} 
                   onRefresh={handleQuestionSubmitted} 
                 />
               )}
@@ -558,6 +584,7 @@ export default function ProductDetailPage(): JSX.Element {
         onConfirm={handleBidConfirm}
         currentPrice={product?.currentPrice || 0}
         minimumBidStep={product?.minimumBidStep || 0}
+        productId={id || ''}
       />
     </div>
   );

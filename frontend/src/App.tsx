@@ -4,7 +4,7 @@ import AppRoutes from './routes/AppRoutes';
 import { LoadingOverlay } from './components/ui/LoadingOverlay';
 import { getSystemSettingByKey } from './api/systemSetting';
 import { useSystemSettingStore } from './stores/systemSettingStore';
-
+import { Toaster } from 'react-hot-toast';
 const App: React.FC = () => {
   const setTimeRemaining = useSystemSettingStore((state) => state.setTimeRemaining);
 
@@ -25,6 +25,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <Toaster/>
       <Suspense fallback={<LoadingOverlay message="Loading application..." fullScreen={true} />}>
         <AppRoutes />
       </Suspense>
