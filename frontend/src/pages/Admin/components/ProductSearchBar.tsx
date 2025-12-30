@@ -1,12 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchBar, MenuItem } from "../../../components/SearchBar";
 import { useSearchStore } from "../../../stores";
-import {
-  CheckroomOutlined as DressIcon,
-  Smartphone as SmartPhoneIcon,
-  Book as BookIcon,
-} from "@mui/icons-material";
+import { Category as CategoryIcon } from "@mui/icons-material";
+import { getCategoriesGrouped } from "../../../api/categories";
+
+interface CategoryGroup {
+  parent: {
+    id: number;
+    name: string;
+    parent_id: number | null;
+  };
+  children: {
+    id: number;
+    name: string;
+    parent_id: number | null;
+  }[];
+}
 
 /**
  * ProductSearchBar component
@@ -25,41 +35,40 @@ export const ProductSearchBar: React.FC = () => {
   const { searchQuery, filters, setSearchQuery, updateFilters } =
     useSearchStore();
 
-  // Menu items configuration (can be customized for Product page)
-  const menuItems: MenuItem[] = [
-    {
-      text: "Smartphone",
-      icon: <SmartPhoneIcon />,
-      path: "/admin/Products",
-      subcategories: [
-        { text: "iPhone", value: "iphone" },
-        { text: "Samsung", value: "samsung" },
-        { text: "Xiaomi", value: "xiaomi" },
-        { text: "Oppo", value: "oppo" },
-      ],
-    },
-    {
-      text: "Clothes",
-      icon: <DressIcon />,
-      path: "/admin/Products",
-      subcategories: [
-        { text: "Men", value: "men" },
-        { text: "Women", value: "women" },
-        { text: "Kids", value: "kids" },
-        { text: "Accessories", value: "accessories" },
-      ],
-    },
-    {
-      text: "Book",
-      icon: <BookIcon />,
-      path: "/admin/Products",
-      subcategories: [
-        { text: "Fiction", value: "fiction" },
-        { text: "Non-Fiction", value: "non-fiction" },
-        { text: "Educational", value: "educational" },
-      ],
-    },
-  ];
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [, setLoading] = useState(true);
+
+  // Load categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setLoading(true);
+        const grouped = await getCategoriesGrouped();
+
+        // Convert to menu items format
+        const items: MenuItem[] = grouped.map((group: CategoryGroup) => ({
+          text: group.parent.name,
+          icon: <CategoryIcon />,
+          path: "/admin/products",
+          categoryId: group.parent.id,
+          subcategories: group.children.map((child) => ({
+            text: child.name,
+            value: child.id.toString(),
+          })),
+        }));
+
+        setMenuItems(items);
+      } catch (error) {
+        console.error("Error loading categories:", error);
+        // Fallback to empty menu items
+        setMenuItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Handle search query change
   const handleSearchChange = (value: string) => {
