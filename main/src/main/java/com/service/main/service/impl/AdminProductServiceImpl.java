@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +42,8 @@ public class AdminProductServiceImpl implements AdminProductService {
             String sortBy,
             String sortDir
     ) {
-        // Build sort
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir != null ? sortDir : "desc"), 
-                           sortBy != null ? sortBy : "createdAt");
-        Pageable pageable = PageRequest.of(page, size, sort);
+        // Don't use Sort in Pageable for native queries - sorting is done in the query itself
+        Pageable pageable = PageRequest.of(page, size);
         
         OffsetDateTime now = OffsetDateTime.now();
         Page<Product> productPage;

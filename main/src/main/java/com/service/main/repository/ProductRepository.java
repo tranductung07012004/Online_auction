@@ -77,12 +77,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // ==================== Admin Product Management Queries ====================
     
     // Search products with filters
-    @Query("""
-        SELECT p FROM Product p 
-        WHERE (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:sellerId IS NULL OR p.sellerId = :sellerId)
-        ORDER BY p.createdAt DESC
-    """)
+    @Query(value = """
+        SELECT * FROM product p 
+        WHERE (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        AND (CAST(:sellerId AS BIGINT) IS NULL OR p.seller_id = CAST(:sellerId AS BIGINT))
+        ORDER BY p.created_at DESC
+    """, 
+    countQuery = """
+        SELECT COUNT(*) FROM product p 
+        WHERE (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        AND (CAST(:sellerId AS BIGINT) IS NULL OR p.seller_id = CAST(:sellerId AS BIGINT))
+    """,
+    nativeQuery = true)
     Page<Product> findAllWithFilters(
         @Param("search") String search,
         @Param("sellerId") Long sellerId,
@@ -90,13 +96,20 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     );
 
     // Search active products only
-    @Query("""
-        SELECT p FROM Product p 
-        WHERE p.endAt > :now
-        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:sellerId IS NULL OR p.sellerId = :sellerId)
-        ORDER BY p.createdAt DESC
-    """)
+    @Query(value = """
+        SELECT * FROM product p 
+        WHERE p.end_at > CAST(:now AS TIMESTAMPTZ)
+        AND (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        AND (CAST(:sellerId AS BIGINT) IS NULL OR p.seller_id = CAST(:sellerId AS BIGINT))
+        ORDER BY p.created_at DESC
+    """, 
+    countQuery = """
+        SELECT COUNT(*) FROM product p 
+        WHERE p.end_at > CAST(:now AS TIMESTAMPTZ)
+        AND (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        AND (CAST(:sellerId AS BIGINT) IS NULL OR p.seller_id = CAST(:sellerId AS BIGINT))
+    """,
+    nativeQuery = true)
     Page<Product> findActiveWithFilters(
         @Param("now") OffsetDateTime now,
         @Param("search") String search,
@@ -105,13 +118,20 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     );
 
     // Search ended products only
-    @Query("""
-        SELECT p FROM Product p 
-        WHERE p.endAt <= :now
-        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:sellerId IS NULL OR p.sellerId = :sellerId)
-        ORDER BY p.createdAt DESC
-    """)
+    @Query(value = """
+        SELECT * FROM product p 
+        WHERE p.end_at <= CAST(:now AS TIMESTAMPTZ)
+        AND (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        AND (CAST(:sellerId AS BIGINT) IS NULL OR p.seller_id = CAST(:sellerId AS BIGINT))
+        ORDER BY p.created_at DESC
+    """, 
+    countQuery = """
+        SELECT COUNT(*) FROM product p 
+        WHERE p.end_at <= CAST(:now AS TIMESTAMPTZ)
+        AND (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        AND (CAST(:sellerId AS BIGINT) IS NULL OR p.seller_id = CAST(:sellerId AS BIGINT))
+    """,
+    nativeQuery = true)
     Page<Product> findEndedWithFilters(
         @Param("now") OffsetDateTime now,
         @Param("search") String search,
@@ -131,13 +151,20 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
 
     // Find products by category with admin filters
-    @Query("""
-        SELECT DISTINCT p FROM Product p 
-        JOIN p.productCategories pc 
-        WHERE pc.category.id = :categoryId
-        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
-        ORDER BY p.createdAt DESC
-    """)
+    @Query(value = """
+        SELECT DISTINCT p.* FROM product p 
+        JOIN product_category pc ON p.id = pc.product_id
+        WHERE pc.category_id = :categoryId
+        AND (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+        ORDER BY p.created_at DESC
+    """, 
+    countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM product p 
+        JOIN product_category pc ON p.id = pc.product_id
+        WHERE pc.category_id = :categoryId
+        AND (CAST(:search AS VARCHAR) IS NULL OR LOWER(p.product_name) LIKE LOWER(CONCAT('%', CAST(:search AS VARCHAR), '%')))
+    """,
+    nativeQuery = true)
     Page<Product> findByCategoryWithFilters(
         @Param("categoryId") Integer categoryId,
         @Param("search") String search,
