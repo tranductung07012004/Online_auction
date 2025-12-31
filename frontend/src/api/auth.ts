@@ -1,29 +1,4 @@
-import axios from 'axios';
-
-const API = axios.create({
-  baseURL: 'http://localhost:8080',
-  withCredentials: true, // Cấu hình gửi cookie kèm theo request
-  headers: {
-    'Content-Type': 'application/json',
-  }
-});
-
-// Set up interceptor to log requests and responses for debugging
-API.interceptors.request.use(request => {
-  console.log('Auth API Request:', request);
-  return request;
-}, error => {
-  console.error('Auth Request Error:', error);
-  return Promise.reject(error);
-});
-
-API.interceptors.response.use(response => {
-  console.log('Auth API Response:', response);
-  return response;
-}, error => {
-  console.error('Auth Response Error:', error);
-  return Promise.reject(error);
-});
+import api from './apiClient';
 
 export interface RegisterData {
   fullname: string;
@@ -91,13 +66,13 @@ export interface ResetPasswordData {
 
 export const register = async (data: RegisterData): Promise<any> => {
     console.log('Registering user:', data.email);
-    const response = await API.post('/api/user/auth/register', data);
+    const response = await api.post('/api/user/auth/register', data);
   return response.data;    
 };
 
 export const login = async (data: LoginData): Promise<any> => {
   console.log('Logging in user:', data.email);
-  const response = await API.post('/api/user/auth/login', data);
+  const response = await api.post('/api/user/auth/login', data);
   
   return response.data;
 }; 
@@ -105,7 +80,7 @@ export const login = async (data: LoginData): Promise<any> => {
 export const logout = async (): Promise<void> => {
   try {
     console.log('Logging out user');
-    await API.post('/auth/logout');
+    await api.post('/api/user/auth/logout');
     console.log('Logout successful');
   } catch (error: any) {
     console.error('Logout error:', error);
@@ -116,7 +91,7 @@ export const logout = async (): Promise<void> => {
 export const verifyOtp = async (data: VerifyOtpRequest): Promise<any> => {
 
     console.log('Verifying OTP:', data);
-    const response = await API.post('/api/user/auth/verify-otp', data);
+    const response = await api.post('/api/user/auth/verify-otp', data);
     console.log('OTP verification response:', response.data);
     return response.data;
 };
@@ -124,7 +99,7 @@ export const verifyOtp = async (data: VerifyOtpRequest): Promise<any> => {
 export const requestPasswordReset = async (data: RequestPasswordResetData): Promise<{ message: string }> => {
   try {
     console.log('Requesting password reset for:', data.email);
-    const response = await API.post('/auth/forgot-password', data);
+    const response = await api.post('/auth/forgot-password', data);
     console.log('Password reset request response:', response.data);
     return response.data;
   } catch (error: any) {
@@ -136,7 +111,7 @@ export const requestPasswordReset = async (data: RequestPasswordResetData): Prom
 export const resetPassword = async (data: ResetPasswordData): Promise<{ message: string }> => {
   try {
     console.log('Resetting password for:', data.email);
-    const response = await API.post('/auth/reset-password', data);
+    const response = await api.post('/auth/reset-password', data);
     console.log('Password reset response:', response.data);
     return response.data;
   } catch (error: any) {

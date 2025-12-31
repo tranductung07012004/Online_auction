@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { createQuestion } from '../../../api/product';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuthStore } from '../../../stores/authStore';
 
 interface ReviewFormProps {
   dressId: string;
   onReviewSubmitted: () => void;
+  canSubmitQuestion: boolean; // Only BIDDER or SELLER can submit
 }
 
-export default function ReviewForm({ dressId, onReviewSubmitted }: ReviewFormProps): JSX.Element {
-  const { isAuthenticated, checkAuthStatus } = useAuth();
+export default function ReviewForm({ dressId, onReviewSubmitted, canSubmitQuestion }: ReviewFormProps): JSX.Element {
+  const { isAuthenticated, checkAuthStatus } = useAuthStore();
   const [questionText, setQuestionText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isAuthChecked, setIsAuthChecked] = useState<boolean>(false);
@@ -91,6 +92,11 @@ export default function ReviewForm({ dressId, onReviewSubmitted }: ReviewFormPro
         </div>
       </div>
     );
+  }
+
+  // Hide form if user cannot submit questions
+  if (!canSubmitQuestion) {
+    return <></>;
   }
 
   return (

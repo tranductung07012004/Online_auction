@@ -1,16 +1,18 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../../components/button';
 import { Input } from '../../../components/input';
 import { Label } from '../../../components/label';
-import { updateProfile, updatePassword, updateUsername, uploadProfileImage, UpdateProfileData } from '../../../api/user';
+import { UpdateProfileData } from '../../../api/user';
+import { updateFullname, updateEmail, updatePassword as updatePasswordApi, updateAddress } from '../../../api/profileApi';
 import { useAuth } from '../../../context/AuthContext';
-import { AlertCircle, Camera, Upload } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 interface ProfileData {
   fullName: string;
   email: string;
   password: string;
   profileImageUrl?: string;
+  address?: string;
 }
 
 interface ProfileFormProps {
@@ -20,16 +22,18 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFormProps) {
   const [formData, setFormData] = useState<ProfileData>(initialData);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { getRoleFromCookie } = useAuth();
   
-  // For image upload
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // For fullname change
+  const [showFullnameChange, setShowFullnameChange] = useState<boolean>(false);
+  const [fullnameData, setFullnameData] = useState({
+    newFullname: '',
+    password: '',
+  });
+  const [fullnameError, setFullnameError] = useState<string | null>(null);
   
   // For password change
   const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
@@ -41,6 +45,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
   const [passwordErrors, setPasswordErrors] = useState({
     confirmPassword: '',
   });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   
   // For email change
   const [showEmailChange, setShowEmailChange] = useState<boolean>(false);
@@ -49,60 +54,23 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     password: '',
   });
   const [emailError, setEmailError] = useState<string | null>(null);
+  
+  // For address change
+  const [showAddressChange, setShowAddressChange] = useState<boolean>(false);
+  const [addressData, setAddressData] = useState({
+    newAddress: '',
+    password: '',
+  });
+  const [addressError, setAddressError] = useState<string | null>(null);
 
-  // Trigger the file input click
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Handle file selection
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setUploadError('Please select a valid image file (JPEG, PNG, GIF)');
-      return;
-    }
-
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError('Image size should be less than 2MB');
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      setUploadError(null);
-      
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      const response = await uploadProfileImage(formData);
-      
-      setFormData(prev => ({ 
-        ...prev, 
-        profileImageUrl: response.imageUrl 
-      }));
-      
-      setSuccess('Profile image updated successfully');
-      
-      // Clear the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (err: any) {
-      setUploadError(err.message || 'Failed to upload image');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleFullnameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFullnameData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user types in the field
+    if (name === 'newFullname') {
+      setFullnameError(null);
+    }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -137,28 +105,47 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = e.target;
+    setAddressData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user types in the field
+    if (name === 'newAddress') {
+      setAddressError(null);
+    }
+  };
+
+  const handleFullnameSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+    setFullnameError(null);
     
     try {
-      const updatedData: UpdateProfileData = {
-        fullName: formData.fullName,
-      };
+      await updateFullname({
+        fullname: fullnameData.newFullname,
+        password: fullnameData.password,
+      });
       
-      const response = await updateProfile(updatedData);
-      setSuccess('Profile updated successfully');
+      setSuccess('Full name updated successfully');
+      setShowFullnameChange(false);
+      
+      // Update the form data with the new fullname
+      setFormData(prev => ({ ...prev, fullName: fullnameData.newFullname }));
       
       if (onProfileUpdate) {
-        onProfileUpdate(updatedData);
+        onProfileUpdate({ fullName: fullnameData.newFullname });
       }
       
-      setIsEditing(false);
+      setFullnameData({
+        newFullname: '',
+        password: '',
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to update profile');
+      setFullnameError(err.message || 'Failed to update full name');
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -174,11 +161,15 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     }
     
     setIsLoading(true);
-    setError(null);
+    setPasswordError(null);
     setSuccess(null);
     
     try {
-      await updatePassword(passwordData);
+      await updatePasswordApi({
+        oldPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      
       setSuccess('Password updated successfully');
       setShowPasswordChange(false);
       setPasswordData({
@@ -188,7 +179,8 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
       });
       setPasswordErrors({ confirmPassword: '' });
     } catch (err: any) {
-      setError(err.message || 'Failed to update password');
+      setPasswordError(err.message || 'Failed to update password');
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -202,9 +194,8 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     setEmailError(null);
     
     try {
-      // Map emailData to the format expected by updateUsername API
-      const response = await updateUsername({
-        newUsername: emailData.newEmail,
+      await updateEmail({
+        newEmail: emailData.newEmail,
         password: emailData.password,
       });
       
@@ -215,11 +206,10 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
       setShowEmailChange(false);
       
       // Update the form data with the new email
-      setFormData(prev => ({ ...prev, email: response.email }));
+      setFormData(prev => ({ ...prev, email: emailData.newEmail }));
       
-      if (onProfileUpdate) {
-        onProfileUpdate({ email: response.email });
-      }
+      // Note: UpdateProfileData only has fullName, so we skip onProfileUpdate for email
+      // The page will refresh anyway to get updated data
       
       setEmailData({
         newEmail: '',
@@ -234,6 +224,40 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
     } catch (err: any) {
       // Handle the error inside the modal
       setEmailError(err.message || 'Failed to update email');
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddressSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+    setAddressError(null);
+    
+    try {
+      await updateAddress({
+        address: addressData.newAddress,
+        password: addressData.password,
+      });
+      
+      setSuccess('Address updated successfully');
+      setShowAddressChange(false);
+      
+      // Update the form data with the new address
+      setFormData(prev => ({ ...prev, address: addressData.newAddress }));
+      
+      setAddressData({
+        newAddress: '',
+        password: '',
+      });
+      
+      // Note: Address is not in UpdateProfileData, so we skip onProfileUpdate
+      // The parent component should refresh profile data if needed
+    } catch (err: any) {
+      setAddressError(err.message || 'Failed to update address');
+      setIsLoading(false);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -258,149 +282,152 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
         </div>
       )}
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-rose-500 font-medium">Edit Your Profile</h2>
-          {!isEditing ? (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-              Edit
+      <div className="space-y-8">
+        {/* Full Name Section */}
+        <div className="space-y-4 pb-6 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base font-medium">Full Name</Label>
+              <p className="text-sm text-gray-500 mt-1">{formData.fullName || 'Not set'}</p>
+            </div>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setShowFullnameChange(true);
+                setFullnameError(null);
+                setError(null);
+              }}
+            >
+              Change
             </Button>
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-          )}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Full name */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full name</Label>
-              <Input
-                id="fullName"
-                name="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
+        {/* Email Section */}
+        <div className="space-y-4 pb-6 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base font-medium">Email</Label>
+              <p className="text-sm text-gray-500 mt-1">{formData.email}</p>
             </div>
-            
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="flex space-x-2">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  disabled={true}
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowEmailChange(true)}
-                >
-                  Change
-                </Button>
-              </div>
-            </div>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setShowEmailChange(true);
+                setEmailError(null);
+                setError(null);
+              }}
+            >
+              Change
+            </Button>
           </div>
+        </div>
 
-          <div className="pt-6 border-t">
-            <h2 className="text-rose-500 font-medium mb-4">Your Password</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    disabled={true}
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowPasswordChange(true)}
-                  >
-                    Change
-                  </Button>
-                </div>
-              </div>
+        {/* Password Section */}
+        <div className="space-y-4 pb-6 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base font-medium">Password</Label>
+              <p className="text-sm text-gray-500 mt-1">••••••••</p>
             </div>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setShowPasswordChange(true);
+                setPasswordError(null);
+                setError(null);
+              }}
+            >
+              Change
+            </Button>
           </div>
+        </div>
 
-          {isEditing && (
-            <div className="flex justify-end">
-              <Button 
-                type="submit" 
-                className="bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Saving...' : 'Save changes'}
-              </Button>
+        {/* Address Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base font-medium">Address</Label>
+              <p className="text-sm text-gray-500 mt-1">{formData.address || 'Not set'}</p>
             </div>
-          )}
-        </form>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setShowAddressChange(true);
+                setAddressError(null);
+                setError(null);
+              }}
+            >
+              Change
+            </Button>
+          </div>
+        </div>
         
-        {showPasswordChange && (
+        {/* Fullname Change Modal */}
+        {showFullnameChange && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-medium mb-4">Change Password</h2>
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <h2 className="text-xl font-medium mb-4">Change Full Name</h2>
+              
+              {fullnameError && (
+                <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-md flex items-start">
+                  <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>{fullnameError}</span>
+                </div>
+              )}
+              
+              <form onSubmit={handleFullnameSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="currentFullname">Current Full Name</Label>
                   <Input
-                    id="currentPassword"
-                    name="currentPassword"
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    required
+                    id="currentFullname"
+                    name="currentFullname"
+                    type="text"
+                    value={formData.fullName}
+                    disabled={true}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newFullname">New Full Name</Label>
                   <Input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
+                    id="newFullname"
+                    name="newFullname"
+                    type="text"
+                    value={fullnameData.newFullname}
+                    onChange={handleFullnameChange}
                     required
+                    placeholder="Enter new full name"
+                    className={fullnameError ? "border-red-500" : ""}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="fullnamePassword">Confirm with Password</Label>
                   <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
+                    id="fullnamePassword"
+                    name="password"
                     type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
+                    value={fullnameData.password}
+                    onChange={handleFullnameChange}
                     required
-                    className={passwordErrors.confirmPassword ? "border-red-500" : ""}
+                    placeholder="Enter your password"
                   />
-                  {passwordErrors.confirmPassword && (
-                    <div className="text-red-600 text-sm flex items-center mt-1">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {passwordErrors.confirmPassword}
-                    </div>
-                  )}
                 </div>
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button 
                     type="button" 
                     variant="outline" 
                     onClick={() => {
-                      setShowPasswordChange(false);
-                      setPasswordErrors({ confirmPassword: '' });
+                      setShowFullnameChange(false);
+                      setFullnameError(null);
+                      setFullnameData({ newFullname: '', password: '' });
                     }}
                   >
                     Cancel
@@ -408,16 +435,17 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
                   <Button 
                     type="submit" 
                     className="bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
-                    disabled={isLoading || !!passwordErrors.confirmPassword}
+                    disabled={isLoading}
                   >
-                    {isLoading ? 'Saving...' : 'Save Password'}
+                    {isLoading ? 'Saving...' : 'Save Full Name'}
                   </Button>
                 </div>
               </form>
             </div>
           </div>
         )}
-        
+
+        {/* Email Change Modal */}
         {showEmailChange && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -432,6 +460,16 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
               
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="currentEmail">Current Email</Label>
+                  <Input
+                    id="currentEmail"
+                    name="currentEmail"
+                    type="email"
+                    value={formData.email}
+                    disabled={true}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="newEmail">New Email</Label>
                   <Input
                     id="newEmail"
@@ -440,18 +478,20 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
                     value={emailData.newEmail}
                     onChange={handleEmailChange}
                     required
+                    placeholder="Enter new email"
                     className={emailError ? "border-red-500" : ""}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Confirm with Password</Label>
+                  <Label htmlFor="emailPassword">Confirm with Password</Label>
                   <Input
-                    id="password"
+                    id="emailPassword"
                     name="password"
                     type="password"
                     value={emailData.password}
                     onChange={handleEmailChange}
                     required
+                    placeholder="Enter your password"
                   />
                 </div>
                 <div className="flex justify-end space-x-2 pt-4">
@@ -461,6 +501,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
                     onClick={() => {
                       setShowEmailChange(false);
                       setEmailError(null);
+                      setEmailData({ newEmail: '', password: '' });
                     }}
                   >
                     Cancel
@@ -477,7 +518,170 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
             </div>
           </div>
         )}
+
+        {/* Password Change Modal */}
+        {showPasswordChange && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-medium mb-4">Change Password</h2>
+              
+              {passwordError && (
+                <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-md flex items-start">
+                  <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+              
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    placeholder="Confirm new password"
+                    className={passwordErrors.confirmPassword ? "border-red-500" : ""}
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <div className="text-red-600 text-sm flex items-center mt-1">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {passwordErrors.confirmPassword}
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowPasswordChange(false);
+                      setPasswordErrors({ confirmPassword: '' });
+                      setPasswordError(null);
+                      setPasswordData({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: '',
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
+                    disabled={isLoading || !!passwordErrors.confirmPassword}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Password'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Address Change Modal */}
+        {showAddressChange && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-medium mb-4">Change Address</h2>
+              
+              {addressError && (
+                <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-md flex items-start">
+                  <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>{addressError}</span>
+                </div>
+              )}
+              
+              <form onSubmit={handleAddressSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentAddress">Current Address</Label>
+                  <Input
+                    id="currentAddress"
+                    name="currentAddress"
+                    type="text"
+                    value={formData.address || ''}
+                    disabled={true}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newAddress">New Address</Label>
+                  <Input
+                    id="newAddress"
+                    name="newAddress"
+                    type="text"
+                    value={addressData.newAddress}
+                    onChange={handleAddressChange}
+                    required
+                    placeholder="Enter new address"
+                    className={addressError ? "border-red-500" : ""}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="addressPassword">Confirm with Password</Label>
+                  <Input
+                    id="addressPassword"
+                    name="password"
+                    type="password"
+                    value={addressData.password}
+                    onChange={handleAddressChange}
+                    required
+                    placeholder="Enter your password"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowAddressChange(false);
+                      setAddressError(null);
+                      setAddressData({ newAddress: '', password: '' });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : 'Save Address'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+

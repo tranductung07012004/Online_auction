@@ -1,6 +1,6 @@
 package com.service.user.dto;
 
-import com.service.user.entity.SellerRequestStatus;
+import com.service.user.constants.SellerRequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

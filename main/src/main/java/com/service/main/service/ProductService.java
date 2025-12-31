@@ -14,6 +14,9 @@ public interface ProductService {
     List<ProductResponse> getTop5MostBidded();
     List<ProductResponse> getTop5HighestCurrentPrice();
     Page<ProductResponse> getProductsByCategory(Integer categoryId, Pageable pageable);
+    Page<ProductResponse> getActiveProductsBySellerId(Long sellerId, Pageable pageable);
+    Page<ProductResponse> getEndedProductsBySellerId(Long sellerId, Pageable pageable);
+    Page<ProductResponse> getProductsBySellerId(Long sellerId, Pageable pageable);
 }
 
 

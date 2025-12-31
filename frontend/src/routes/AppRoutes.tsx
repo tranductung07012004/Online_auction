@@ -1,8 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { lazy, Suspense } from "react";
+import { useAuthStore } from "../stores/authStore";
+import { lazy, Suspense, useEffect } from "react";
 import { LoadingOverlay } from "../components/ui/LoadingOverlay";
 import UserLayout from "../components/layouts/UserLayout";
+import { toast } from "react-hot-toast";
 
 // Lazy load pages
 const HomeNew = lazy(() => import("../pages/Home/Home"));
@@ -11,7 +12,6 @@ const PDP = lazy(() => import("../pages/PDP/PDP"));
 const PCP = lazy(() => import("../pages/PCP/PCP"));
 const ProfilePage = lazy(() => import("../pages/Profile/ProfilePage"));
 const OrderHistory = lazy(() => import("../pages/Profile/OrderHistory"));
-const Address = lazy(() => import("../pages/Profile/Address"));
 const OrderDetails = lazy(() => import("../pages/Profile/OrderDetails"));
 const SellerRequest = lazy(() => import("../pages/Profile/SellerRequest"));
 const WatchList = lazy(() => import("../pages/Profile/WatchList"));
@@ -48,12 +48,14 @@ interface ProtectedRouteProps {
   requiredRole?: 'ADMIN' | 'BIDDER' | 'SELLER' | null;
 }
 
-// Protected Route component
+// Protected Route component - requires authentication
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
 }) => {
-  const { isAuthenticated, isLoading, role } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const role = useAuthStore((state) => state.role);
 
   if (isLoading) {
     return <LoadingOverlay message="Verifying your account..." fullScreen />;
@@ -65,6 +67,38 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requiredRole && role !== requiredRole) {
     return <Navigate to="/notfound" replace={true} />;
+  }
+
+  return <>{children}</>;
+};
+
+// Guest Route component - redirects authenticated users away from auth pages
+interface GuestRouteProps {
+  children: React.ReactNode;
+  redirectPath?: string;
+}
+
+const GuestRoute: React.FC<GuestRouteProps> = ({
+  children,
+  redirectPath = '/',
+}) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      toast('You have already logged in, please logout', {
+        duration: 2000,
+      });
+    }
+  }, [isAuthenticated, isLoading]);
+
+  if (isLoading) {
+    return <LoadingOverlay message="Verifying your account..." fullScreen />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to={redirectPath} replace={true} />;
   }
 
   return <>{children}</>;
@@ -94,7 +128,6 @@ const AppRoutes = () => {
       // ),
     },
     { path: "/order-history", element: <OrderHistory /> },
-    { path: "/address", element: <Address /> },
     { path: "/order-details/:id", element: <OrderDetails /> },
     { path: "/become-seller", element: <SellerRequest /> },
     { path: "/watchlist", element: <WatchList /> },
@@ -113,11 +146,11 @@ const AppRoutes = () => {
     { path: "/admin/categories", element: <Categories /> },
     { path: "/admin/users", element: <Users /> },
 
-    // Auth Routes
-    { path: "/signin", element: <SignIn /> },
-    { path: "/signup", element: <SignUp /> },
-    { path: "/verify-email", element: <VerifyEmail /> },
-    { path: "/forgot-password", element: <ForgotPassword /> },
+    // Auth Routes - only accessible when not authenticated
+    { path: "/signin", element: <GuestRoute> <SignIn /> </GuestRoute>},
+    { path: "/signup", element: <GuestRoute><SignUp /></GuestRoute> },
+    { path: "/verify-email", element: <VerifyEmail />},
+    { path: "/forgot-password", element: <GuestRoute><ForgotPassword /></GuestRoute> },
     { path: "/reset-password", element: <ResetPassword /> },
 
     // Other Routes

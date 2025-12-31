@@ -1,4 +1,4 @@
-package com.service.user.entity;
+package com.service.user.constants;
 
 public enum SellerRequestStatus {
     PENDING,    // Đang chờ xử lý

@@ -1,9 +1,9 @@
 package com.service.user.service.impl;
 
 import com.service.user.constants.ErrorCodes;
+import com.service.user.constants.SellerRequestStatus;
 import com.service.user.dto.*;
 import com.service.user.entity.SellerRequest;
-import com.service.user.entity.SellerRequestStatus;
 import com.service.user.entity.User;
 import com.service.user.exception.ApplicationException;
 import com.service.user.repository.SellerRequestRepository;
@@ -63,9 +63,6 @@ public class SellerRequestServiceImpl implements SellerRequestService {
         SellerRequest sellerRequest = SellerRequest.builder()
                 .userId(userId)
                 .reason(request.getReason())
-                .businessName(request.getBusinessName())
-                .businessAddress(request.getBusinessAddress())
-                .phoneNumber(request.getPhoneNumber())
                 .status(SellerRequestStatus.PENDING)
                 .build();
         
@@ -174,7 +171,6 @@ public class SellerRequestServiceImpl implements SellerRequestService {
             log.info("Rejected seller request {} for user {}", requestId, request.getUserId());
         }
         
-        request.setAdminNote(reviewDTO.getAdminNote());
         request.setReviewedBy(adminId);
         request.setReviewedAt(LocalDateTime.now());
         
@@ -223,15 +219,10 @@ public class SellerRequestServiceImpl implements SellerRequestService {
                 .id(request.getId())
                 .userId(request.getUserId())
                 .reason(request.getReason())
-                .businessName(request.getBusinessName())
-                .businessAddress(request.getBusinessAddress())
-                .phoneNumber(request.getPhoneNumber())
                 .status(request.getStatus())
-                .adminNote(request.getAdminNote())
                 .reviewedBy(request.getReviewedBy())
                 .reviewedAt(request.getReviewedAt())
-                .createdAt(request.getCreatedAt())
-                .updatedAt(request.getUpdatedAt());
+                .createdAt(request.getCreatedAt());
         
         // Get user info
         Optional<User> userOpt = userRepo.findById(request.getUserId());

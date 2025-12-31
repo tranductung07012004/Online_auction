@@ -20,7 +20,7 @@ public class SystemSettingController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<ApiResponse<SystemSettingResponse>> createSystemSetting(
+    public ResponseEntity<?> createSystemSetting(
             @Valid @RequestBody SystemSettingCreateRequest request) {
 
         SystemSettingResponse res = systemSettingService.createSystemSetting(request);
@@ -31,7 +31,7 @@ public class SystemSettingController {
 
 
     @GetMapping()
-    public ResponseEntity<ApiResponse<SystemSettingResponse>> getSystemSettingByKey(
+    public ResponseEntity<?> getSystemSettingByKey(
             @RequestParam String key) {
 
         SystemSettingResponse res = systemSettingService.getSystemSettingByKey(key);

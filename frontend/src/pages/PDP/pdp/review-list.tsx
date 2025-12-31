@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuthStore } from '../../../stores/authStore';
 import { createAnswer } from '../../../api/product';
 import { User } from 'lucide-react';
 import { Box, Pagination } from '@mui/material';
@@ -8,6 +8,7 @@ import { Box, Pagination } from '@mui/material';
 interface ReviewListProps {
   questions: any[]; // Using any to support Q&A structure with questionText and answers array
   onRefresh: () => void;
+  canAnswerQuestion: boolean; // Only product seller can answer
 }
 
 interface AnswerFormState {
@@ -16,8 +17,8 @@ interface AnswerFormState {
   isSubmitting: boolean;
 }
 
-export default function ReviewList({ questions, onRefresh }: ReviewListProps): JSX.Element {
-  const { isAuthenticated } = useAuth();
+export default function ReviewList({ questions, onRefresh, canAnswerQuestion }: ReviewListProps): JSX.Element {
+  const { isAuthenticated } = useAuthStore();
   const [answerForm, setAnswerForm] = useState<AnswerFormState>({
     questionId: null,
     answerText: '',
@@ -162,8 +163,8 @@ export default function ReviewList({ questions, onRefresh }: ReviewListProps): J
                 <p className="text-sm text-[#333333] flex-1">{question.questionText}</p>
               </div>
 
-              {/* Answer button (only show if answers count < 2) */}
-              {(!question.answers || question.answers.length < 2) && (
+              {/* Answer button (only show if answers count < 2 and user can answer) */}
+              {canAnswerQuestion && (!question.answers || question.answers.length < 2) && (
                 <button
                   onClick={() => toggleAnswerForm(question._id)}
                   className="text-xs text-[#c3937c] hover:underline ml-6"
@@ -173,7 +174,7 @@ export default function ReviewList({ questions, onRefresh }: ReviewListProps): J
               )}
 
               {/* Answer form */}
-              {answerForm.questionId === question._id && (!question.answers || question.answers.length < 2) && (
+              {canAnswerQuestion && answerForm.questionId === question._id && (!question.answers || question.answers.length < 2) && (
                 <div className="mt-3 space-y-3 ml-6">
                   <textarea
                     value={answerForm.answerText}
