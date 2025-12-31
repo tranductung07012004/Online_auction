@@ -1,7 +1,7 @@
 package com.service.user.repository;
 
+import com.service.user.constants.SellerRequestStatus;
 import com.service.user.entity.SellerRequest;
-import com.service.user.entity.SellerRequestStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

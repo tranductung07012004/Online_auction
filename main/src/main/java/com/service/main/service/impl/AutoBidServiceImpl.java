@@ -5,10 +5,12 @@ import com.service.main.dto.AutoBidResponse;
 import com.service.main.dto.CreateAutoBidRequest;
 import com.service.main.dto.UserInfo;
 import com.service.main.dto.UserInfoResponse;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.service.main.entity.AutoBid;
 import com.service.main.entity.BidHistory;
 import com.service.main.entity.BidRequest;
 import com.service.main.entity.Product;
+import com.service.main.entity.SystemSetting;
 import com.service.main.exception.ApplicationException;
 import com.service.main.repository.*;
 import com.service.main.service.AutoBidService;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
@@ -44,10 +47,21 @@ public class AutoBidServiceImpl implements AutoBidService {
 
     private final BidRequestService bidRequestService;
 
+    private final SystemSettingRepository systemSettingRepository;
+
     @Value("${assessment.minimum}")
     private Double MINIMUM_ASSESSMENT;
 
     private void verifyUserForBidding(Long currentUserId, Long productId) {
+        // Kiểm tra xem user có phải là seller của product không
+        Product product = this.productRepository.findById(productId)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
+        
+        if (currentUserId.equals(product.getSellerId())) {
+            throw new ApplicationException(ErrorCodes.INVALID_OPERATION, 
+                    "Seller id:" + currentUserId +  "cannot bid on your their product id: " + productId);
+        }
+        
         UserInfoResponse userResFromAPI = userServiceClient.getUserBasicInfo(currentUserId);
         UserInfo user  = formatUserInfo(userResFromAPI);
         if (user.getAssessment() == null) {
@@ -65,9 +79,6 @@ public class AutoBidServiceImpl implements AutoBidService {
                 // Nếu verified = true → tiếp tục (dù assessment null, nhưng đã verified)
             } else {
                 // Tạo mới bid_request
-                Product product = productRepository.findById(productId)
-                        .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
-
                 this.bidRequestService.createBidRequest(currentUserId, productId, product.getSellerId());
                 throw new ApplicationException(ErrorCodes.INVALID_OPERATION,
                         "You have not been assessed. A bid request has been sent to seller for verification");
@@ -189,6 +200,10 @@ public class AutoBidServiceImpl implements AutoBidService {
             this.createBidHistory(product.getId(), currentUserId, buyNowPrice, now);
 
             AutoBid autoBid = this.createOrUpdateAutoBid(product.getId(), currentUserId, maxPrice, now);
+            
+            // Handle auto extend if enabled
+            handleAutoExtend(product);
+            
             return mapToResponse(autoBid);
         }
 
@@ -202,6 +217,9 @@ public class AutoBidServiceImpl implements AutoBidService {
         product.setTopBidderId(result.newTopBidderId);
         product.setBidCount(product.getBidCount() + result.bidCountIncrement);
         productRepository.save(product);
+
+        // Handle auto extend if enabled
+        this.handleAutoExtend(product);
 
         return mapToResponse(autoBid);
     }
@@ -245,6 +263,68 @@ public class AutoBidServiceImpl implements AutoBidService {
     public boolean canUserBid(Long userId, Long productId) {
         verifyUserForBidding(userId, productId);
         return true;
+    }
+
+    private void handleAutoExtend(Product product) {
+        if (product.getAutoExtendEnabled() != null && product.getAutoExtendEnabled()) {
+            Optional<SystemSetting> autoExtendSetting = systemSettingRepository.findByKey("autoExtendEnable");
+            
+            if (autoExtendSetting.isPresent()) {
+                SystemSetting setting = autoExtendSetting.get();
+                JsonNode value = setting.getValue();
+                
+                if (value.has("format") && value.has("timeExtend") && value.has("timeLeftToExtend")) {
+                    String format = value.get("format").asText().toLowerCase();
+                    int timeExtend = value.get("timeExtend").asInt();
+                    int timeLeftToExtend = value.get("timeLeftToExtend").asInt();
+                    
+                    OffsetDateTime now = OffsetDateTime.now();
+                    OffsetDateTime endAt = product.getEndAt();
+                    
+                    // Tính thời gian còn lại của auction
+                    Duration timeRemaining = Duration.between(now, endAt);
+                    
+                    // Chuyển đổi timeLeftToExtend sang Duration dựa trên format
+                    Duration thresholdDuration;
+                    switch (format) {
+                        case "minute":
+                            thresholdDuration = Duration.ofMinutes(timeLeftToExtend);
+                            break;
+                        case "hour":
+                            thresholdDuration = Duration.ofHours(timeLeftToExtend);
+                            break;
+                        case "day":
+                            thresholdDuration = Duration.ofDays(timeLeftToExtend);
+                            break;
+                        default:
+                            return;
+                    }
+                    
+                    // Chỉ cộng thời gian nếu thời gian còn lại <= timeLeftToExtend
+                    if (timeRemaining.compareTo(thresholdDuration) <= 0) {
+                        OffsetDateTime newEndAt = endAt;
+                        
+                        // Cộng timeExtend vào endAt
+                        switch (format) {
+                            case "minute":
+                                newEndAt = newEndAt.plusMinutes(timeExtend);
+                                break;
+                            case "hour":
+                                newEndAt = newEndAt.plusHours(timeExtend);
+                                break;
+                            case "day":
+                                newEndAt = newEndAt.plusDays(timeExtend);
+                                break;
+                            default:
+                                return;
+                        }
+                        
+                        product.setEndAt(newEndAt);
+                        this.productRepository.save(product);
+                    }
+                }
+            }
+        }
     }
 
     private AutoBidResponse mapToResponse(AutoBid autoBid) {

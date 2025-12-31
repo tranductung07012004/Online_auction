@@ -79,7 +79,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Search products with filters
     @Query("""
         SELECT p FROM Product p 
-        WHERE (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        WHERE (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)
         ORDER BY p.createdAt DESC
     """)
@@ -93,7 +93,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
         SELECT p FROM Product p 
         WHERE p.endAt > :now
-        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)
         ORDER BY p.createdAt DESC
     """)
@@ -108,7 +108,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
         SELECT p FROM Product p 
         WHERE p.endAt <= :now
-        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)
         ORDER BY p.createdAt DESC
     """)
@@ -135,7 +135,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         SELECT DISTINCT p FROM Product p 
         JOIN p.productCategories pc 
         WHERE pc.category.id = :categoryId
-        AND (:search IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         ORDER BY p.createdAt DESC
     """)
     Page<Product> findByCategoryWithFilters(

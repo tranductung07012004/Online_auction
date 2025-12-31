@@ -2,7 +2,10 @@ import { JSX, useState, useEffect } from 'react';
 import Header from '../../components/header';
 import ProfileSidebar from './profile/sidebar';
 import Footer from '../../components/footer';
-import { getUserProfile, getMyProducts, reviewBidder, cancelTransaction, type UserProfile, type SellerProduct, type ReviewBidderData } from '../../api/user';
+import { reviewBidder, cancelTransaction, type ReviewBidderData } from '../../api/user';
+import { getUserProfile, type UserProfileResponse } from '../../api/profileApi';
+import { getActiveProductsBySeller, getEndedProductsBySeller, type ProductResponseFromAPI } from '../../api/product';
+import type { SellerProduct } from '../../api/user';
 import {
   Box,
   Card,
@@ -22,246 +25,123 @@ import {
   Stack,
   Paper,
   Alert,
+  Pagination,
 } from '@mui/material';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import { Boxes, Star, X, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
 
-// ========== FAKE DATA FOR UI PREVIEW ==========
-const USE_FAKE_DATA = true;
-
-const generateFakeProductsData = (showActive: boolean, showUpcoming: boolean = false): SellerProduct[] => {
-  const now = new Date();
-  const fakeProducts: SellerProduct[] = [];
-
-  if (showUpcoming) {
-    // Fake data for upcoming products (chưa đến thời điểm đấu giá)
-    fakeProducts.push(
-      {
-        _id: 'fake-product-5',
-        id: 5,
-        product_name: 'Áo dài lụa tơ tằm cao cấp',
-        thumpnail_url: '/pic5.jpg',
-        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
-        buy_now_price: 5000000,
-        minimum_bid_step: 150000,
-        start_at: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        end_at: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
-        current_price: 3000000,
-        highest_bidder: null,
-        bid_count: 0,
-        created_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-        posted_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-        status: 'upcoming',
-      },
-      {
-        _id: 'fake-product-6',
-        id: 6,
-        product_name: 'Váy cưới ren Pháp sang trọng',
-        thumpnail_url: '/pic6.jpg',
-        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
-        buy_now_price: 8000000,
-        minimum_bid_step: 250000,
-        start_at: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-        end_at: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
-        current_price: 5000000,
-        highest_bidder: null,
-        bid_count: 0,
-        created_at: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        posted_at: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        status: 'upcoming',
-      },
-    );
-  } else if (showActive) {
-    // Fake data for active products (còn hạn)
-    fakeProducts.push(
-      {
-        _id: 'fake-product-1',
-        id: 1,
-        product_name: 'Áo dài truyền thống màu đỏ - Đấu giá cao cấp',
-        thumpnail_url: '/pic1.jpg',
-        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
-        buy_now_price: 3500000,
-        minimum_bid_step: 100000,
-        start_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-        end_at: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        current_price: 2500000,
-        highest_bidder: { id: 2, avatar: '/avt2.jpg', fullname: 'Trần Thị Bình' },
-        bid_count: 15,
-        created_at: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        posted_at: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        status: 'active',
-      },
-      {
-        _id: 'fake-product-2',
-        id: 2,
-        product_name: 'Váy cưới trắng tinh khôi - Phiên đấu giá đặc biệt',
-        thumpnail_url: '/pic2.jpg',
-        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
-        buy_now_price: 6000000,
-        minimum_bid_step: 200000,
-        start_at: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-        end_at: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
-        current_price: 4500000,
-        highest_bidder: { id: 4, avatar: '/avt1.jpg', fullname: 'Phạm Văn Đức' },
-        bid_count: 28,
-        created_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-        posted_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-        status: 'active',
-      },
-    );
-  } else {
-    // Fake data for won products (đã có người thắng)
-    fakeProducts.push(
-      {
-        _id: 'fake-product-3',
-        id: 3,
-        product_name: 'Áo dài cách tân màu xanh - Sản phẩm hot',
-        thumpnail_url: '/pic3.jpg',
-        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
-        buy_now_price: 2800000,
-        minimum_bid_step: 50000,
-        start_at: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
-        end_at: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        current_price: 1950000,
-        highest_bidder: { id: 6, avatar: '/avt3.jpg', fullname: 'Vũ Thị Phương' },
-        bid_count: 42,
-        created_at: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-        posted_at: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-        status: 'won',
-        winningBidder: {
-          id: 6,
-          avatar: '/avt3.jpg',
-          fullname: 'Vũ Thị Phương',
-          bidAmount: 1950000,
-          bidAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      },
-      {
-        _id: 'fake-product-4',
-        id: 4,
-        product_name: 'Váy dạ hội màu đen - Phiên đấu giá cuối tuần',
-        thumpnail_url: '/pic4.jpg',
-        seller: { id: 1, avatar: '/avt1.jpg', fullname: 'Nguyễn Văn An' },
-        buy_now_price: 4500000,
-        minimum_bid_step: 150000,
-        start_at: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-        end_at: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-        current_price: 3200000,
-        highest_bidder: { id: 8, avatar: '/avt2.jpg', fullname: 'Bùi Thị Hoa' },
-        bid_count: 19,
-        created_at: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000),
-        posted_at: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000),
-        status: 'won',
-        winningBidder: {
-          id: 8,
-          avatar: '/avt2.jpg',
-          fullname: 'Bùi Thị Hoa',
-          bidAmount: 3200000,
-          bidAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      },
-    );
-  }
-
-  return fakeProducts;
+// Map ProductResponseFromAPI to SellerProduct
+const mapProductToSellerProduct = (product: ProductResponseFromAPI): SellerProduct => {
+  return {
+    _id: product.id.toString(),
+    id: product.id,
+    product_name: product.productName,
+    thumpnail_url: product.thumbnailUrl,
+    seller: {
+      id: product.seller.id,
+      avatar: product.seller.avatar || '/placeholder-user.jpg',
+      fullname: product.seller.fullname,
+    },
+    buy_now_price: product.buyNowPrice,
+    minimum_bid_step: product.minimumBidStep,
+    start_at: new Date(product.createdAt),
+    end_at: new Date(product.endAt),
+    current_price: product.currentPrice,
+    highest_bidder: product.topBidder ? {
+      id: product.topBidder.id,
+      avatar: product.topBidder.avatar || '/placeholder-user.jpg',
+      fullname: product.topBidder.fullname,
+    } : null,
+    bid_count: product.bidCount,
+    created_at: new Date(product.createdAt),
+    posted_at: new Date(product.createdAt),
+    status: new Date(product.endAt) > new Date() ? 'active' : 'won',
+    winningBidder: product.topBidder && new Date(product.endAt) <= new Date() ? {
+      id: product.topBidder.id,
+      avatar: product.topBidder.avatar || '/placeholder-user.jpg',
+      fullname: product.topBidder.fullname,
+      bidAmount: product.currentPrice,
+      bidAt: product.endAt,
+    } : undefined,
+  };
 };
-// ========== END FAKE DATA ==========
 
 export default function MyProductsPage(): JSX.Element {
-  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [userData, setUserData] = useState<UserProfileResponse | null>(null);
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'active' | 'won' | 'upcoming'>('active');
+  const [filter, setFilter] = useState<'active' | 'won'>('active');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 1;
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SellerProduct | null>(null);
   const [reviewType, setReviewType] = useState<'like' | 'dislike' | null>(null);
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
-  const [description, setDescription] = useState('');
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
-  const { userId } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch user profile
         const profile = await getUserProfile();
         setUserData(profile);
 
-        // Use fake data if flag is enabled
-        if (USE_FAKE_DATA) {
-          console.log('Using fake products data for UI preview');
-          const fakeData = generateFakeProductsData(
-            filter === 'active',
-            filter === 'upcoming'
-          );
-          setProducts(fakeData);
-
-          // Load reviewed status from localStorage
-          const reviewed = new Set<string>();
-          fakeData.forEach(product => {
-            const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
-            if (isReviewed === 'true') {
-              reviewed.add(product._id);
-            }
-          });
-          setReviewedProducts(reviewed);
+        // Fetch products based on filter with pagination
+        const pageIndex = page - 1; // Convert to 0-based index for API
+        let productsResponse;
+        
+        if (filter === 'active') {
+          productsResponse = await getActiveProductsBySeller(pageIndex, itemsPerPage);
         } else {
-          const productsData = await getMyProducts();
-          setProducts(productsData);
-
-          // Load reviewed status from localStorage
-          const reviewed = new Set<string>();
-          productsData.forEach(product => {
-            const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
-            if (isReviewed === 'true') {
-              reviewed.add(product._id);
-            }
-          });
-          setReviewedProducts(reviewed);
+          productsResponse = await getEndedProductsBySeller(pageIndex, itemsPerPage);
         }
+
+        // Map products to SellerProduct format
+        const mappedProducts = productsResponse.content.map(mapProductToSellerProduct);
+        setProducts(mappedProducts);
+        setTotalPages(productsResponse.totalPages || 1);
+
+        // Load reviewed status from localStorage
+        const reviewed = new Set<string>();
+        mappedProducts.forEach(product => {
+          const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
+          if (isReviewed === 'true') {
+            reviewed.add(product._id);
+          }
+        });
+        setReviewedProducts(reviewed);
       } catch (err: any) {
         console.error('Error fetching data:', err);
-        // If API fails, use fake data for preview
-        if (USE_FAKE_DATA) {
-          const fakeData = generateFakeProductsData(
-            filter === 'active',
-            filter === 'upcoming'
-          );
-          setProducts(fakeData);
-
-          // Load reviewed status from localStorage
-          const reviewed = new Set<string>();
-          fakeData.forEach(product => {
-            const isReviewed = localStorage.getItem(`bidder_reviewed_${product._id}`);
-            if (isReviewed === 'true') {
-              reviewed.add(product._id);
-            }
-          });
-          setReviewedProducts(reviewed);
-        } else {
-          toast.error(err.message || 'Failed to load products');
-        }
+        toast.error(err.message || 'Failed to load products');
+        setProducts([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [filter]);
+  }, [filter, page]);
 
   const handleFilterChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newFilter: 'active' | 'won' | 'upcoming' | null,
+    _event: React.MouseEvent<HTMLElement>,
+    newFilter: 'active' | 'won' | null,
   ) => {
     if (newFilter !== null) {
       setFilter(newFilter);
+      setPage(1); // Reset to first page when filter changes
     }
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
   };
 
   const handleReviewClick = (product: SellerProduct) => {
@@ -279,34 +159,6 @@ export default function MyProductsPage(): JSX.Element {
   const handleCancelClick = (product: SellerProduct) => {
     setSelectedProduct(product);
     setCancelDialogOpen(true);
-  };
-
-  const handleDescriptionClick = (product: SellerProduct) => {
-    setSelectedProduct(product);
-    setDescription('');
-    setDescriptionDialogOpen(true);
-  };
-
-  const handleSubmitDescription = async () => {
-    if (!selectedProduct || !description.trim()) return;
-
-    try {
-      setIsSubmitting(true);
-      // TODO: Replace with actual API call
-      console.log('Adding description:', {
-        productId: selectedProduct._id,
-        description: description,
-      });
-      toast.success('Description added successfully!');
-      setDescriptionDialogOpen(false);
-      setSelectedProduct(null);
-      setDescription('');
-    } catch (err: any) {
-      console.error('Error adding description:', err);
-      toast.error(err.message || 'Failed to add description');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleSubmitReview = async () => {
@@ -337,16 +189,16 @@ export default function MyProductsPage(): JSX.Element {
       setReviewDialogOpen(false);
       setSelectedProduct(null);
       // Refresh products
-      if (USE_FAKE_DATA) {
-        const fakeData = generateFakeProductsData(
-          filter === 'active',
-          filter === 'upcoming'
-        );
-        setProducts(fakeData);
+      const pageIndex = page - 1;
+      let productsResponse;
+      if (filter === 'active') {
+        productsResponse = await getActiveProductsBySeller(pageIndex, itemsPerPage);
       } else {
-        const productsData = await getMyProducts();
-        setProducts(productsData);
+        productsResponse = await getEndedProductsBySeller(pageIndex, itemsPerPage);
       }
+      const mappedProducts = productsResponse.content.map(mapProductToSellerProduct);
+      setProducts(mappedProducts);
+      setTotalPages(productsResponse.totalPages || 1);
     } catch (err: any) {
       console.error('Error submitting review:', err);
       toast.error(err.message || 'Failed to submit review');
@@ -365,16 +217,16 @@ export default function MyProductsPage(): JSX.Element {
       setCancelDialogOpen(false);
       setSelectedProduct(null);
       // Refresh products
-      if (USE_FAKE_DATA) {
-        const fakeData = generateFakeProductsData(
-          filter === 'active',
-          filter === 'upcoming'
-        );
-        setProducts(fakeData);
+      const pageIndex = page - 1;
+      let productsResponse;
+      if (filter === 'active') {
+        productsResponse = await getActiveProductsBySeller(pageIndex, itemsPerPage);
       } else {
-        const productsData = await getMyProducts();
-        setProducts(productsData);
+        productsResponse = await getEndedProductsBySeller(pageIndex, itemsPerPage);
       }
+      const mappedProducts = productsResponse.content.map(mapProductToSellerProduct);
+      setProducts(mappedProducts);
+      setTotalPages(productsResponse.totalPages || 1);
     } catch (err: any) {
       console.error('Error canceling transaction:', err);
       toast.error(err.message || 'Failed to cancel transaction');
@@ -390,15 +242,8 @@ export default function MyProductsPage(): JSX.Element {
     }).format(price);
   };
 
-  const filteredProducts = products.filter((product) => {
-    if (filter === 'active') {
-      return product.status === 'active';
-    } else if (filter === 'upcoming') {
-      return product.status === 'upcoming';
-    } else {
-      return product.status === 'won';
-    }
-  });
+  // Products are already filtered and paginated by the API
+  const paginatedProducts = products;
 
   if (loading) {
     return (
@@ -422,12 +267,8 @@ export default function MyProductsPage(): JSX.Element {
             <ProfileSidebar
               activeTab="my-products"
               userName={userData?.email || 'User'}
-              userImage={userData?.profileImageUrl}
-              fullName={
-                userData
-                  ? userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim()
-                  : undefined
-              }
+              userImage={userData?.avatar}
+              fullName={userData?.fullname}
             />
           </div>
 
@@ -436,12 +277,12 @@ export default function MyProductsPage(): JSX.Element {
               <CardContent sx={{ p: 4 }}>
                 <Stack spacing={3}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Boxes className="h-8 w-8" style={{ color: '#FFE082' }} />
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
+                    <Boxes className="h-8 w-8" style={{ color: '#968f65' }} />
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#968f65' }}>
                       My Products
                     </Typography>
                   </Box>
-                  <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                  <Typography variant="body1" sx={{ color: '#968f65' }}>
                     Manage the products you have listed
                   </Typography>
 
@@ -459,20 +300,20 @@ export default function MyProductsPage(): JSX.Element {
                           textTransform: 'none',
                           fontWeight: 600,
                           '&.Mui-selected': {
-                            bgcolor: '#FFE082',
+                            bgcolor: '#e8d45f',
                             color: '#1a1a1a',
                             '&:hover': {
-                              bgcolor: '#FFD54F',
+                              bgcolor: '#e8d45f',
                             },
                           },
                         },
                       }}
                     >
-                      <ToggleButton value="active" aria-label="active products">
+                      <ToggleButton
+                        value="active"
+                        aria-label="active products"
+                      >
                         Active Auctions
-                      </ToggleButton>
-                      <ToggleButton value="upcoming" aria-label="upcoming products">
-                        Upcoming Auctions
                       </ToggleButton>
                       <ToggleButton value="won" aria-label="won products">
                         Completed Auctions
@@ -483,7 +324,7 @@ export default function MyProductsPage(): JSX.Element {
               </CardContent>
             </Card>
 
-            {filteredProducts.length === 0 ? (
+            {products.length === 0 ? (
               <Paper
                 elevation={0}
                 sx={{
@@ -497,21 +338,18 @@ export default function MyProductsPage(): JSX.Element {
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
                   {filter === 'active'
                     ? 'No active auctions'
-                    : filter === 'upcoming'
-                      ? 'No upcoming auctions'
-                      : 'No completed auctions'}
+                    : 'No completed auctions'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {filter === 'active'
                     ? 'You do not have any active auctions.'
-                    : filter === 'upcoming'
-                      ? 'You do not have any upcoming auctions.'
-                      : 'No products with winners yet.'}
+                    : 'No products with winners yet.'}
                 </Typography>
               </Paper>
             ) : (
-              <Stack spacing={3}>
-                {filteredProducts.map((product) => (
+              <>
+                <Stack spacing={3}>
+                  {paginatedProducts.map((product) => (
                   <Card key={product._id} sx={{ bgcolor: '#fff', borderRadius: 2, overflow: 'hidden' }}>
                     <CardContent sx={{ p: 3 }}>
                       <Stack spacing={2}>
@@ -545,9 +383,7 @@ export default function MyProductsPage(): JSX.Element {
                                 </Typography>
                               )}
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {product.status === 'upcoming'
-                                  ? `Starts: ${new Date(product.start_at).toLocaleString('en-US')}`
-                                  : `Ends: ${new Date(product.end_at).toLocaleString('en-US')}`}
+                                Ends: {new Date(product.end_at).toLocaleString('en-US')}
                               </Typography>
                             </Stack>
                           </Box>
@@ -556,20 +392,6 @@ export default function MyProductsPage(): JSX.Element {
                               <Chip
                                 label="Active"
                                 color="success"
-                                icon={<CheckCircle className="h-4 w-4" />}
-                              />
-                            ) : product.status === 'upcoming' ? (
-                              <Chip
-                                label="Upcoming"
-                                sx={{
-                                  backgroundColor: '#a67c66',      // màu nền
-                                  color: 'white',                  // màu chữ
-                                  textTransform: 'none',           // giữ nguyên viết hoa/thường
-                                  '&:hover': {
-                                    backgroundColor: '#8c6550',    // màu hover
-                                  },
-                                }}
-                                color="info"
                                 icon={<CheckCircle className="h-4 w-4" />}
                               />
                             ) : (
@@ -581,26 +403,6 @@ export default function MyProductsPage(): JSX.Element {
                             )}
                           </Box>
                         </Box>
-
-                        {/* Add Description Button (for upcoming products) */}
-                        {product.status === 'upcoming' && (
-                          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                            <Button
-                              variant="contained"
-                              onClick={() => handleDescriptionClick(product)}
-                              sx={{
-                                bgcolor: '#FFE082',
-                                color: '#1a1a1a',
-                                '&:hover': {
-                                  bgcolor: '#FFD54F',
-                                },
-                                fontWeight: 600,
-                              }}
-                            >
-                              Add Description
-                            </Button>
-                          </Box>
-                        )}
 
                         {/* Winning Bidder Info (for won products) */}
                         {product.status === 'won' && product.winningBidder && (
@@ -632,9 +434,6 @@ export default function MyProductsPage(): JSX.Element {
                                   </Typography>
                                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     Winning Bid: {formatPrice(product.winningBidder.bidAmount)}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    Bid Placed: {new Date(product.winningBidder.bidAt).toLocaleString('en-US')}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -674,11 +473,56 @@ export default function MyProductsPage(): JSX.Element {
                             </Stack>
                           </Alert>
                         )}
+
+                        {/* Note for completed products without winner */}
+                        {product.status === 'won' && !product.winningBidder && (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              p: 1.5,
+                              bgcolor: '#f5f5f5',
+                              borderRadius: 1,
+                              border: '1px solid #e0e0e0',
+                            }}
+                          >
+                            <Typography variant="caption" sx={{ color: '#868686', fontStyle: 'italic' }}>
+                              This auction ended without any bids.
+                            </Typography>
+                          </Box>
+                        )}
                       </Stack>
                     </CardContent>
                   </Card>
-                ))}
-              </Stack>
+                  ))}
+                </Stack>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                    <Pagination
+                      count={totalPages}
+                      page={page}
+                      onChange={handlePageChange}
+                      color="primary"
+                      sx={{
+                        '& .MuiPaginationItem-root': {
+                          color: '#333333',
+                          '&.Mui-selected': {
+                            backgroundColor: '#EAD9C9',
+                            color: '#333333',
+                            '&:hover': {
+                              backgroundColor: '#EAD9C9',
+                            },
+                          },
+                          '&:hover': {
+                            backgroundColor: '#f5f5f5',
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -858,90 +702,6 @@ export default function MyProductsPage(): JSX.Element {
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Processing...' : 'Confirm Cancel'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Add Description Dialog */}
-      <Dialog
-        open={descriptionDialogOpen}
-        onClose={() => setDescriptionDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add Description</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            {selectedProduct && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box
-                  component="img"
-                  src={selectedProduct.thumpnail_url || '/placeholder.svg'}
-                  alt={selectedProduct.product_name}
-                  sx={{
-                    width: 60,
-                    height: 60,
-                    objectFit: 'cover',
-                    borderRadius: 1,
-                  }}
-                />
-                <Box>
-                  <Typography variant="h6">{selectedProduct.product_name}</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Starts: {new Date(selectedProduct.start_at).toLocaleString('en-US')}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-            <TextField
-              label="Product description"
-              sx={{
-                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#a67c66',
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a67c66',
-                },
-                '& .MuiOutlinedInput-root.Mui-focused': {
-                  backgroundColor: '#f8f3f0',
-                },
-              }}
-              multiline
-              rows={6}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              fullWidth
-              placeholder="Enter detailed description for the product..."
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            sx={{
-              backgroundColor: '#a67c66',      // màu nền
-              color: 'white',                  // màu chữ
-              textTransform: 'none',           // giữ nguyên viết hoa/thường
-              '&:hover': {
-                backgroundColor: '#8c6550',    // màu hover
-              },
-            }}
-            onClick={() => setDescriptionDialogOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmitDescription}
-            variant="contained"
-            disabled={isSubmitting || !description.trim()}
-            sx={{
-              bgcolor: '#FFE082',
-              color: '#1a1a1a',
-              '&:hover': {
-                bgcolor: '#FFD54F',
-              },
-            }}
-          >
-            {isSubmitting ? 'Sending...' : 'Add Description'}
           </Button>
         </DialogActions>
       </Dialog>

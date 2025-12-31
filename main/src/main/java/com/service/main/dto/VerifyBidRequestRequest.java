@@ -13,3 +13,4 @@ public class VerifyBidRequestRequest {
     private Long productId;
 }
 
+

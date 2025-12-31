@@ -365,6 +365,69 @@ export const getProductsByCategory = async (
   return response.data.data.content;
 };
 
+// Page response interface for seller products
+export interface SellerProductsPageResponse {
+  content: ProductResponseFromAPI[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+// My Bids response interface
+export interface MyBidsPageResponse {
+  content: ProductResponseFromAPI[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+// Get active products by seller
+export const getActiveProductsBySeller = async (
+  page: number = 0,
+  size: number = 1
+): Promise<SellerProductsPageResponse> => {
+  const response = await api.get<ApiResponse<SellerProductsPageResponse>>(
+    '/api/main/product/seller/active',
+    {
+      params: { page, size }
+    }
+  );
+
+  return response.data.data;
+};
+
+// Get ended products by seller
+export const getEndedProductsBySeller = async (
+  page: number = 0,
+  size: number = 1
+): Promise<SellerProductsPageResponse> => {
+  const response = await api.get<ApiResponse<SellerProductsPageResponse>>(
+    '/api/main/product/seller/ended',
+    {
+      params: { page, size }
+    }
+  );
+
+  return response.data.data;
+};
+
+// Get my bids (products user has bid on)
+export const getMyBids = async (
+  page: number = 0,
+  size: number = 10
+): Promise<MyBidsPageResponse> => {
+  const response = await api.get<ApiResponse<MyBidsPageResponse>>(
+    '/api/main/product/seller',
+    {
+      params: { page, size }
+    }
+  );
+
+  return response.data.data;
+};
+
 // Question and Answer interfaces
 export interface QuestionUser {
   id: number;

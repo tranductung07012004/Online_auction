@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import com.service.main.service.ProductService;
 import org.springframework.http.ResponseEntity;
@@ -78,8 +80,52 @@ public class ProductController {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<ProductResponse> result = productService.getProductsByCategory(categoryId, pageable);
+        Page<ProductResponse> res = productService.getProductsByCategory(categoryId, pageable);
 
-        return ResponseEntity.ok(new ApiResponse<>("Products retrieved successfully", result));
+        return ResponseEntity.ok(new ApiResponse<>("Products retrieved successfully", res));
+    }
+
+    //@PreAuthorize("hasRole('SELLER')")
+    @GetMapping("/seller/active")
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getActiveProductsBySeller(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int size
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long sellerId = Long.valueOf(authentication.getName());
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductResponse> res = productService.getActiveProductsBySellerId(sellerId, pageable);
+
+        return ResponseEntity.ok(new ApiResponse<>("Active products retrieved successfully", res));
+    }
+
+    //@PreAuthorize("hasRole('SELLER')")
+    @GetMapping("/seller/ended")
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getEndedProductsBySeller(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int size
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long sellerId = Long.valueOf(authentication.getName());
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductResponse> res = productService.getEndedProductsBySellerId(sellerId, pageable);
+
+        return ResponseEntity.ok(new ApiResponse<>("Ended products retrieved successfully", res));
+    }
+
+    @GetMapping("/seller")
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProductsBySeller(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int size
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long sellerId = Long.valueOf(authentication.getName());
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductResponse> res = productService.getProductsBySellerId(sellerId, pageable);
+
+        return ResponseEntity.ok(new ApiResponse<>("Products retrieved successfully", res));
     }
 }

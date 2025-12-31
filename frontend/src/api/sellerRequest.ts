@@ -109,16 +109,32 @@ export const getSellerRequestStatistics = () =>
 // ==================== User APIs ====================
 
 // Create a new seller request
-export const createSellerRequest = (request: CreateSellerRequestDTO) =>
-  api.post<ApiResponse<SellerRequestResponse>>(
+export const createSellerRequest = async (request: CreateSellerRequestDTO): Promise<SellerRequestResponse> => {
+  const response = await api.post<ApiResponse<SellerRequestResponse>>(
     "/api/user/seller-request",
     request
   );
+  return response.data.data;
+};
 
 // Get my seller request
-export const getMySellerRequest = () =>
-  api.get<ApiResponse<SellerRequestResponse>>("/api/user/seller-request/my");
+export const getMySellerRequest = async (): Promise<SellerRequestResponse | null> => {
+  try {
+    const response = await api.get<ApiResponse<SellerRequestResponse>>(
+      "/api/user/seller-request/my"
+    );
+    return response.data.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null; // No request found
+    }
+    throw error;
+  }
+};
 
 // Cancel my pending seller request
-export const cancelMySellerRequest = () =>
-  api.delete<ApiResponse<null>>("/api/user/seller-request/my");
+export const cancelMySellerRequest = async (): Promise<void> => {
+  await api.delete<ApiResponse<null>>(
+    "/api/user/seller-request/my"
+  );
+};

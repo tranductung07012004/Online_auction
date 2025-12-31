@@ -2,7 +2,8 @@ import { JSX, useState, useEffect } from 'react';
 import Header from '../../components/header';
 import ProfileSidebar from './profile/sidebar';
 import Footer from '../../components/footer';
-import { getUserProfile, sendSellerRequest, getSellerRequestStatus, type SellerRequest, type UserProfile } from '../../api/user';
+import { getUserProfile, UserProfileResponse } from '../../api/profileApi';
+import { createSellerRequest, getMySellerRequest, type SellerRequestResponse } from '../../api/sellerRequest';
 import {
   Box,
   Card,
@@ -26,25 +27,33 @@ import {
 import { toast } from 'react-hot-toast';
 
 export default function SellerRequestPage(): JSX.Element {
-  const [userData, setUserData] = useState<UserProfile | null>(null);
-  const [requestStatus, setRequestStatus] = useState<SellerRequest | null>(null);
+  const [userData, setUserData] = useState<UserProfileResponse | null>(null);
+  const [requestStatus, setRequestStatus] = useState<SellerRequestResponse | null>(null);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      
+      // Fetch user profile
       try {
-        setLoading(true);
-        const [profile, status] = await Promise.all([
-          getUserProfile(),
-          getSellerRequestStatus(),
-        ]);
+        const profile = await getUserProfile();
         setUserData(profile);
+      } catch (err: any) {
+        console.error('Error fetching user profile:', err);
+        toast.error(err.message || 'Failed to load user profile');
+      }
+      
+      // Fetch seller request status
+      try {
+        const status = await getMySellerRequest();
         setRequestStatus(status);
       } catch (err: any) {
-        console.error('Error fetching data:', err);
-        toast.error(err.message || 'Failed to load data');
+        // Don't show error toast for seller request if it's just not found (404)
+        const errorMessage = err.response.data.message;
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -59,9 +68,20 @@ export default function SellerRequestPage(): JSX.Element {
       return;
     }
 
+    // Validate reason length (10-1000 characters as per backend)
+    if (reason.trim().length < 10) {
+      toast.error('Lý do phải có ít nhất 10 ký tự');
+      return;
+    }
+
+    if (reason.trim().length > 1000) {
+      toast.error('Lý do không được vượt quá 1000 ký tự');
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const newRequest = await sendSellerRequest(reason);
+      const newRequest = await createSellerRequest({ reason: reason.trim() });
       setRequestStatus(newRequest);
       setReason('');
       toast.success('Gửi yêu cầu thành công! Admin sẽ xem xét yêu cầu của bạn.');
@@ -74,7 +94,9 @@ export default function SellerRequestPage(): JSX.Element {
   };
 
   const getStatusChip = (status?: string) => {
-    switch (status) {
+    // Normalize status to lowercase for comparison
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
       case 'approved':
         return (
           <Chip
@@ -128,12 +150,8 @@ export default function SellerRequestPage(): JSX.Element {
             <ProfileSidebar
               activeTab="become-seller"
               userName={userData?.email || 'User'}
-              userImage={userData?.profileImageUrl}
-              fullName={
-                userData
-                  ? userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim()
-                  : undefined
-              }
+              userImage={userData?.avatar}
+              fullName={userData?.fullname}
             />
           </div>
 
@@ -159,9 +177,9 @@ export default function SellerRequestPage(): JSX.Element {
                       elevation={0}
                       sx={{
                         p: 3,
-                        bgcolor: requestStatus.status === 'approved' 
+                        bgcolor: requestStatus.status?.toLowerCase() === 'approved' 
                           ? 'success.light' 
-                          : requestStatus.status === 'rejected'
+                          : requestStatus.status?.toLowerCase() === 'rejected'
                           ? 'error.light'
                           : 'warning.light',
                         borderRadius: 2,
@@ -194,10 +212,10 @@ export default function SellerRequestPage(): JSX.Element {
                   )}
 
                   {/* Request Form */}
-                  {(!requestStatus || requestStatus.status === 'rejected') && (
+                  {(!requestStatus || requestStatus.status?.toLowerCase() === 'rejected') && (
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        {requestStatus?.status === 'rejected' 
+                        {requestStatus?.status?.toLowerCase() === 'rejected' 
                           ? 'Gửi lại yêu cầu' 
                           : 'Gửi yêu cầu trở thành Seller'}
                       </Typography>
@@ -247,7 +265,7 @@ export default function SellerRequestPage(): JSX.Element {
                   )}
 
                   {/* Approved Message */}
-                  {requestStatus?.status === 'approved' && (
+                  {requestStatus?.status?.toLowerCase() === 'approved' && (
                     <Alert severity="success" sx={{ borderRadius: 2 }}>
                       <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
                         Chúc mừng! Yêu cầu của bạn đã được duyệt.
@@ -259,7 +277,7 @@ export default function SellerRequestPage(): JSX.Element {
                   )}
 
                   {/* Pending Message */}
-                  {requestStatus?.status === 'pending' && (
+                  {requestStatus?.status?.toLowerCase() === 'pending' && (
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
                       <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
                         Yêu cầu của bạn đang được xem xét

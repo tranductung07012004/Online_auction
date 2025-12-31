@@ -176,7 +176,7 @@ export default function ProductCard({
       }}
     >
       <Box sx={{ position: 'relative' }}>
-        <Link to={`/product/${id}`} style={{ textDecoration: 'none' }}>
+        <Link to={`/product-page/${id}`} style={{ textDecoration: 'none' }}>
           <CardMedia
             component="img"
             image={thumbnailUrl || '/placeholder.svg'}

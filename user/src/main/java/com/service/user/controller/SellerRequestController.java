@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/user/seller-request")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('BIDDER')")
 public class SellerRequestController {
 
     private final SellerRequestService sellerRequestService;

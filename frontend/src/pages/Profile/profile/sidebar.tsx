@@ -1,12 +1,9 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Pencil,
   LogOut,
   User,
   ClipboardList,
-  Package,
-  MapPin,
   Upload,
   AlertCircle,
   Loader2,
@@ -18,7 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { LogoutModal } from './logout-modal';
-import { uploadProfileImage } from '../../../api/user';
+import { updateAvatar } from '../../../api/profileApi';
+import { uploadImageToCloudinary } from '../../../api/cloudinary';
+import { logout as logoutApi } from '../../../api/auth';
 import { Notification } from '../../../components/ui/Notification';
 
 interface ProfileSidebarProps {
@@ -36,7 +35,6 @@ export default function ProfileSidebar({
   onImageUpdate,
   fullName,
 }: ProfileSidebarProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -56,11 +54,6 @@ export default function ProfileSidebar({
       id: 'order-history',
       label: 'Order History',
       icon: <ClipboardList className="h-5 w-5" />,
-    },
-    {
-      id: 'address',
-      label: 'My Address',
-      icon: <MapPin className="h-5 w-5" />,
     },
     {
       id: 'become-seller',
@@ -89,10 +82,20 @@ export default function ProfileSidebar({
     },
   ];
 
-  const handleLogout = () => {
-    setAuthLoading(true);
-    clearCookie();
-    navigate('/signin');
+  const handleLogout = async () => {
+    try {
+      setAuthLoading(true);
+      await logoutApi();
+      clearCookie();
+      navigate('/signin');
+    } catch (err: any) {
+      console.error('Logout error:', err);
+      // Even if API call fails, still clear local state and redirect
+      clearCookie();
+      navigate('/signin');
+    } finally {
+      setAuthLoading(false);
+    }
   };
   
   const handleUploadClick = () => {
@@ -130,13 +133,15 @@ export default function ProfileSidebar({
       setIsUploading(true);
       setUploadError(null);
       
-      const formData = new FormData();
-      formData.append('image', file);
+      // Step 1: Upload image to Cloudinary
+      const imageUrl = await uploadImageToCloudinary(file);
       
-      const response = await uploadProfileImage(formData);
+      // Step 2: Save the URL to backend
+      await updateAvatar({ avatar: imageUrl });
       
+      // Step 3: Update the UI with the new avatar URL
       if (onImageUpdate) {
-        onImageUpdate(response.imageUrl);
+        onImageUpdate(imageUrl);
       }
       
       setNotification({
@@ -159,7 +164,6 @@ export default function ProfileSidebar({
       });
     } finally {
       setIsUploading(false);
-      setIsEditing(false);
     }
   };
   

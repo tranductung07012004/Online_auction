@@ -1,7 +1,7 @@
 package com.service.user.service;
 
+import com.service.user.constants.SellerRequestStatus;
 import com.service.user.dto.*;
-import com.service.user.entity.SellerRequestStatus;
 
 public interface SellerRequestService {
     

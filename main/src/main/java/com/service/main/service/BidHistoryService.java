@@ -8,3 +8,4 @@ public interface BidHistoryService {
     Page<BidHistoryResponse> getBidHistoriesByProductId(Long productId, Pageable pageable);
 }
 
+

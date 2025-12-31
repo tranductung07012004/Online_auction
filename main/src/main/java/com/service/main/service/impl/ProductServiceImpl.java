@@ -44,6 +44,26 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public Page<ProductResponse> getActiveProductsBySellerId(Long sellerId, Pageable pageable) {
+        OffsetDateTime now = OffsetDateTime.now();
+        Page<Product> productPage = this.productRepository.findActiveWithFilters(now, null, sellerId, pageable);
+        return productPage.map(this::mapToProductResponse);
+    }
+
+    @Override
+    public Page<ProductResponse> getEndedProductsBySellerId(Long sellerId, Pageable pageable) {
+        OffsetDateTime now = OffsetDateTime.now();
+        Page<Product> productPage = this.productRepository.findEndedWithFilters(now, null, sellerId, pageable);
+        return productPage.map(this::mapToProductResponse);
+    }
+
+    @Override
+    public Page<ProductResponse> getProductsBySellerId(Long sellerId, Pageable pageable) {
+        Page<Product> productPage = this.productRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable);
+        return productPage.map(this::mapToProductResponse);
+    }
+
+    @Override
     public void createProduct(createProductRequest request) {
         validatePrices(request);
 

@@ -110,7 +110,7 @@ export default function TransactionHistory({ productId }: TransactionHistoryProp
                 {bidHistories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#868686' }}>
-                      Chưa có giao dịch nào
+                      No bidding activities right now
                     </TableCell>
                   </TableRow>
                 ) : (
