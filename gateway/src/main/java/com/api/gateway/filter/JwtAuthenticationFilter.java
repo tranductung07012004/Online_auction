@@ -72,7 +72,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
 
         var errorResponse = Map.ofEntries(
                 Map.entry("message", message),
-                Map.entry("error", "UNAUTHORIZED"),
+                Map.entry("errorCode", "UNAUTHORIZED_EXPIRED_INVALID_TOKEN"),
                 Map.entry("timestamp", System.currentTimeMillis()),
                 Map.entry("path", exchange.getRequest().getPath().toString())
         );

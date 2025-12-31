@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { resetPassword } from '../../api/auth';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 import { Notification } from '../../components/ui/Notification';
 
@@ -25,7 +25,8 @@ const ResetPassword = () => {
     visible: boolean;
   }>({ type: 'info', message: '', visible: false });
   
-  const { setAuthLoading, isAuthLoading } = useAuth();
+  const setAuthLoading = useAuthStore((state) => state.setAuthLoading);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
 
   useEffect(() => {
     // Get email from location state

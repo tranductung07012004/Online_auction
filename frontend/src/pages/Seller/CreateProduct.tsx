@@ -15,7 +15,7 @@ import {
 import { createProduct, CreateProductRequest } from '../../api/product';
 import { uploadImageToCloudinary, uploadMultipleImagesToCloudinary } from '../../api/cloudinary';
 import { mapCategoriesToIds } from '../../utils/categoryMapping';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import ImageUploadSection from './components/ImageUploadSection';
 import ProductInfoForm from './components/ProductInfoForm';
 import CategoryDialog from './components/CategoryDialog';
@@ -24,7 +24,7 @@ import { ProductFormData } from './components/types';
 
 export default function CreateProduct() {
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
 
   // React Hook Form
   const {

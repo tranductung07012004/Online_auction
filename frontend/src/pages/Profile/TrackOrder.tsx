@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import Header from '../../components/header';
 import ProfileSidebar from './profile/sidebar';
 import Footer from '../../components/footer';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { getUserProfile } from '../../api/user';
 import { UserProfile } from '../../api/user';
 import { trackOrderByPhone } from '../../api/order';
@@ -51,7 +51,7 @@ const TrackOrderPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
   useEffect(() => {
     const fetchUserData = async () => {

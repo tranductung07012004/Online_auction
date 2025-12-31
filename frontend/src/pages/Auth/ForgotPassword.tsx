@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { requestPasswordReset } from '../../api/auth';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 import { Notification } from '../../components/ui/Notification';
 
@@ -18,7 +18,8 @@ const ForgotPassword = () => {
     visible: boolean;
   }>({ type: 'info', message: '', visible: false });
   
-  const { setAuthLoading, isAuthLoading } = useAuth();
+  const setAuthLoading = useAuthStore((state) => state.setAuthLoading);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
