@@ -36,8 +36,6 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
 
         String userId = req.getHeader("X-user-id");
         String userRole = req.getHeader("X-user-role");
-        System.out.println(userId);
-        System.out.println(userRole);
         if (userId == null || userRole == null) {
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             res.setContentType("application/json");

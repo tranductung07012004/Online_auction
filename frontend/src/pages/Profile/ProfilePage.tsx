@@ -3,29 +3,28 @@ import Header from '../../components/header';
 import ProfileSidebar from './profile/sidebar';
 import ProfileForm from './profile/form';
 import Footer from '../../components/footer';
-import { getUserProfile } from '../../api/user';
-import { UserProfile } from '../../api/user';
+import { getUserProfile, UserProfileResponse } from '../../api/profileApi';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [userData, setUserData] = useState<UserProfileResponse | null>(null);
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const data = await getUserProfile();
+      setUserData(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load profile data');
+      console.error('Error fetching profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        const data = await getUserProfile();
-        setUserData(data);
-        setError(null);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load profile data');
-        console.error('Error fetching profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUserData();
   }, []);
 
@@ -33,7 +32,7 @@ export default function ProfilePage() {
     if (userData) {
       setUserData({
         ...userData,
-        profileImageUrl: imageUrl
+        avatar: imageUrl
       });
     }
   };
@@ -76,10 +75,11 @@ export default function ProfilePage() {
 
   // Format userData to match the ProfileForm expected structure
   const profileData = {
-    fullName: userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || '',
+    fullName: userData.fullname || '',
     email: userData.email || '',
     password: '********',  // For display purposes only
-    profileImageUrl: userData.profileImageUrl || '',
+    profileImageUrl: userData.avatar || '',
+    address: userData.address || '',
   };
 
   return (
@@ -92,21 +92,19 @@ export default function ProfilePage() {
             <ProfileSidebar
               activeTab="profile"
               userName={userData.email}
-              userImage={userData.profileImageUrl}
+              userImage={userData.avatar}
               onImageUpdate={handleImageUpdate}
-              fullName={userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim()}
+              fullName={userData.fullname}
             />
           </div>
 
           <div className="md:col-span-2 bg-white rounded-lg border p-6">
             <ProfileForm 
               initialData={profileData} 
-              onProfileUpdate={(updatedData) => {
-                if (userData) {
-                  setUserData({
-                    ...userData,
-                    ...updatedData
-                  });
+              onProfileUpdate={async (updatedData) => {
+                if (updatedData.fullName) {
+                  // Refresh profile data to get latest information
+                  await fetchUserData();
                 }
               }}
             />

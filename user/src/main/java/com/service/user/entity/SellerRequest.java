@@ -1,5 +1,6 @@
 package com.service.user.entity;
 
+import com.service.user.constants.SellerRequestStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,22 +26,10 @@ public class SellerRequest {
     @Column(nullable = false, length = 1000)
     private String reason;
 
-    @Column(length = 500)
-    private String businessName;
-
-    @Column(length = 500)
-    private String businessAddress;
-
-    @Column(length = 50)
-    private String phoneNumber;
-
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private SellerRequestStatus status = SellerRequestStatus.PENDING;
-
-    @Column(length = 1000)
-    private String adminNote;
 
     private Long reviewedBy;
 
@@ -49,13 +38,4 @@ public class SellerRequest {
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(nullable = false)
-    @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }

@@ -1,5 +1,5 @@
 import { Heart, ChevronRight } from 'lucide-react';
-import { useEffect, useState, JSX } from 'react';
+import { useEffect, useState, JSX, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ProductGallery from './pdp/product-gallery';
@@ -12,7 +12,10 @@ import ProductCard from '../../components/ProductCard';
 import Header from '../../components/header';
 import Footer from '../../components/footer';
 import { getProductByIdFromMain, getProductsByCategory, ProductResponseFromAPI, getQuestionsByProductId, QuestionResponse } from '../../api/product';
-import { useAuth } from '../../context/AuthContext';
+import { checkUserCanBid } from '../../api/bidderManagement';
+import { addToWishlist, isProductInUserWishlist } from '../../api/wishlist';
+import { useAuthStore } from '../../stores/authStore';
+import { useSystemSettingStore } from '../../stores/systemSettingStore';
 import { Box, Container, Typography } from '@mui/material';
 
 // 3. Các field hiển thị từ API:
@@ -23,7 +26,8 @@ import { Box, Container, Typography } from '@mui/material';
 export default function ProductDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { checkAuthStatus, userId, role } = useAuth();
+  const { checkAuthStatus, userId, role } = useAuthStore();
+  const timeRemainingThreshold = useSystemSettingStore((state) => state.timeRemaining);
   const [product, setProduct] = useState<ProductResponseFromAPI | null>(null);
   const [similarProducts, setSimilarProducts] = useState<ProductResponseFromAPI[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +39,10 @@ export default function ProductDetailPage(): JSX.Element {
 
   // Bid dialog state
   const [bidDialogOpen, setBidDialogOpen] = useState<boolean>(false);
+  
+  // Wishlist state
+  const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
+  const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
   
   // Check if auction has ended
   const isAuctionEnded = product ? new Date(product.endAt) < new Date() : false;
@@ -92,6 +100,26 @@ export default function ProductDetailPage(): JSX.Element {
     fetchProductData();
   }, [id, userId, role]);
 
+  // Check if product is in wishlist
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!id || !userId || (role !== 'BIDDER' && role !== 'SELLER')) {
+        setIsInWishlist(false);
+        return;
+      }
+
+      try {
+        const inWishlist = await isProductInUserWishlist(id);
+        setIsInWishlist(inWishlist);
+      } catch (error) {
+        console.error('Failed to check wishlist status:', error);
+        setIsInWishlist(false);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [id, userId, role]);
+
   // Fetch questions separately
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -108,7 +136,16 @@ export default function ProductDetailPage(): JSX.Element {
         
         // Map API response to format expected by ReviewList
         const mappedQuestions = questionsData.content.map((question: QuestionResponse) => {
-          const firstAnswer = question.answers && question.answers.length > 0 ? question.answers[0] : null;
+          // Map all answers, not just the first one
+          const answers = question.answers && question.answers.length > 0 
+            ? question.answers.map((answer) => ({
+                id: answer.id.toString(),
+                username: answer.user.fullname,
+                date: new Date(answer.createdAt),
+                answerText: answer.content,
+                icon: answer.user.avatar || '/placeholder-user.jpg'
+              }))
+            : [];
           
           return {
             _id: question.id.toString(),
@@ -116,13 +153,7 @@ export default function ProductDetailPage(): JSX.Element {
             date: new Date(question.createdAt),
             questionText: question.content,
             icon: question.user.avatar || '/placeholder-user.jpg',
-            images: [],
-            answer: firstAnswer ? {
-              username: firstAnswer.user.fullname,
-              date: new Date(firstAnswer.createdAt),
-              answerText: firstAnswer.content,
-              icon: firstAnswer.user.avatar || '/placeholder-user.jpg'
-            } : null
+            answers: answers
           };
         });
         
@@ -155,8 +186,31 @@ export default function ProductDetailPage(): JSX.Element {
       return;
     }
 
-    // Open bid dialog
-    setBidDialogOpen(true);
+    // Check if user can bid on this product
+    try {
+      if (!id) {
+        toast.error('Product ID is missing');
+        return;
+      }
+
+      const canBid = await checkUserCanBid(id);
+      
+      // If API returns true (200 OK), user can bid
+      if (canBid) {
+        setBidDialogOpen(true);
+      }
+    } catch (error: any) {
+      console.error('Error checking if user can bid:', error);
+      
+      // Handle 400 Bad Request - user cannot bid
+      if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || 'You are not allowed to bid on this product. You may be blacklisted or need seller approval.';
+        toast.error(errorMessage);
+      } else {
+        // Handle other errors
+        toast.error(error.response?.data?.message || 'Failed to check bidding permission. Please try again.');
+      }
+    }
   };
 
   // Handle bid confirmation
@@ -171,13 +225,133 @@ export default function ProductDetailPage(): JSX.Element {
     }
   };
 
-  // Check if bid can be placed
-  const isBidEnabled = !isAuctionEnded && product !== null;
+  // Check if current user is the seller of this product
+  const isProductSeller = 
+    role === 'SELLER' && 
+    userId !== null && 
+    product !== null && 
+    product.seller !== null &&
+    parseInt(userId, 10) === product.seller.id;
+
+  // Check if user can place bid
+  // Conditions:
+  // 1. Auction must not be ended
+  // 2. Product must exist
+  // 3. User must have role BIDDER or SELLER
+  // 4. If user is SELLER, they cannot bid on their own product
+  const canPlaceBid = useMemo(() => {
+    // Auction ended or no product
+    if (isAuctionEnded || !product) {
+      return false;
+    }
+
+    // Must be BIDDER or SELLER
+    if (role !== 'BIDDER' && role !== 'SELLER') {
+      return false;
+    }
+
+    // SELLER cannot bid on their own product
+    if (isProductSeller) {
+      return false;
+    }
+
+    return true;
+  }, [isAuctionEnded, product, role, isProductSeller]);
+
+  // Keep isBidEnabled for backward compatibility (used in button styling)
+  const isBidEnabled = canPlaceBid;
+
+  // Check if user can submit questions (only BIDDER or SELLER)
+  const canSubmitQuestion = role === 'BIDDER' || role === 'SELLER';
+
+  // Check if user can answer questions (only product seller)
+  const canAnswerQuestion = isProductSeller;
+
+  // Check if user can view bid history (only SELLER or BIDDER)
+  const canViewBidHistory = role === 'SELLER' || role === 'BIDDER';
+
+  // Calculate if auction is ending soon (similar to ProductCard logic)
+  const isEndingSoon = useMemo(() => {
+    if (!product || !timeRemainingThreshold) {
+      return false;
+    }
+
+    const now = new Date();
+    const end = new Date(product.endAt);
+    
+    // If already ended, not ending soon
+    if (now > end) {
+      return false;
+    }
+
+    // Calculate time remaining in milliseconds
+    const timeRemainingMs = end.getTime() - now.getTime();
+
+    // Convert threshold to milliseconds
+    let thresholdMs = 0;
+    const { time, format } = timeRemainingThreshold;
+
+    switch (format.toLowerCase()) {
+      case 'hour':
+        thresholdMs = time * 60 * 60 * 1000;
+        break;
+      case 'minute':
+        thresholdMs = time * 60 * 1000;
+        break;
+      case 'day':
+        thresholdMs = time * 24 * 60 * 60 * 1000;
+        break;
+      default:
+        thresholdMs = time * 60 * 60 * 1000; // Default to hour
+    }
+
+    return timeRemainingMs <= thresholdMs;
+  }, [product, timeRemainingThreshold]);
 
   // Handle question submission
   const handleQuestionSubmitted = () => {
     // Refresh dress data to show the new question
     setRefreshQuestions(prev => !prev);
+  };
+
+  // Handle add to wishlist (only add, no remove)
+  const handleAddToWishlist = async () => {
+    if (!id) {
+      toast.error('Product ID is missing');
+      return;
+    }
+
+    // Check authentication
+    const isAuthenticatedNow = await checkAuthStatus();
+    if (!isAuthenticatedNow) {
+      toast.error('Please sign in to add to wishlist');
+      navigate('/signin');
+      return;
+    }
+
+    // Check role
+    if (role !== 'BIDDER' && role !== 'SELLER') {
+      toast.error('Only Bidders and Sellers can add products to wishlist');
+      return;
+    }
+
+    // If already in wishlist, don't do anything
+    if (isInWishlist) {
+      return;
+    }
+
+    try {
+      setWishlistLoading(true);
+      // Add to wishlist
+      await addToWishlist(id);
+      toast.success('Product added to wishlist successfully');
+      setIsInWishlist(true);
+    } catch (error: any) {
+      console.error('Error adding to wishlist:', error);
+      toast.error(error.message || 'Failed to add product to wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   // If loading, show loading state
@@ -248,16 +422,30 @@ export default function ProductDetailPage(): JSX.Element {
           <div className="space-y-6">
             <div className="flex justify-between items-start">
               <h1 className="text-2xl font-medium text-[#333333]">{product?.productName || "Product Name"}</h1>
-              <button className="text-[#333333]">
-                <Heart className="w-6 h-6" />
-              </button>
+              {/* Wishlist Button - Only visible to BIDDER or SELLER, and only when not in wishlist */}
+              {(role === 'BIDDER' || role === 'SELLER') && !isInWishlist && (
+                <button 
+                  className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleAddToWishlist}
+                  disabled={wishlistLoading}
+                  title="Add to wishlist"
+                >
+                  <Heart className="w-6 h-6" />
+                </button>
+              )}
+              {/* Show filled heart if already in wishlist (read-only) */}
+              {(role === 'BIDDER' || role === 'SELLER') && isInWishlist && (
+                <div className="text-red-500" title="In your wishlist">
+                  <Heart className="w-6 h-6 fill-current" />
+                </div>
+              )}
             </div>
 
             {/* Current Price and Buy Now Price */}
             <div className="space-y-2">
               <div>
                 <span className="text-sm text-gray-600">Current Price:</span>
-                <div className="text-2xl font-bold text-[#2e7d32]">
+                <div className="text-2xl font-bold text-[#e8bb76]">
                   {new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
                     currency: 'VND',
@@ -293,11 +481,16 @@ export default function ProductDetailPage(): JSX.Element {
             </div>
             
             {/* Display auction status */}
-            <p className="text-sm text-gray-600">
+            <div className={`text-sm ${isEndingSoon ? 'text-[#f0c88b] font-bold' : 'text-gray-600'}`}>
               {isAuctionEnded 
                 ? "Auction Ended" 
-                : `Auction ends: ${product?.endAt ? new Date(product.endAt).toLocaleString('vi-VN') : 'N/A'}`}
-            </p>
+                : (
+                  <span>
+                    {isEndingSoon && '⚠️ '}
+                    Auction ends: {product?.endAt ? new Date(product.endAt).toLocaleString('vi-VN') : 'N/A'}
+                  </span>
+                )}
+            </div>
 
             {/* Bid Button */}
             <button 
@@ -311,6 +504,10 @@ export default function ProductDetailPage(): JSX.Element {
             >
               {isAuctionEnded 
                 ? 'Auction Ended' 
+                : isProductSeller
+                ? 'Cannot Bid on Your Own Product'
+                : role !== 'BIDDER' && role !== 'SELLER'
+                ? 'Sign In as Bidder or Seller to Bid'
                 : 'Place Bid'
               }
               {isBidEnabled && <ChevronRight className="w-4 h-4 ml-1" />}
@@ -434,31 +631,38 @@ export default function ProductDetailPage(): JSX.Element {
           </div>
         </div>
 
-        {/* Transaction History Section */}
-        <div className="mt-16">
-          <TransactionHistory />
-        </div>
+        {/* Transaction History Section - Only visible to SELLER or BIDDER */}
+        {canViewBidHistory && (
+          <div className="mt-16">
+            <TransactionHistory productId={id} />
+          </div>
+        )}
 
-        {/* Bidder Management Section - Visible to all users (for testing) */}
-        <div className="mt-16">
-          <BidderManagement productId={id || 'fake-product-123'} isSeller={true} />
-        </div>
+        {/* Bidder Management Section - Only visible to product seller */}
+        {isProductSeller && (
+          <div className="mt-16">
+            <BidderManagement productId={id || 'fake-product-123'} isSeller={true} />
+          </div>
+        )}
 
         {/* Questions & Answers Section */}
         <div className="mt-16">
           <h2 className="text-2xl font-medium mb-8">Questions & Answers</h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Question Form */}
-            <div className="lg:col-span-1">
-              <ReviewForm 
-                dressId={id || ''} 
-                onReviewSubmitted={handleQuestionSubmitted} 
-              />
-            </div>
+            {/* Question Form - Only visible to BIDDER or SELLER */}
+            {canSubmitQuestion && (
+              <div className="lg:col-span-1">
+                <ReviewForm 
+                  dressId={id || ''} 
+                  onReviewSubmitted={handleQuestionSubmitted}
+                  canSubmitQuestion={canSubmitQuestion}
+                />
+              </div>
+            )}
             
-            {/* Question List */}
-            <div className="lg:col-span-2">
+            {/* Question List - Visible to everyone, but only seller can answer */}
+            <div className={canSubmitQuestion ? "lg:col-span-2" : "lg:col-span-full"}>
               {questionsLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="w-6 h-6 border-2 border-gray-300 border-t-[#ead9c9] rounded-full animate-spin"></div>
@@ -466,9 +670,9 @@ export default function ProductDetailPage(): JSX.Element {
                 </div>
               ) : (
                 <ReviewList 
-                  dressId={id || ''} 
-                  reviews={questions} 
-                  onRefresh={handleQuestionSubmitted} 
+                  questions={questions} 
+                  onRefresh={handleQuestionSubmitted}
+                  canAnswerQuestion={canAnswerQuestion}
                 />
               )}
             </div>
@@ -558,6 +762,7 @@ export default function ProductDetailPage(): JSX.Element {
         onConfirm={handleBidConfirm}
         currentPrice={product?.currentPrice || 0}
         minimumBidStep={product?.minimumBidStep || 0}
+        productId={id || ''}
       />
     </div>
   );

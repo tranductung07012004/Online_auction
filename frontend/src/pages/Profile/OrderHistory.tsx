@@ -4,10 +4,9 @@ import ProfileSidebar from './profile/sidebar';
 import { OrderCard, type OrderItem } from './profile/order-card';
 import Footer from '../../components/footer';
 import { useAuth } from '../../context/AuthContext';
-import { getUserProfile } from '../../api/user';
+import { getUserProfile, UserProfileResponse } from '../../api/profileApi';
 import { getUserOrders } from '../../api/order';
 import { getCart, removeFromCart } from '../../api/cart';
-import { UserProfile } from '../../api/user';
 import { toast } from 'react-hot-toast';
 
 // Removed OrderFilterTab type - now using boolean toggle for current orders
@@ -244,7 +243,7 @@ const generateFakeData = (showCurrent: boolean): OrderItem[] => {
 
 export default function OrderHistory(): JSX.Element {
   const [showCurrentOrders, setShowCurrentOrders] = useState<boolean>(false);
-  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [userData, setUserData] = useState<UserProfileResponse | null>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -517,12 +516,8 @@ export default function OrderHistory(): JSX.Element {
             <ProfileSidebar
               activeTab="order-history"
               userName={userData ? userData.email : 'User'}
-              userImage={userData?.profileImageUrl}
-              fullName={
-                userData
-                  ? userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim()
-                  : undefined
-              }
+              userImage={userData?.avatar}
+              fullName={userData?.fullname}
             />
           </div>
 

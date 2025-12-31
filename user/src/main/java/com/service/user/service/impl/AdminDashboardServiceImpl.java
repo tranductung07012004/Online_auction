@@ -1,8 +1,8 @@
 package com.service.user.service.impl;
 
+import com.service.user.constants.SellerRequestStatus;
 import com.service.user.dto.AdminDashboardUserStats;
 import com.service.user.dto.RecentUserDTO;
-import com.service.user.entity.SellerRequestStatus;
 import com.service.user.entity.User;
 import com.service.user.repository.SellerRequestRepository;
 import com.service.user.repository.UserDetailsRepository;

@@ -45,17 +45,10 @@ CREATE TABLE seller_requests (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     reason TEXT NOT NULL,
-    business_name VARCHAR(500),
-    business_address VARCHAR(500),
-    phone_number VARCHAR(50),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    admin_note TEXT,
     reviewed_by BIGINT,
     reviewed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_seller_request_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_seller_request_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_seller_requests_user_id ON seller_requests(user_id);

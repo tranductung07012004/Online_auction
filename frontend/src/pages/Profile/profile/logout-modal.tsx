@@ -36,7 +36,7 @@ export function LogoutModal({ isOpen, onClose, onLogout }: LogoutModalProps) {
           <div className="flex justify-center gap-4 w-full">
             <Button
               onClick={onLogout}
-              className="bg-rose-500 hover:bg-rose-600 text-white w-32"
+              className="bg-[#EAD9C9] hover:bg-[#d4c4b0] text-[#8c6550] w-32 font-medium"
             >
               Log out
             </Button>
@@ -48,11 +48,6 @@ export function LogoutModal({ isOpen, onClose, onLogout }: LogoutModalProps) {
               Stay logged in
             </Button>
           </div>
-
-          <DialogDescription className="text-center pt-4 text-gray-700">
-            <p className="font-medium">Thank you for using Enchanted</p>
-            <p className="mt-1">Hope to see you soon</p>
-          </DialogDescription>
         </DialogFooter>
       </DialogContent>
     </Dialog>

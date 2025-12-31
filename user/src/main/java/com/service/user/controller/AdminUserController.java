@@ -1,7 +1,6 @@
 package com.service.user.controller;
 
 import com.service.user.dto.*;
-import com.service.user.entity.SellerRequestStatus;
 import com.service.user.repository.SellerRequestRepository;
 import com.service.user.service.AdminUserService;
 import jakarta.validation.Valid;
@@ -10,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.service.user.constants.SellerRequestStatus;
 
 @RestController
 @RequestMapping("/api/user/admin")
