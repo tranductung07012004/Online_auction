@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import ReCAPTCHA from "react-google-recaptcha"
 import { register as registerApi } from "../../api/auth"
-import { useAuth } from "../../context/AuthContext"
+import { useAuthStore } from "../../stores/authStore"
 import { LoadingOverlay } from "../../components/ui/LoadingOverlay"
 import { Notification } from "../../components/ui/Notification"
 
@@ -115,7 +115,8 @@ const SignUp: React.FC = () => {
     visible: boolean;
   }>({ type: 'info', message: '', visible: false });
 
-  const { setAuthLoading, isAuthLoading } = useAuth();
+  const setAuthLoading = useAuthStore((state) => state.setAuthLoading);
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading);
 
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_GOOGLE_RECAPTCHA_V2_CHECKBOX || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"; // This is Google's test key
 

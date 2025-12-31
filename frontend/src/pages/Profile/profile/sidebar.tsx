@@ -12,12 +12,12 @@ import {
   Gavel,
   Boxes,
   PlusCircle,
+  Star,
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuthStore } from '../../../stores/authStore';
 import { LogoutModal } from './logout-modal';
 import { updateAvatar } from '../../../api/profileApi';
 import { uploadImageToCloudinary } from '../../../api/cloudinary';
-import { logout as logoutApi } from '../../../api/auth';
 import { Notification } from '../../../components/ui/Notification';
 
 interface ProfileSidebarProps {
@@ -26,6 +26,7 @@ interface ProfileSidebarProps {
   userImage?: string;
   onImageUpdate?: (imageUrl: string) => void;
   fullName?: string;
+  assessment?: number | null;
 }
 
 export default function ProfileSidebar({
@@ -34,6 +35,7 @@ export default function ProfileSidebar({
   userImage,
   onImageUpdate,
   fullName,
+  assessment,
 }: ProfileSidebarProps) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,7 +48,7 @@ export default function ProfileSidebar({
   }>({ type: 'info', message: '', visible: false });
   
   const navigate = useNavigate();
-  const { clearCookie, setAuthLoading } = useAuth();
+  const { clearAuth } = useAuthStore();
 
   const menuItems = [
     { id: 'profile', label: 'My Profile', icon: <User className="h-5 w-5" /> },
@@ -83,19 +85,14 @@ export default function ProfileSidebar({
   ];
 
   const handleLogout = async () => {
-    try {
-      setAuthLoading(true);
-      await logoutApi();
-      clearCookie();
-      navigate('/signin');
-    } catch (err: any) {
-      console.error('Logout error:', err);
-      // Even if API call fails, still clear local state and redirect
-      clearCookie();
-      navigate('/signin');
-    } finally {
-      setAuthLoading(false);
-    }
+    // clearAuth() từ authStore đã xử lý:
+    // - Gọi logout API
+    // - Set isAuthenticated = false
+    // - Clear tất cả auth state (userId, role, username, accessToken)
+    // - Xử lý loading state
+    // - Xử lý error (nếu có)
+    await clearAuth();
+    navigate('/signin');
   };
   
   const handleUploadClick = () => {
@@ -226,6 +223,22 @@ export default function ProfileSidebar({
         
         <h2 className="mt-3 font-medium text-lg">{fullName || userName}</h2>
         {fullName && <p className="text-gray-500 text-sm">@{userName}</p>}
+        
+        {/* User Assessment */}
+        {assessment !== null && assessment !== undefined ? (
+          <div className="mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            <span className="text-sm font-medium text-gray-700">
+              Đánh giá: <span className="text-[#a67c66] font-semibold">{assessment.toFixed(1)}/10</span>
+            </span>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
+            <Star className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-500">Chưa có đánh giá</span>
+          </div>
+        )}
+        
         <div className="w-full border-t my-4"></div>
       </div>
 

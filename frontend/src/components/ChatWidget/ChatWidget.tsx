@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '../../context/ChatContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import './ChatWidget.css';
 
 const ChatWidget: React.FC = () => {
@@ -13,7 +13,8 @@ const ChatWidget: React.FC = () => {
     isConnected,
     markAsRead
   } = useChatContext();
-  const { userId, role } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
+  const role = useAuthStore((state) => state.role);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

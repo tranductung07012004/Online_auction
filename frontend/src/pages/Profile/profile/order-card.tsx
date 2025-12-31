@@ -26,7 +26,7 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import { toast } from 'react-hot-toast';
 import { submitReview, ReviewSubmission } from '../../../api/dress';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuthStore } from '../../../stores/authStore';
 import { styled } from '@mui/material/styles';
 
 export interface OrderItem {
@@ -76,7 +76,7 @@ const CustomAlert = styled(Alert)(() => ({
 }));
 
 export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
-  const { userId } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
   const [confirmReceivedOpen, setConfirmReceivedOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [transactionRating, setTransactionRating] = useState<'like' | 'dislike' | null>(() => {

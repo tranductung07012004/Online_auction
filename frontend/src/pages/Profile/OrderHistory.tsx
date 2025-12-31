@@ -3,7 +3,7 @@ import Header from '../../components/header';
 import ProfileSidebar from './profile/sidebar';
 import { OrderCard, type OrderItem } from './profile/order-card';
 import Footer from '../../components/footer';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { getUserProfile, UserProfileResponse } from '../../api/profileApi';
 import { getUserOrders } from '../../api/order';
 import { getCart, removeFromCart } from '../../api/cart';
@@ -246,7 +246,7 @@ export default function OrderHistory(): JSX.Element {
   const [userData, setUserData] = useState<UserProfileResponse | null>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -518,6 +518,7 @@ export default function OrderHistory(): JSX.Element {
               userName={userData ? userData.email : 'User'}
               userImage={userData?.avatar}
               fullName={userData?.fullname}
+              assessment={userData?.assessment}
             />
           </div>
 

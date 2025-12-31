@@ -147,6 +147,7 @@ export default function WatchListPage(): JSX.Element {
               userName={userData?.email || 'User'}
               userImage={userData?.avatar}
               fullName={userData?.fullname}
+              assessment={userData?.assessment}
             />
           </div>
 

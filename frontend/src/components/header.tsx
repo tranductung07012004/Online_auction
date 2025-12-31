@@ -35,7 +35,6 @@ import {
 import { Package, Users } from "lucide-react";
 import logo from "/LOGO.png";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { useNavigationStore } from "../stores";
 
 // MenuItem type for drawer menu

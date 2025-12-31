@@ -95,6 +95,7 @@ export default function ProfilePage() {
               userImage={userData.avatar}
               onImageUpdate={handleImageUpdate}
               fullName={userData.fullname}
+              assessment={userData.assessment}
             />
           </div>
 

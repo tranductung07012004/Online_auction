@@ -8,7 +8,7 @@ import { PlusCircle } from 'lucide-react';
 import { AddressCard, type AddressData } from './profile/address-card';
 import { AddressFormDialog } from './profile/address-form-dialog';
 import { useToast } from '../../hooks/use-toast';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { getUserProfile } from '../../api/user';
 import { UserProfile } from '../../api/user';
 
@@ -19,7 +19,7 @@ export default function AddressPage() {
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [defaultAddressId, setDefaultAddressId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { toast } = useToast();
   
   const fetchAddresses = useCallback(async () => {
