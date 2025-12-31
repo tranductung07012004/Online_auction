@@ -34,7 +34,7 @@ export interface ApiResponse<T> {
 export interface UserProfileResponse {
   fullname: string;
   avatar: string;
-  assessment: number;
+  assessment: number | null;
   email: string; // masked email
   address: string;
 }

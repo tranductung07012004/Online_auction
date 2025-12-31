@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '../stores/authStore';
 
 interface Message {
   _id: string;
@@ -43,7 +43,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const { userId, role } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
+  const role = useAuthStore((state) => state.role);
 
   // Load messages via REST API when the component mounts
   useEffect(() => {

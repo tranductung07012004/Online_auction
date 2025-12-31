@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import './AdminChatPanel.css';
 import { io, Socket } from 'socket.io-client';
 
@@ -24,7 +24,8 @@ interface Message {
 }
 
 const AdminChatPanel: React.FC = () => {
-  const { userId, role } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
+  const role = useAuthStore((state) => state.role);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);

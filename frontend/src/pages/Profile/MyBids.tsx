@@ -5,7 +5,7 @@ import Footer from '../../components/footer';
 import ProductCard, { type ProductCardProps } from '../../components/ProductCard';
 import { getUserProfile, UserProfileResponse } from '../../api/profileApi';
 import { getMyBids, type MyBidsPageResponse } from '../../api/product';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { Pagination } from '@mui/material';
 import {
   Box,
@@ -22,7 +22,7 @@ import { toast } from 'react-hot-toast';
 
 
 export default function MyBidsPage(): JSX.Element {
-  const { userId } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
   const [userData, setUserData] = useState<UserProfileResponse | null>(null);
   const [biddingItems, setBiddingItems] = useState<MyBidsPageResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,6 +119,7 @@ export default function MyBidsPage(): JSX.Element {
               userName={userData?.email || 'User'}
               userImage={userData?.avatar}
               fullName={userData?.fullname}
+              assessment={userData?.assessment}
             />
           </div>
 

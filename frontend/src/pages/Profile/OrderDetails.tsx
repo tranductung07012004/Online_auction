@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { OrderItem } from './profile/order-card';
 import Footer from '../../components/footer';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { getUserProfile } from '../../api/user';
 import { cancelOrder } from '../../api/order';
 import { getPhotographyBookingById } from '../../api/photography';
@@ -62,7 +62,7 @@ const OrderDetailsPage: React.FC = () => {
   const [order, setOrder] = useState<OrderItem | undefined>();
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
 
   useEffect(() => {

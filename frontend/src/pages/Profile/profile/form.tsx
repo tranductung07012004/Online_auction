@@ -4,7 +4,7 @@ import { Input } from '../../../components/input';
 import { Label } from '../../../components/label';
 import { UpdateProfileData } from '../../../api/user';
 import { updateFullname, updateEmail, updatePassword as updatePasswordApi, updateAddress } from '../../../api/profileApi';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuthStore } from '../../../stores/authStore';
 import { AlertCircle } from 'lucide-react';
 
 interface ProfileData {
@@ -25,7 +25,7 @@ export default function ProfileForm({ initialData, onProfileUpdate }: ProfileFor
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const { getRoleFromCookie } = useAuth();
+  const getRoleFromCookie = useAuthStore((state) => state.getRoleFromCookie);
   
   // For fullname change
   const [showFullnameChange, setShowFullnameChange] = useState<boolean>(false);

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { CartItem } from './types';
 import { submitReview, ReviewSubmission } from '../../api/dress';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 
 interface ProductReview {
   productId: string;
@@ -16,7 +16,7 @@ interface ProductReview {
 
 const PaymentReview: React.FC = () => {
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const userId = useAuthStore((state) => state.userId);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(new Set());
   const [reviews, setReviews] = useState<Map<number, ProductReview>>(new Map());
