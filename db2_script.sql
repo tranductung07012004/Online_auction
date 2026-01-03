@@ -25,7 +25,7 @@ CREATE TABLE blacklist (
     id BIGSERIAL PRIMARY KEY,
     bidder_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by BIGINT NOT NULL
 );
 
@@ -141,30 +141,38 @@ CREATE TABLE questions (
 
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
-    product_id BIGINT,
-    buyer_id BIGINT,
-    seller_id BIGINT,
+    product_id BIGINT NOT NULL,
+    buyer_id BIGINT NOT NULL,
+    seller_id BIGINT NOT NULL,
     amount DECIMAL(15,5) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_cancelled BOOLEAN DEFAULT FALSE,
-    has_shipping_address BOOLEAN DEFAULT FALSE,
-    cancelled_reason TEXT
+    cancelled_reason TEXT,
+    cancelled_at TIMESTAMPTZ
+);  
+
+CREATE TABLE order_payments (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL UNIQUE,
+    amount DECIMAL(15,5) NOT NULL,
+    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER', -- 'BANK_TRANSFER', 'PAYPAL', 'CREDIT_CARD', 'COD'
+    payment_status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROOF_UPLOADED', 'CONFIRMED', 'FAILED', 'REFUNDED'
+    payment_proof_url TEXT, -- URL ảnh chứng từ chuyển khoản
+    transaction_id VARCHAR(255), -- Mã giao dịch từ payment gateway (nếu có)
+    buyer_paid_at TIMESTAMPTZ, -- Thời điểm buyer upload proof/thanh toán
+    seller_confirmed_at TIMESTAMPTZ, -- Thời điểm seller xác nhận đã nhận tiền
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE order_shippings (
     id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT,
+    order_id BIGINT NOT NULL UNIQUE,
     shipping_address TEXT NOT NULL,
-    shipped_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    delivery_status SMALLINT DEFAULT 0
-);
-
-CREATE TABLE order_payments (
-    id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT,
-    payment_method SMALLINT DEFAULT 0,
-    bidder_payment_status SMALLINT DEFAULT 0,
-    seller_payment_status SMALLINT DEFAULT 0,
+    tracking_number VARCHAR(255),
+    shipped_at TIMESTAMPTZ,
+    delivery_status VARCHAR(50) DEFAULT 'PENDING', -- 'PENDING', 'SHIPPED', 'DELIVERED'
+    delivered_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

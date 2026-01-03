@@ -143,6 +143,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         @Param("search") String search,
         Pageable pageable
     );
+    
+    // ==================== Order Creation Queries ====================
+    
+    /**
+     * Find all ended products that have a winner (top bidder) but no order yet
+     */
+    @Query("""
+        SELECT p FROM Product p 
+        WHERE p.endAt <= :now
+        AND p.topBidderId IS NOT NULL
+        ORDER BY p.endAt ASC
+    """)
+    List<Product> findEndedProductsWithWinner(@Param("now") OffsetDateTime now);
 }
 
 

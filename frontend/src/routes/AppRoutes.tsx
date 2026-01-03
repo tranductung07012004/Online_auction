@@ -45,7 +45,7 @@ const AboutPage = lazy(() => import("../pages/About/About"));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'BIDDER' | 'SELLER' | null;
+  requiredRole?: "ADMIN" | "BIDDER" | "SELLER" | null;
 }
 
 // Protected Route component - requires authentication
@@ -80,14 +80,14 @@ interface GuestRouteProps {
 
 const GuestRoute: React.FC<GuestRouteProps> = ({
   children,
-  redirectPath = '/',
+  redirectPath = "/",
 }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      toast('You have already logged in, please logout', {
+      toast("You have already logged in, please logout", {
         duration: 2000,
       });
     }
@@ -147,10 +147,24 @@ const AppRoutes = () => {
     { path: "/admin/users", element: <Users /> },
 
     // Auth Routes - only accessible when not authenticated
-    { path: "/signin", element: <GuestRoute> <SignIn /> </GuestRoute>},
-    { path: "/signup", element: <GuestRoute><SignUp /></GuestRoute> },
-    { path: "/verify-email", element: <VerifyEmail />},
-    { path: "/forgot-password", element: <GuestRoute><ForgotPassword /></GuestRoute> },
+    { path: "/signin", element: <SignIn /> },
+    {
+      path: "/signup",
+      element: (
+        <GuestRoute>
+          <SignUp />
+        </GuestRoute>
+      ),
+    },
+    { path: "/verify-email", element: <VerifyEmail /> },
+    {
+      path: "/forgot-password",
+      element: (
+        <GuestRoute>
+          <ForgotPassword />
+        </GuestRoute>
+      ),
+    },
     { path: "/reset-password", element: <ResetPassword /> },
 
     // Other Routes
