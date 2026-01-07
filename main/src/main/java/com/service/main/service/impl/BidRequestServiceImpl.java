@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
@@ -31,7 +30,6 @@ public class BidRequestServiceImpl implements BidRequestService {
     private final ProductRepository productRepository;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createBidRequest(Long bidderId, Long productId, Long sellerId) {
         BidRequest req = BidRequest.builder()
                 .bidderId(bidderId)

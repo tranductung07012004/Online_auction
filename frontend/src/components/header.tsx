@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -14,12 +14,12 @@ import {
   Avatar,
   Badge,
   Collapse,
+  CircularProgress,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
   CheckroomOutlined as DressIcon,
-  InfoOutlined as AboutIcon,
   ShoppingCart as CartIcon,
   Person as PersonIcon,
   Smartphone as SmartPhoneIcon,
@@ -36,17 +36,21 @@ import { Package, Users } from "lucide-react";
 import logo from "/LOGO.png";
 import { useNavigate } from "react-router-dom";
 import { useNavigationStore } from "../stores";
+import { useAuthStore } from "../stores/authStore";
+import { getCategoriesGrouped } from "../api/categories";
 
 // MenuItem type for drawer menu
 interface SubCategory {
   text: string;
-  value: string;
+  value: string; // This will be the category id as string
+  id: number; // Store the actual id
 }
 
 interface MenuItem {
   text: string;
   icon: React.ReactNode;
   path: string;
+  categoryId?: number; // Store category id for parent categories
   subcategories?: SubCategory[];
 }
 
@@ -222,7 +226,9 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({
               <ListItem disablePadding>
                 <ListItemButton
                   onClick={() => {
-                    onItemClick(item.path, item.text);
+                    // Pass category id if available, otherwise pass text
+                    const categoryValue = item.categoryId?.toString() || item.text;
+                    onItemClick(item.path, categoryValue);
                   }}
                   sx={{
                     borderRadius: "8px",
@@ -262,7 +268,7 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({
                 <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
                     {item.subcategories!.map((subCat) => (
-                      <ListItem key={subCat.value} disablePadding>
+                      <ListItem key={subCat.id} disablePadding>
                         <ListItemButton
                           onClick={() => onItemClick(item.path, subCat.value)}
                           sx={{
@@ -325,11 +331,11 @@ const UserInfo: React.FC<UserInfoProps> = ({
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <Avatar sx={{ bgcolor: "#C3937C" }}>
-          {role === "admin" ? "A" : "U"}
+          {role === "ADMIN" ? "A" : "U"}
         </Avatar>
         <Box>
           <Box sx={{ fontSize: "0.875rem", fontWeight: 600, color: "#333" }}>
-            {role === "admin" ? "Admin" : "User"}
+            {role === "ADMIN" ? "Admin" : role === "SELLER" ? "Seller" : role === "BIDDER" ? "Bidder" : "User"}
           </Box>
           <Box sx={{ fontSize: "0.75rem", color: "#666" }}>Logged in</Box>
         </Box>
@@ -349,7 +355,6 @@ const UserInfo: React.FC<UserInfoProps> = ({
   );
 };
 
-// ==================== USER DRAWER ====================
 interface UserNavigationDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -358,6 +363,7 @@ interface UserNavigationDrawerProps {
   onMenuItemClick: (path: string, category: string) => void;
   isAuthenticated: boolean;
   role: string | null;
+  categoriesLoading: boolean;
 }
 
 const UserNavigationDrawer: React.FC<UserNavigationDrawerProps> = ({
@@ -368,6 +374,7 @@ const UserNavigationDrawer: React.FC<UserNavigationDrawerProps> = ({
   onMenuItemClick,
   isAuthenticated,
   role,
+  categoriesLoading,
 }) => (
   <Drawer
     anchor="left"
@@ -383,14 +390,19 @@ const UserNavigationDrawer: React.FC<UserNavigationDrawerProps> = ({
     <Box sx={{ p: 3 }}>
       <DrawerLogo logo={logo} />
       <Divider sx={{ my: 2 }} />
-      <MenuItemsList items={menuItems} onItemClick={onMenuItemClick} />
+      {categoriesLoading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress size={32} sx={{ color: "#C3937C" }} />
+        </Box>
+      ) : (
+        <MenuItemsList items={menuItems} onItemClick={onMenuItemClick} />
+      )}
       <Divider sx={{ my: 2 }} />
       <UserInfo isAuthenticated={isAuthenticated} role={role} />
     </Box>
   </Drawer>
 );
 
-// ==================== ADMIN DRAWER ====================
 interface AdminNavigationDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -446,20 +458,19 @@ const AdminNavigationDrawer: React.FC<AdminNavigationDrawerProps> = ({
 
 const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
   const navigate = useNavigate();
-  // const { role, isAuthenticated } = useAuth();
-  const { role, isAuthenticated } = { role: "admin", isAuthenticated: true };
+  const { role, isAuthenticated } = useAuthStore();
 
-  const isAdmin = role === "admin";
+  const isAdmin = role === "ADMIN";
 
-  // Zustand stores
   const { drawerOpen, setDrawerOpen } = useNavigationStore();
 
-  // Toggle drawer
+  const [userMenuItems, setUserMenuItems] = useState<MenuItem[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   const toggleDrawer = (open: boolean) => () => {
     setDrawerOpen(open);
   };
 
-  // Navigation handlers
   const goToProfilePage = (): void => {
     if (isAuthenticated) {
       navigate("/profile");
@@ -482,56 +493,88 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
     navigate("/signin");
   };
 
-  // User menu items configuration with subcategories
-  const userMenuItems: MenuItem[] = [
-    {
-      text: "Home",
-      icon: <HomeIcon />,
-      path: "/",
-    },
-    {
-      text: "All Products",
-      icon: <StoreIcon />,
-      path: "/pcp",
-    },
-    {
-      text: "Smartphone",
-      icon: <SmartPhoneIcon />,
-      path: "/pcp",
-      subcategories: [
-        { text: "iPhone", value: "iphone" },
-        { text: "Samsung", value: "samsung" },
-        { text: "Xiaomi", value: "xiaomi" },
-        { text: "Oppo", value: "oppo" },
-      ],
-    },
-    {
-      text: "Clothes",
-      icon: <DressIcon />,
-      path: "/pcp",
-      subcategories: [
-        { text: "Men", value: "men" },
-        { text: "Women", value: "women" },
-        { text: "Kids", value: "kids" },
-        { text: "Accessories", value: "accessories" },
-      ],
-    },
-    {
-      text: "Book",
-      icon: <BookIcon />,
-      path: "/pcp",
-      subcategories: [
-        { text: "Fiction", value: "fiction" },
-        { text: "Non-Fiction", value: "non-fiction" },
-        { text: "Educational", value: "educational" },
-      ],
-    },
-    {
-      text: "About",
-      icon: <AboutIcon />,
-      path: "/about",
-    },
-  ];
+  const getCategoryIcon = (categoryName: string): React.ReactNode => {
+    const nameLower = categoryName.toLowerCase();
+    if (nameLower.includes("smartphone") || nameLower.includes("phone") || nameLower.includes("mobile")) {
+      return <SmartPhoneIcon />;
+    } else if (nameLower.includes("cloth") || nameLower.includes("dress") || nameLower.includes("fashion")) {
+      return <DressIcon />;
+    } else if (nameLower.includes("book")) {
+      return <BookIcon />;
+    }
+    return <CategoryIcon />;
+  };
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (isAdmin) {
+        // Admin doesn't need category menu, set loading to false
+        setCategoriesLoading(false);
+        return;
+      }
+
+      try {
+        setCategoriesLoading(true);
+        const groupedCategories = await getCategoriesGrouped();
+
+        // Build menu items from API data
+        const menuItems: MenuItem[] = [
+          {
+            text: "Home",
+            icon: <HomeIcon />,
+            path: "/",
+          },
+          {
+            text: "All Products",
+            icon: <StoreIcon />,
+            path: "/pcp",
+          },
+        ];
+
+        // Add categories from API
+        groupedCategories.forEach((group) => {
+          const parentCategory = group.parent;
+          const childrenCategories = group.children;
+
+          const menuItem: MenuItem = {
+            text: parentCategory.name,
+            icon: getCategoryIcon(parentCategory.name),
+            path: "/pcp",
+            categoryId: parentCategory.id,
+            subcategories: childrenCategories.map((child) => ({
+              text: child.name,
+              value: child.id.toString(), // Store id as string in value
+              id: child.id, // Store actual id
+            })),
+          };
+
+          menuItems.push(menuItem);
+        });
+
+        setUserMenuItems(menuItems);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        // Fallback to default menu items on error
+        setUserMenuItems([
+          {
+            text: "Home",
+            icon: <HomeIcon />,
+            path: "/",
+          },
+          {
+            text: "All Products",
+            icon: <StoreIcon />,
+            path: "/pcp",
+          },
+        ]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [isAdmin]);
 
   // Admin menu items configuration
   const adminMenuItems: MenuItem[] = [
@@ -559,10 +602,10 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
 
   // Handle menu item click for user drawer
   const handleUserMenuItemClick = (path: string, category: string) => {
+    // category can be either category name or category id (as string)
     if (
       category === "All Products" ||
-      category === "Home" ||
-      category === "About"
+      category === "Home"
     ) {
       navigate(path);
       setDrawerOpen(false);
@@ -571,8 +614,25 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
 
     if (path === "/pcp") {
       const params = new URLSearchParams();
-      const categoryValue = category.toLowerCase();
-      params.set("category", categoryValue);
+      // category is the id (as string) when clicking on subcategory
+      // or categoryId when clicking on parent category
+      // Check if it's a number (id) or name
+      const categoryId = parseInt(category, 10);
+      if (!isNaN(categoryId)) {
+        // It's a category id
+        params.set("category", categoryId.toString());
+      } else {
+        // It's a category name, find the id from menuItems
+        const menuItem = userMenuItems.find(
+          (item) => item.text === category || item.categoryId?.toString() === category
+        );
+        if (menuItem?.categoryId) {
+          params.set("category", menuItem.categoryId.toString());
+        } else {
+          // Fallback: use category name (for backward compatibility)
+          params.set("category", category.toLowerCase());
+        }
+      }
       navigate(`/pcp?${params.toString()}`);
     } else {
       navigate(path);
@@ -650,6 +710,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
           onMenuItemClick={handleUserMenuItemClick}
           isAuthenticated={isAuthenticated}
           role={role}
+          categoriesLoading={categoriesLoading}
         />
       )}
     </>

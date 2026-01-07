@@ -1,6 +1,7 @@
 package com.service.main.service.impl;
 
 import com.service.main.dto.ApiResponse;
+import com.service.main.dto.UpdateReviewStatsRequest;
 import com.service.main.dto.UserInfoResponse;
 import com.service.main.service.UserServiceClient;
 import lombok.RequiredArgsConstructor;
@@ -104,6 +105,33 @@ public class UserServiceClientImpl implements UserServiceClient {
                 .avatar(response.getAvatar())
                 .email(null) // UserInfoResponse doesn't have email, need to add if needed
                 .build();
+    }
+
+    @Override
+    public void updateReviewStats(UpdateReviewStatsRequest request) {
+        try {
+            String url = userServiceUrl + "/api/user/internal/review-stats";
+            
+            // Get authentication info from SecurityContext
+            HttpHeaders headers = createHeadersWithAuth();
+            headers.set("Content-Type", "application/json");
+            
+            HttpEntity<UpdateReviewStatsRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<ApiResponse<?>> response = restTemplate.exchange(
+                url,
+                HttpMethod.PUT,
+                entity,
+                new ParameterizedTypeReference<ApiResponse<?>>() {}
+            );
+            
+            if (response.getStatusCode() != HttpStatus.OK) {
+                log.warn("Failed to update review stats, status: {}", response.getStatusCode());
+            }
+        } catch (RestClientException e) {
+            log.error("Error calling user service to update review stats", e);
+            // Don't throw exception to avoid rolling back the review creation
+        }
     }
 }
 

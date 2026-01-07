@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "productName": {
+      "type": "text",
+      "analyzer": "asciifolding_analyzer",
+      "search_analyzer": "asciifolding_analyzer"
+    },
+    "currentPrice": {
+      "type": "double"
+    },
+    "endAt": {
+      "type": "date"
+    },
+    "categoryIds": {
+      "type": "integer"
+    }
+  }
+}

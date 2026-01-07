@@ -19,7 +19,7 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all
+      acks: all # Luu tat ca cac message vao disk
       # retries: 3  # Số lần retry khi gửi thất bại, comment vi khi
       # bat enable.idempotence thi retries = Integer.MAX_VALUE
       properties:
@@ -27,18 +27,9 @@ spring:
         enable.idempotence: true
         # So request gui song song, nhung kafka tu set = 5 khi co enable.idempotence
         # max.in.flight.requests.per.connection: 5
-    consumer:
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      group-id: consumer-group-1
-      # Khong nen dung vi consumer se doc lai tat ca message
-      # auto-offset-reset: earliest
-      properties:
-        # Nguy hiem khi len production, cho phép deserialize tất cả các package
-        spring.json.trusted.packages: "*"
 jwt:
   secret: gsdg9824tgwnau81039p2o3tgrnewjfvshdua8oi24kgqewihod
-  expiration_access: 36000000 # milliseconds, tinh ra la = 15 * 60 * 1000
+  expiration_access: 3000000000 # milliseconds, tinh ra la = 3000s, dung de test login
   expiration_refresh: 604800000 # milliseconds, tinh ra la = 7 * 24 * 60 * 1000
 
 recaptcha:

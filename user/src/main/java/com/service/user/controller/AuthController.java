@@ -9,13 +9,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.Cookie;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/user/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
 
-    // Tao 1 endpoint de verify otp code gui len kem gmail 
+    // Tao 1 endpoint de verify otp code gui len kem gmail
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtpToken(@Valid @RequestBody verifyOtpRequest req, HttpServletResponse res) {
         this.authService.verifyOtpCode(req);
@@ -39,7 +41,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req, HttpServletResponse res) {
         // Verify Google reCAPTCHA token before processing login
-        //this.authService.verifyRecaptchaToken(req.getRecaptchaToken());
+        // this.authService.verifyRecaptchaToken(req.getRecaptchaToken());
         LoginResponse token = this.authService.login(req);
         Cookie cookie = new Cookie("tdt", token.getRefreshToken());
         cookie.setHttpOnly(true);
@@ -54,7 +56,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@CookieValue(value = "tdt", required = false) String refreshToken, HttpServletResponse res) {
+    public ResponseEntity<?> logout(@CookieValue(value = "tdt", required = false) String refreshToken,
+            HttpServletResponse res) {
         Cookie cookie = new Cookie("tdt", null);
         cookie.setHttpOnly(true);
         cookie.setMaxAge(0);
@@ -70,11 +73,13 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> getAccessToken(@CookieValue(value = "tdt", required = false) String refreshToken, HttpServletResponse res) {
+    public ResponseEntity<?> getAccessToken(@CookieValue(value = "tdt", required = false) String refreshToken,
+            HttpServletResponse res) {
         if (refreshToken == null) {
             return ResponseEntity
                     .status(401)
-                    .body(new ApiResponse<>("Refresh token in cookie is missing", null));
+                    .body(new ApiResponse<>("Refresh token in cookie is missing",
+                            Map.of("errorCode", "REFRESH_TOKEN_MISSING")));
         }
         TokenPair token = this.authService.generateAccessToken(refreshToken);
 

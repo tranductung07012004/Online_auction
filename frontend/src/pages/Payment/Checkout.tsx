@@ -5,7 +5,6 @@ import { CartItem, OrderSummary, Address, PaymentFormData, PaymentMethod, Order,
 import { calculateOrderSummary, formatCurrency } from './utils/paymentUtils';
 import CheckoutSteps from './components/CheckoutSteps';
 import PaymentForm from './components/PaymentForm';
-import PaymentApi from './api/paymentApi';
 
 interface ShippingOption {
   id: string;

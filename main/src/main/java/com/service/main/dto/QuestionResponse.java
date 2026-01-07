@@ -1,5 +1,4 @@
 package com.service.main.dto;
-import com.service.main.entity.Question;
 import lombok.Data;
 
 import java.time.OffsetDateTime;

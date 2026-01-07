@@ -4,8 +4,13 @@ spring:
   web:
     resources:
       add-mappings: false # de cho endpoint nao ko co define thi tra ve message trong GlobalExceptionHandler
+      
+  elasticsearch:
+    uris: http://localhost:9200
+
   application:
     name: main
+
   datasource:
     url: jdbc:postgresql://localhost:5433/db2
     username: user
@@ -14,6 +19,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none  # ko tu dong sync entity voi database (nguy hiem)
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all # Luu tat ca cac message vao disk
+      # retries: 3  # Số lần retry khi gửi thất bại, comment vi khi
+      # bat enable.idempotence thi retries = Integer.MAX_VALUE
+      properties:
+        # Đảm bảo không gửi duplicate message
+        enable.idempotence: true
+        # So request gui song song, nhung kafka tu set = 5 khi co enable.idempotence
+        # max.in.flight.requests.per.connection: 5
 
 server:
   port: 8082

@@ -5,6 +5,7 @@ import com.service.user.dto.UpdateAvatarRequest;
 import com.service.user.dto.UpdateEmailRequest;
 import com.service.user.dto.UpdateFullnameRequest;
 import com.service.user.dto.UpdatePasswordRequest;
+import com.service.user.dto.UpdateReviewStatsRequest;
 import com.service.user.dto.UserInfoResponse;
 import com.service.user.dto.UserListResponse;
 import com.service.user.dto.UserProfileResponse;
@@ -27,4 +28,6 @@ public interface UserService {
     void updateAddress(Long userId, UpdateAddressRequest request);
     
     UserProfileResponse getUserProfile(Long userId);
+    
+    void updateReviewStats(UpdateReviewStatsRequest request, Long currentUserId);
 }
