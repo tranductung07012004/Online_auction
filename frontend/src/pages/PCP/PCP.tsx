@@ -51,7 +51,6 @@ export default function ProductPage(): JSX.Element {
   const urlQuery = searchParams.get('q') || '';
   const urlCategory = searchParams.get('category') || '';
   const urlSort = searchParams.get('sort') || '';
-  const urlEndTime = searchParams.get('endTime') || '';
   
   const [products, setProducts] = useState<ProductCardProps[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,14 +75,7 @@ export default function ProductPage(): JSX.Element {
           }
         }
 
-        // Build sort string
-        let sortString = "endAt,asc"; // default
-        if (urlEndTime === "desc") {
-          sortString = "endAt,desc";
-        } else if (urlSort) {
-          // Handle other sort options if needed
-          sortString = urlSort;
-        }
+        const sortString = urlSort || "endAt,asc"; // Use urlSort or default
 
         // Call search API
         const response = await searchProductsFromMain({
@@ -108,7 +100,7 @@ export default function ProductPage(): JSX.Element {
     };
 
     fetchProducts();
-  }, [urlQuery, urlCategory, urlSort, urlEndTime, currentPage, productsPerPage]);
+  }, [urlQuery, urlCategory, urlSort, currentPage, productsPerPage]);
 
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
@@ -119,7 +111,7 @@ export default function ProductPage(): JSX.Element {
   // Reset to page 1 when search params change
   useEffect(() => {
     setCurrentPage(1);
-  }, [urlQuery, urlCategory, urlSort, urlEndTime]);
+  }, [urlQuery, urlCategory, urlSort]);
 
   return (
     <div>

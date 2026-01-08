@@ -30,6 +30,7 @@ export interface MenuItem {
   text: string;
   icon: React.ReactNode;
   path: string;
+  categoryId?: number; // Category ID của parent category
   subcategories?: SubCategory[];
 }
 
@@ -38,7 +39,7 @@ interface SearchBarProps {
   onSearchChange: (value: string) => void;
   onSearchSubmit: (e: React.FormEvent) => void;
   menuItems: MenuItem[];
-  onFilterSelect: (filters: { category?: string; sort?: string; endTime?: boolean }) => void;
+  onFilterSelect: (filters: { category?: string; sort?: string }) => void;
   placeholder?: string;
   maxWidth?: { xs: string; md: string };
 }
@@ -57,7 +58,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   
   const [selectedCategory, setSelectedCategory] = useState<string>(filters.category || '');
   const [selectedSort, setSelectedSort] = useState<string>(filters.sort || '');
-  const [selectedEndTime, setSelectedEndTime] = useState<boolean>(filters.endTime || false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   
   const filterPanelOpen = Boolean(filterAnchorEl);
@@ -65,7 +65,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   useEffect(() => {
     setSelectedCategory(filters.category || '');
     setSelectedSort(filters.sort || '');
-    setSelectedEndTime(filters.endTime || false);
   }, [filters]);
 
   const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -93,21 +92,24 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleSortChange = (sortType: string) => {
-    setSelectedSort(selectedSort === sortType ? '' : sortType);
-  };
-
-  const handleEndTimeChange = () => {
-    setSelectedEndTime(!selectedEndTime);
+    // Toggle: if already selected, deselect it
+    if (selectedSort === sortType) {
+      setSelectedSort('');
+    } else {
+      setSelectedSort(sortType);
+    }
   };
 
   const handleApplyFilters = () => {
-    const newFilters: { category?: string; sort?: string; endTime?: boolean } = {};
+    const newFilters: { category?: string; sort?: string } = {};
     
     if (selectedCategory) {
       newFilters.category = selectedCategory;
     }
-    if (selectedSort) newFilters.sort = selectedSort;
-    if (selectedEndTime) newFilters.endTime = true;
+    
+    if (selectedSort) {
+      newFilters.sort = selectedSort;
+    }
     
     // Update store and trigger navigation via callback
     onFilterSelect(newFilters);
@@ -117,7 +119,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const handleResetFilters = () => {
     setSelectedCategory('');
     setSelectedSort('');
-    setSelectedEndTime(false);
     setExpandedCategories(new Set());
     resetStoreFilters();
   };
@@ -245,8 +246,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   const isExpanded = expandedCategories.has(item.text);
                   const hasSubcategories = item.subcategories && item.subcategories.length > 0;
                   
-                  // Main category value (smartphone, clothes, book)
-                  const mainCategoryValue = item.text.toLowerCase();
+                  // Main category value - use categoryId if available, otherwise fallback to ''
+                  const mainCategoryValue = item.categoryId?.toString() || '';
                   
                   return (
                     <Box key={item.text}>
@@ -375,8 +376,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={selectedEndTime}
-                      onChange={handleEndTimeChange}
+                      checked={selectedSort === 'endAt,desc'}
+                      onChange={() => handleSortChange('endAt,desc')}
                       sx={{
                         color: '#C3937C',
                         '&.Mui-checked': {
@@ -403,8 +404,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={selectedSort === 'price-asc'}
-                      onChange={() => handleSortChange('price-asc')}
+                      checked={selectedSort === 'currentPrice,asc'}
+                      onChange={() => handleSortChange('currentPrice,asc')}
                       sx={{
                         color: '#C3937C',
                         '&.Mui-checked': {
@@ -415,7 +416,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   }
                   label={
                     <Typography sx={{ color: '#333', fontSize: '0.9rem' }}>
-                      Select based on time increasing
+                      Select based on price increasing
                     </Typography>
                   }
                   sx={{

@@ -1,64 +1,73 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchBar, MenuItem } from '../../../components/SearchBar';
 import { useSearchStore } from '../../../stores';
-import {
-  CheckroomOutlined as DressIcon,
-  Smartphone as SmartPhoneIcon,
-  Book as BookIcon,
-} from '@mui/icons-material';
+import { getCategoriesGrouped, Category } from '../../../api/categories';
+import { Category as CategoryIcon } from '@mui/icons-material';
+import { CircularProgress, Box } from '@mui/material';
 
-/**
- * PCPSearchBar component
- * 
- * This is a wrapper component that integrates the SearchBar into the PCP page.
- * It provides the menu items and handlers specific to the PCP page context.
- * 
- * Usage:
- * import { PCPSearchBar } from './pcp/PCPSearchBar';
- * 
- * // In your component:
- * <PCPSearchBar />
- */
+
 export const PCPSearchBar: React.FC = () => {
   const navigate = useNavigate();
   const { searchQuery, filters, setSearchQuery, updateFilters } = useSearchStore();
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Menu items configuration (can be customized for PCP page)
-  const menuItems: MenuItem[] = [
-    { 
-      text: 'Smartphone', 
-      icon: <SmartPhoneIcon />, 
-      path: '/pcp',
-      subcategories: [
-        { text: 'iPhone', value: 'iphone' },
-        { text: 'Samsung', value: 'samsung' },
-        { text: 'Xiaomi', value: 'xiaomi' },
-        { text: 'Oppo', value: 'oppo' },
-      ]
-    },
-    { 
-      text: 'Clothes', 
-      icon: <DressIcon />, 
-      path: '/pcp',
-      subcategories: [
-        { text: 'Men', value: 'men' },
-        { text: 'Women', value: 'women' },
-        { text: 'Kids', value: 'kids' },
-        { text: 'Accessories', value: 'accessories' },
-      ]
-    },
-    { 
-      text: 'Book', 
-      icon: <BookIcon />, 
-      path: '/pcp',
-      subcategories: [
-        { text: 'Fiction', value: 'fiction' },
-        { text: 'Non-Fiction', value: 'non-fiction' },
-        { text: 'Educational', value: 'educational' },
-      ]
-    },
-  ];
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const groupedCategories = await getCategoriesGrouped();
+
+        // Map categories to MenuItem format
+        const mappedMenuItems: MenuItem[] = groupedCategories.map((group) => {
+          const parentCategory = group.parent;
+          const childrenCategories = group.children;
+
+          return {
+            text: parentCategory.name,
+            icon: <CategoryIcon />,
+            path: '/pcp',
+            categoryId: parentCategory.id, // Store parent category ID
+            subcategories: childrenCategories.map((child: Category) => ({
+              text: child.name,
+              value: child.id.toString(), // Store child category ID as string
+            })),
+          };
+        });
+
+        setMenuItems(mappedMenuItems);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        // Fallback to empty array on error
+        setMenuItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Helper function to build search URL
+  const buildSearchURL = (query: string, category?: string, sort?: string): string => {
+    const params = new URLSearchParams();
+    
+    if (query.trim()) {
+      params.set('q', query);
+    }
+    
+    if (category) {
+      params.set('category', category);
+    }
+    
+    if (sort) {
+      params.set('sort', sort);
+    }
+    
+    return `/pcp?${params.toString()}`;
+  };
 
   // Handle search query change
   const handleSearchChange = (value: string) => {
@@ -68,60 +77,38 @@ export const PCPSearchBar: React.FC = () => {
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    
-    // Add search query
-    if (searchQuery.trim()) {
-      params.set('q', searchQuery);
-    }
-    
-    // Add filters
-    if (filters.category) {
-      params.set('category', filters.category);
-    }
-    if (filters.sort) {
-      params.set('sort', filters.sort);
-    }
-    if (filters.endTime) {
-      params.set('endTime', 'desc');
-    }
-    
-    // Navigate with all parameters
-    navigate(`/pcp?${params.toString()}`);
+    const url = buildSearchURL(searchQuery, filters.category, filters.sort);
+    navigate(url);
   };
 
   // Handle filter selection
   const handleFilterSelect = (newFilters: { 
     category?: string; 
-    sort?: string; 
-    endTime?: boolean 
+    sort?: string;
   }) => {
-    // Update store
+    // Update store with new filters
     updateFilters(newFilters);
     
-    // Build URL from store state
-    const params = new URLSearchParams();
-    
-    // Add search query
-    if (searchQuery.trim()) {
-      params.set('q', searchQuery);
-    }
-    
-    // Add all filters (including new ones)
-    const updatedFilters = { ...filters, ...newFilters };
-    if (updatedFilters.category) {
-      params.set('category', updatedFilters.category);
-    }
-    if (updatedFilters.sort) {
-      params.set('sort', updatedFilters.sort);
-    }
-    if (updatedFilters.endTime) {
-      params.set('endTime', 'desc');
-    }
-    
-    // Navigate with all parameters
-    navigate(`/pcp?${params.toString()}`);
+    // Build URL and navigate
+    const url = buildSearchURL(searchQuery, newFilters.category, newFilters.sort);
+    navigate(url);
   };
+
+  // Show loading state while fetching categories
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 2,
+        }}
+      >
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
 
   return (
     <SearchBar
