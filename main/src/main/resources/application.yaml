@@ -12,9 +12,9 @@ spring:
     name: main
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/db2
-    username: user
-    password: 123
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -35,7 +35,7 @@ spring:
         # max.in.flight.requests.per.connection: 5
 
 server:
-  port: 8082
+  port: ${SERVER_PORT:8082}
 
 user:
   service:
@@ -43,3 +43,14 @@ user:
 
 assessment:
   minimum: 8.0
+
+springdoc:
+  # Thay doi duong dan vao giao dine Swagger UI
+  # Mac dinh la /swagger-ui.html
+  swagger-ui:
+    path: /main/api-docs/swagger-ui.html
+
+  # Thay doi duong dan file du lieu (apo-docs)
+  # Mac dinh la /v3/api-docs
+  api-docs:
+    path: /main/api-docs/v3/api-docs

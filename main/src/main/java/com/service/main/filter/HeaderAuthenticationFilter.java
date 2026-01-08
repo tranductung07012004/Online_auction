@@ -26,12 +26,15 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse res,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        //String requestURI = req.getRequestURI();
+        String requestURI = req.getServletPath();
 
-//        if (requestURI.startsWith("/api/main/**")) {
-//            filterChain.doFilter(req, res);
-//            return;
-//        }
+        if (requestURI.startsWith("/main/api-docs/swagger-ui") ||
+                requestURI.startsWith("/main/api-docs/v3/api-docs") ||
+                requestURI.equals("/main/api-docs/swagger-ui.html")
+        ) {
+            filterChain.doFilter(req, res);
+            return;
+        }
 
 
         String userId = req.getHeader("X-user-id");

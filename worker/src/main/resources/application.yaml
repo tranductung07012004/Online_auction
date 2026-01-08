@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
 spring:
   application:
     name: worker
@@ -8,9 +8,9 @@ spring:
     uris: http://localhost:9200
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/db2
-    username: user
-    password: 123
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -34,8 +34,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: nguyenquangdoan27092004@gmail.com
-    password: pvqm bxla osgr iqpn
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
