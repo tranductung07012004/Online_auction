@@ -29,7 +29,7 @@ public class AutoBidController {
 
         Long currentUserId = Long.valueOf(authentication.getName());
 
-        AutoBidResponse res = autoBidService.createAutoBid(request, currentUserId);
+        AutoBidResponse res = this.autoBidService.createAutoBid(request, currentUserId);
 
         return ResponseEntity
                 .status(201)

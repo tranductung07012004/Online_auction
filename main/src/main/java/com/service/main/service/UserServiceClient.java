@@ -1,5 +1,6 @@
 package com.service.main.service;
 
+import com.service.main.dto.UpdateReviewStatsRequest;
 import com.service.main.dto.UserInfo;
 import com.service.main.dto.UserInfoResponse;
 
@@ -10,5 +11,10 @@ public interface UserServiceClient {
      * Get user info by ID including email
      */
     UserInfo getUserInfoById(Long userId);
+    
+    /**
+     * Update review stats (like/dislike) for a user
+     */
+    void updateReviewStats(UpdateReviewStatsRequest request);
 }
 

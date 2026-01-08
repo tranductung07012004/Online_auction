@@ -23,11 +23,6 @@ const Information = lazy(() => import("../pages/Payment/Information"));
 const Successful = lazy(() => import("../pages/Payment/Successful"));
 const PaymentReview = lazy(() => import("../pages/Payment/PaymentReview"));
 const SearchOverlay = lazy(() => import("../pages/Search/SearchOverlay"));
-const Appointment = lazy(() => import("../pages/Appointment/Appointment"));
-const Photography = lazy(() => import("../pages/Photography/Photography"));
-const PhotographyServiceDetail = lazy(
-  () => import("../pages/Photography/ServiceDetail")
-);
 
 // Admin Components
 const Dashboard = lazy(() => import("../pages/Admin/Dashboard"));
@@ -41,7 +36,6 @@ const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
 const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const Cart = lazy(() => import("../pages/Cart/Cart"));
-const AboutPage = lazy(() => import("../pages/About/About"));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -85,14 +79,6 @@ const GuestRoute: React.FC<GuestRouteProps> = ({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
 
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      toast('You have already logged in, please logout', {
-        duration: 2000,
-      });
-    }
-  }, [isAuthenticated, isLoading]);
-
   if (isLoading) {
     return <LoadingOverlay message="Verifying your account..." fullScreen />;
   }
@@ -111,12 +97,6 @@ const AppRoutes = () => {
     { path: "/product-page/:id", element: <PDP /> },
     // { path: '/product/:id', element: <PDP /> },
     { path: "/pcp", element: <PCP /> },
-    { path: "/appointment", element: <Appointment /> },
-    { path: "/photography", element: <Photography /> },
-    {
-      path: "/photography/service-detail/:id",
-      element: <PhotographyServiceDetail />,
-    },
     {
       path: "/profile",
       //(
@@ -155,7 +135,6 @@ const AppRoutes = () => {
 
     // Other Routes
     { path: "/cart", element: <Cart /> },
-    { path: "/about", element: <AboutPage /> },
     { path: "/search", element: <SearchOverlay /> },
 
     // Fallback Route
