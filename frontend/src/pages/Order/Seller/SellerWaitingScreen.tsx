@@ -8,6 +8,7 @@ import {
   Divider,
   Card,
   CardMedia,
+  Button,
 } from "@mui/material";
 import {
   HourglassEmpty,
@@ -15,20 +16,27 @@ import {
   LocalShipping,
   Payment,
   Home,
+  Cancel,
 } from "@mui/icons-material";
 import { Order } from "../../../types/order";
+import { useState } from "react";
+import CancelOrderDialog from "../Components/CancelOrderDialog";
 
 interface SellerWaitingScreenProps {
   order: Order;
   message: string;
   icon?: "payment" | "address" | "confirm";
+  onRefresh?: () => void;
 }
 
 export default function SellerWaitingScreen({
   order,
   message,
   icon = "payment",
+  onRefresh,
 }: SellerWaitingScreenProps) {
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -142,6 +150,37 @@ export default function SellerWaitingScreen({
               </Box>
             </Stack>
           </Box>
+
+          {/* Cancel Order Button - Only show if order is cancellable */}
+          {!["SHIPPED", "DELIVERED", "REVIEWED", "CANCELLED"].includes(
+            order.status
+          ) && (
+            <Box sx={{ mt: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="error"
+                startIcon={<Cancel />}
+                onClick={() => setCancelDialogOpen(true)}
+                sx={{
+                  borderWidth: 2,
+                  "&:hover": {
+                    borderWidth: 2,
+                    bgcolor: "rgba(244, 67, 54, 0.04)",
+                  },
+                }}
+              >
+                Cancel Order
+              </Button>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 1, display: "block", textAlign: "center" }}
+              >
+                Cancelling may affect your seller rating
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Paper>
 
@@ -244,6 +283,16 @@ export default function SellerWaitingScreen({
           </Paper>
         )}
       </Box>
+
+      {/* Cancel Order Dialog */}
+      <CancelOrderDialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        orderId={order.id}
+        userRole="seller"
+        orderStatus={order.status}
+        onSuccess={onRefresh}
+      />
     </Box>
   );
 }

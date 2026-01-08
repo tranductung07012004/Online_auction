@@ -23,10 +23,12 @@ import {
   Home,
   ZoomIn,
   Warning,
+  Cancel,
 } from "@mui/icons-material";
 import { confirmPaymentAndShipping } from "../../../api/order";
 import { toast } from "react-hot-toast";
 import { Order, OrderPayment, OrderShipping } from "../../../types/order";
+import CancelOrderDialog from "../Components/CancelOrderDialog";
 
 interface SellerPaymentVerificationProps {
   order: Order;
@@ -43,6 +45,7 @@ export default function SellerPaymentVerification({
 }: SellerPaymentVerificationProps) {
   const [submitting, setSubmitting] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const handleApprovePayment = async () => {
     if (!order) return;
@@ -230,7 +233,9 @@ export default function SellerPaymentVerification({
                           },
                         },
                       }}
-                      onClick={() => setPreviewImage(payment.paymentProofUrl)}
+                      onClick={() =>
+                        setPreviewImage(payment.paymentProofUrl || null)
+                      }
                     >
                       <CardMedia
                         component="img"
@@ -324,6 +329,33 @@ export default function SellerPaymentVerification({
                 "Approve Payment & Continue"
               )}
             </Button>
+
+            {/* Cancel Order Button */}
+            {!["SHIPPED", "DELIVERED", "REVIEWED", "CANCELLED"].includes(
+              order.status
+            ) && (
+              <Box>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  size="large"
+                  startIcon={<Cancel />}
+                  onClick={() => setCancelDialogOpen(true)}
+                  disabled={submitting}
+                  sx={{ py: 1.5 }}
+                >
+                  Cancel Order
+                </Button>
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ display: "block", mt: 0.5, textAlign: "center" }}
+                >
+                  ⚠️ This action cannot be undone
+                </Typography>
+              </Box>
+            )}
 
             <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
               By approving, you confirm that payment has been received and you
@@ -445,6 +477,15 @@ export default function SellerPaymentVerification({
           </Button>
         </DialogActions>
       </Dialog>
+      {/* Cancel Order Dialog */}
+      <CancelOrderDialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        orderId={order.id}
+        userRole="seller"
+        orderStatus={order.status}
+        onSuccess={onSuccess || (() => window.location.reload())}
+      />
     </>
   );
 }

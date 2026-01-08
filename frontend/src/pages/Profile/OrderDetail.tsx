@@ -24,6 +24,7 @@ import {
 } from "@mui/icons-material";
 import { getOrderById, updateOrderStatus } from "../../api/order";
 import { toast } from "react-hot-toast";
+import CancelOrderDialog from "../Order/Components/CancelOrderDialog";
 
 interface ProductBasicInfo {
   id: number;
@@ -58,6 +59,7 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
@@ -448,7 +450,9 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
                 mt: 5,
                 mb: 2,
                 display: "flex",
-                justifyContent: "center",
+                flexDirection: "column",
+                gap: 2,
+                alignItems: "center",
                 width: "100%",
               }}
             >
@@ -475,10 +479,47 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
               >
                 Proceed to Payment
               </Button>
+
+              <Box sx={{ width: "100%", maxWidth: 400 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  size="large"
+                  startIcon={<Cancel />}
+                  onClick={() => setCancelDialogOpen(true)}
+                  sx={{
+                    py: 1.5,
+                    borderRadius: "30px",
+                    textTransform: "none",
+                  }}
+                >
+                  Cancel Order
+                </Button>
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ display: "block", mt: 0.5, textAlign: "center" }}
+                >
+                  ⚠️ This action cannot be undone
+                </Typography>
+              </Box>
             </Box>
           )}
         </Box>
       </Box>
+
+      {/* Cancel Order Dialog */}
+      <CancelOrderDialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        orderId={order?.id || 0}
+        userRole="buyer"
+        orderStatus={order?.status || ""}
+        onSuccess={() => {
+          onProceedToNext();
+        }}
+      />
     </>
   );
 }
