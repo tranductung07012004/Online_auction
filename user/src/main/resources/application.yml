@@ -1,14 +1,14 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 spring:
   application:
-    name: midterm
+    name: user
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/db1
-    username: user
-    password: 123
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -28,14 +28,25 @@ spring:
         # So request gui song song, nhung kafka tu set = 5 khi co enable.idempotence
         # max.in.flight.requests.per.connection: 5
 jwt:
-  secret: gsdg9824tgwnau81039p2o3tgrnewjfvshdua8oi24kgqewihod
+  secret: ${JWT_SECRET}
   expiration_access: 3000000000 # milliseconds, tinh ra la = 3000s, dung de test login
   expiration_refresh: 604800000 # milliseconds, tinh ra la = 7 * 24 * 60 * 1000
 
 recaptcha:
-  secret: 6LdYXDAsAAAAAGdpKMehnyORcHKi3_P72u_UMiMB
+  secret: ${RECAPTCHA_SECRET}
   verify-url: https://www.google.com/recaptcha/api/siteverify
 
 otp:
   expiry-minutes: 600
+
+springdoc:
+  # Thay doi duong dan vao giao dine Swagger UI
+  # Mac dinh la /swagger-ui.html
+  swagger-ui:
+    path: /user/api-docs/swagger-ui.html
+
+  # Thay doi duong dan file du lieu (apo-docs)
+  # Mac dinh la /v3/api-docs
+  api-docs:
+    path: /user/api-docs/v3/api-docs
 

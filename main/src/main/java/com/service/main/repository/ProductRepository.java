@@ -101,7 +101,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Search active products only
     @Query("""
-        SELECT p FROM Product p 
+        SELECT p FROM Product p
         WHERE p.endAt > :now
         AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)
@@ -116,7 +116,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Search ended products only
     @Query("""
-        SELECT p FROM Product p 
+        SELECT p FROM Product p
         WHERE p.endAt <= :now
         AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)

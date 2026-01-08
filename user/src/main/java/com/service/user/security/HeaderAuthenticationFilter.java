@@ -75,12 +75,17 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req,
                                 @NonNull HttpServletResponse res,
                                 @NonNull FilterChain filterChain) throws ServletException, IOException {
-        String requestURI = req.getRequestURI();
+        String requestURI = req.getServletPath();
+
         if (requestURI.startsWith("/api/user/auth/login") ||
             requestURI.startsWith("/api/user/auth/register") ||
             requestURI.startsWith("/api/user/auth/refresh") ||
             requestURI.startsWith("/api/user/auth/logout") ||
-            requestURI.startsWith("/api/user/auth/verify-otp")) {
+            requestURI.startsWith("/api/user/auth/verify-otp") ||
+            requestURI.startsWith("/user/api-docs/swagger-ui") ||
+            requestURI.startsWith("/user/api-docs/v3/api-docs") ||
+            requestURI.equals("/user/api-docs/swagger-ui.html")
+        ) {
             filterChain.doFilter(req, res);
             return;
         }
