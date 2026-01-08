@@ -14,16 +14,13 @@ import {
   Avatar,
   Badge,
   Collapse,
-  CircularProgress,
+  CircularProgress
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  CheckroomOutlined as DressIcon,
   ShoppingCart as CartIcon,
   Person as PersonIcon,
-  Smartphone as SmartPhoneIcon,
-  Book as BookIcon,
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
   Store as StoreIcon,
@@ -42,7 +39,7 @@ import { getCategoriesGrouped } from "../api/categories";
 // MenuItem type for drawer menu
 interface SubCategory {
   text: string;
-  value: string; // This will be the category id as string
+  value: string | undefined; // This will be the category id as string
   id: number; // Store the actual id
 }
 
@@ -175,7 +172,7 @@ const DrawerLogo: React.FC<DrawerLogoProps> = ({ logo }) => (
 
 interface MenuItemsListProps {
   items: MenuItem[];
-  onItemClick: (path: string, category: string) => void;
+  onItemClick: (path: string, category: string | undefined) => void;
   sectionTitle?: string;
 }
 
@@ -227,7 +224,7 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({
                 <ListItemButton
                   onClick={() => {
                     // Pass category id if available, otherwise pass text
-                    const categoryValue = item.categoryId?.toString() || item.text;
+                    const categoryValue = item.categoryId?.toString();
                     onItemClick(item.path, categoryValue);
                   }}
                   sx={{
@@ -360,9 +357,7 @@ interface UserNavigationDrawerProps {
   onClose: () => void;
   logo: string;
   menuItems: MenuItem[];
-  onMenuItemClick: (path: string, category: string) => void;
-  isAuthenticated: boolean;
-  role: string | null;
+  onMenuItemClick: (path: string, category: string | undefined) => void;
   categoriesLoading: boolean;
 }
 
@@ -372,8 +367,6 @@ const UserNavigationDrawer: React.FC<UserNavigationDrawerProps> = ({
   logo,
   menuItems,
   onMenuItemClick,
-  isAuthenticated,
-  role,
   categoriesLoading,
 }) => (
   <Drawer
@@ -397,8 +390,6 @@ const UserNavigationDrawer: React.FC<UserNavigationDrawerProps> = ({
       ) : (
         <MenuItemsList items={menuItems} onItemClick={onMenuItemClick} />
       )}
-      <Divider sx={{ my: 2 }} />
-      <UserInfo isAuthenticated={isAuthenticated} role={role} />
     </Box>
   </Drawer>
 );
@@ -408,10 +399,7 @@ interface AdminNavigationDrawerProps {
   onClose: () => void;
   logo: string;
   menuItems: MenuItem[];
-  onMenuItemClick: (path: string, category: string) => void;
-  isAuthenticated: boolean;
-  role: string | null;
-  onLogout?: () => void;
+  onMenuItemClick: (path: string, category: string | undefined) => void;
 }
 
 const AdminNavigationDrawer: React.FC<AdminNavigationDrawerProps> = ({
@@ -420,9 +408,6 @@ const AdminNavigationDrawer: React.FC<AdminNavigationDrawerProps> = ({
   logo,
   menuItems,
   onMenuItemClick,
-  isAuthenticated,
-  role,
-  onLogout,
 }) => (
   <Drawer
     anchor="left"
@@ -445,13 +430,6 @@ const AdminNavigationDrawer: React.FC<AdminNavigationDrawerProps> = ({
       <MenuItemsList items={menuItems} onItemClick={onMenuItemClick} />
 
       <Box sx={{ flexGrow: 1 }} />
-
-      <Divider sx={{ my: 2 }} />
-      <UserInfo
-        isAuthenticated={isAuthenticated}
-        role={role}
-        onLogout={onLogout}
-      />
     </Box>
   </Drawer>
 );
@@ -485,24 +463,6 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
 
   const goToCreateProductPage = (): void => {
     navigate("/create-product");
-  };
-
-  const handleLogout = (): void => {
-    // TODO: Implement logout logic
-    console.log("Logout clicked");
-    navigate("/signin");
-  };
-
-  const getCategoryIcon = (categoryName: string): React.ReactNode => {
-    const nameLower = categoryName.toLowerCase();
-    if (nameLower.includes("smartphone") || nameLower.includes("phone") || nameLower.includes("mobile")) {
-      return <SmartPhoneIcon />;
-    } else if (nameLower.includes("cloth") || nameLower.includes("dress") || nameLower.includes("fashion")) {
-      return <DressIcon />;
-    } else if (nameLower.includes("book")) {
-      return <BookIcon />;
-    }
-    return <CategoryIcon />;
   };
 
   // Fetch categories from API
@@ -539,7 +499,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
 
           const menuItem: MenuItem = {
             text: parentCategory.name,
-            icon: getCategoryIcon(parentCategory.name),
+            icon: <CategoryIcon />,
             path: "/pcp",
             categoryId: parentCategory.id,
             subcategories: childrenCategories.map((child) => ({
@@ -601,7 +561,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
   ];
 
   // Handle menu item click for user drawer
-  const handleUserMenuItemClick = (path: string, category: string) => {
+  const handleUserMenuItemClick = (path: string, category: string | undefined) => {
     // category can be either category name or category id (as string)
     if (
       category === "All Products" ||
@@ -612,7 +572,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
       return;
     }
 
-    if (path === "/pcp") {
+    if (path === "/pcp" && category) {
       const params = new URLSearchParams();
       // category is the id (as string) when clicking on subcategory
       // or categoryId when clicking on parent category
@@ -641,7 +601,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
   };
 
   // Handle menu item click for admin drawer
-  const handleAdminMenuItemClick = (path: string, _category: string) => {
+  const handleAdminMenuItemClick = (path: string, _category: string | undefined) => {
     navigate(path);
     setDrawerOpen(false);
   };
@@ -697,9 +657,6 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
           logo={logo}
           menuItems={adminMenuItems}
           onMenuItemClick={handleAdminMenuItemClick}
-          isAuthenticated={isAuthenticated}
-          role={role}
-          onLogout={handleLogout}
         />
       ) : (
         <UserNavigationDrawer
@@ -708,8 +665,6 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
           logo={logo}
           menuItems={userMenuItems}
           onMenuItemClick={handleUserMenuItemClick}
-          isAuthenticated={isAuthenticated}
-          role={role}
           categoriesLoading={categoriesLoading}
         />
       )}

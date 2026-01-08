@@ -1,14 +1,13 @@
 import axios from 'axios';
 import {useAuthStore} from '../stores/authStore';
 
-// Create and configure the API instance
 const api = axios.create({
   baseURL: 'http://localhost:8080',
-  withCredentials: true, // Important for sending cookies with requests
+  withCredentials: true, // for cookie
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds timeout
+  timeout: 10000,
 });
 
 api.interceptors.request.use(
@@ -47,7 +46,6 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.status} ${response.config.url}`);
     return response;
   },
   async (error) => {
@@ -84,7 +82,7 @@ api.interceptors.response.use(
 
           return api(originalRequest);
         } else {
-          processQueue(new Error('Failed to refresh token'), null);
+          processQueue(new Error('Failed to refresh, get new access token'), null);
           isRefreshing = false;
           
           useAuthStore.getState().clearAuth();
@@ -99,16 +97,6 @@ api.interceptors.response.use(
         
         return Promise.reject(refreshError);
       }
-    }
-
-    console.error('API Response Error:', error.response ? {
-      status: error.response.status,
-      data: error.response.data,
-      url: error.config?.url
-    } : error);
-    
-    if (error.response && error.response.status === 401) {
-      console.warn('Authentication error detected');
     }
     
     return Promise.reject(error);

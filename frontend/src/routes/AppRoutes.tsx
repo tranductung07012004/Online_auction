@@ -79,14 +79,6 @@ const GuestRoute: React.FC<GuestRouteProps> = ({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
 
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      toast('You have already logged in, please logout', {
-        duration: 2000,
-      });
-    }
-  }, [isAuthenticated, isLoading]);
-
   if (isLoading) {
     return <LoadingOverlay message="Verifying your account..." fullScreen />;
   }
