@@ -3,7 +3,6 @@ import { create } from 'zustand';
 interface SearchFilters {
   category?: string;
   sort?: string;
-  endTime?: boolean;
 }
 
 interface SearchState {
@@ -24,7 +23,6 @@ interface SearchState {
 const initialFilters: SearchFilters = {
   category: undefined,
   sort: undefined,
-  endTime: undefined,
 };
 
 export const useSearchStore = create<SearchState>((set) => ({
@@ -42,8 +40,17 @@ export const useSearchStore = create<SearchState>((set) => ({
   updateSearchQuery: (query: string) => set({ searchQuery: query }),
   
   updateFilters: (newFilters: Partial<SearchFilters>) =>
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters },
-    })),
+    set((state) => {
+      const updatedFilters = { ...state.filters };
+      
+      if ('category' in newFilters) {
+        updatedFilters.category = newFilters.category || undefined;
+      }
+      if ('sort' in newFilters) {
+        updatedFilters.sort = newFilters.sort || undefined;
+      }
+      
+      return { filters: updatedFilters };
+    }),
 }));
 
