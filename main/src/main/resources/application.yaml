@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none  # ko tu dong sync entity voi database (nguy hiem)
+      ddl-auto: none # ko tu dong sync entity voi database (nguy hiem)
 
 server:
   port: 8082
@@ -24,3 +24,10 @@ user:
 
 assessment:
   minimum: 8.0
+
+vnpay:
+  tmn-code: V0E40BL9 # VNPay Terminal Code (Sandbox)
+  hash-secret: GV6VZ76F2TQ98CFKQ1OZKPGDDPINF792 # VNPay Hash Secret (Sandbox)
+  url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  return-url: http://localhost:8080/api/main/payment/vnpay-return
+  api-url: https://sandbox.vnpayment.vn/merchant_webapi/api/transaction

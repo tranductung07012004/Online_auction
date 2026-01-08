@@ -145,6 +145,7 @@ CREATE TABLE orders (
     buyer_id BIGINT NOT NULL,
     seller_id BIGINT NOT NULL,
     amount DECIMAL(15,5) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'CREATED', -- 'CREATED', 'CONFIRMED', 'ADDRESS_PROVIDED', 'PAYMENT_PROOF_UPLOADED', 'PAYMENT_CONFIRMED', 'SHIPPED', 'DELIVERED', 'REVIEWED', 'CANCELLED'
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_cancelled BOOLEAN DEFAULT FALSE,
     cancelled_reason TEXT,
@@ -155,13 +156,14 @@ CREATE TABLE order_payments (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL UNIQUE,
     amount DECIMAL(15,5) NOT NULL,
-    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER', -- 'BANK_TRANSFER', 'PAYPAL', 'CREDIT_CARD', 'COD'
+    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER', -- 'BANK_TRANSFER', 'VNPAY', 'MOMO', 'PAYPAL', 'CREDIT_CARD', 'COD'
     payment_status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROOF_UPLOADED', 'CONFIRMED', 'FAILED', 'REFUNDED'
     payment_proof_url TEXT, -- URL ảnh chứng từ chuyển khoản
-    transaction_id VARCHAR(255), -- Mã giao dịch từ payment gateway (nếu có)
+    transaction_id VARCHAR(255), -- Mã tham chiếu giao dịch (vnpay_txn_ref)
+    vnpay_transaction_no VARCHAR(255), -- Mã giao dịch từ VNPay
     buyer_paid_at TIMESTAMPTZ, -- Thời điểm buyer upload proof/thanh toán
-    seller_confirmed_at TIMESTAMPTZ, -- Thời điểm seller xác nhận đã nhận tiền
-    notes TEXT,
+    seller_confirmed_at TIMESTAMPTZ, -- Thời điểm seller xác nhận đã nhận tiền (giải ngân)
+    notes TEXT, -- Lưu thêm thông tin JSON từ VNPay (bank_code, card_type, etc.)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

@@ -1,4 +1,4 @@
-import api from './apiClient';
+import api from "./apiClient";
 
 // Interfaces matching backend DTOs
 export interface UpdateFullnameRequest {
@@ -46,12 +46,32 @@ export interface UserProfileResponse {
 export const getUserProfile = async (): Promise<UserProfileResponse> => {
   try {
     const response = await api.get<ApiResponse<UserProfileResponse>>(
-      '/api/user/internal/profile'
+      "/api/user/internal/profile"
     );
     return response.data.data;
   } catch (error: any) {
     const errorMessage =
-      error.response?.data?.message || 'Failed to get user profile';
+      error.response?.data?.message || "Failed to get user profile";
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * Get user by ID
+ * @param userId - User ID
+ * @returns Promise with UserProfileResponse
+ */
+export const getUserById = async (
+  userId: number
+): Promise<UserProfileResponse> => {
+  try {
+    const response = await api.get<ApiResponse<UserProfileResponse>>(
+      `/api/user/internal/profile/${userId}`
+    );
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message || "Failed to get user information";
     throw new Error(errorMessage);
   }
 };
@@ -66,13 +86,13 @@ export const updateFullname = async (
 ): Promise<ApiResponse<null>> => {
   try {
     const response = await api.put<ApiResponse<null>>(
-      '/api/user/internal/fullname',
+      "/api/user/internal/fullname",
       data
     );
     return response.data;
   } catch (error: any) {
     const errorMessage =
-      error.response?.data?.message || 'Failed to update fullname';
+      error.response?.data?.message || "Failed to update fullname";
     throw new Error(errorMessage);
   }
 };
@@ -87,13 +107,13 @@ export const updateEmail = async (
 ): Promise<ApiResponse<null>> => {
   try {
     const response = await api.put<ApiResponse<null>>(
-      '/api/user/internal/email',
+      "/api/user/internal/email",
       data
     );
     return response.data;
   } catch (error: any) {
     const errorMessage =
-      error.response?.data?.message || 'Failed to update email';
+      error.response?.data?.message || "Failed to update email";
     throw new Error(errorMessage);
   }
 };
@@ -108,13 +128,13 @@ export const updatePassword = async (
 ): Promise<ApiResponse<null>> => {
   try {
     const response = await api.put<ApiResponse<null>>(
-      '/api/user/internal/password',
+      "/api/user/internal/password",
       data
     );
     return response.data;
   } catch (error: any) {
     const errorMessage =
-      error.response?.data?.message || 'Failed to update password';
+      error.response?.data?.message || "Failed to update password";
     throw new Error(errorMessage);
   }
 };
@@ -129,13 +149,13 @@ export const updateAddress = async (
 ): Promise<ApiResponse<null>> => {
   try {
     const response = await api.put<ApiResponse<null>>(
-      '/api/user/internal/address',
+      "/api/user/internal/address",
       data
     );
     return response.data;
   } catch (error: any) {
     const errorMessage =
-      error.response?.data?.message || 'Failed to update address';
+      error.response?.data?.message || "Failed to update address";
     throw new Error(errorMessage);
   }
 };
@@ -150,14 +170,13 @@ export const updateAvatar = async (
 ): Promise<ApiResponse<null>> => {
   try {
     const response = await api.put<ApiResponse<null>>(
-      '/api/user/internal/avatar',
+      "/api/user/internal/avatar",
       data
     );
     return response.data;
   } catch (error: any) {
     const errorMessage =
-      error.response?.data?.message || 'Failed to update avatar';
+      error.response?.data?.message || "Failed to update avatar";
     throw new Error(errorMessage);
   }
 };
-

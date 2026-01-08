@@ -18,6 +18,7 @@ public class OrderWithProductResponse {
     private Long buyerId;
     private Long sellerId;
     private BigDecimal amount;
+    private String status; // CREATED, CONFIRMED, ADDRESS_PROVIDED, PAYMENT_PROOF_UPLOADED, PAYMENT_CONFIRMED, SHIPPED, DELIVERED, REVIEWED, CANCELLED
     private OffsetDateTime createdAt;
     private Boolean isCancelled;
     private String cancelledReason;

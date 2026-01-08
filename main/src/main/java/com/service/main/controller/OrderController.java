@@ -137,4 +137,16 @@ public class OrderController {
         orderService.cancelOrder(orderId, request);
         return ResponseEntity.ok(new ApiResponse<>("Order cancelled successfully", null));
     }
+    
+    // ==================== Order Status Update ====================
+    
+    @PutMapping("/{orderId}/status")
+    @PreAuthorize("hasAnyRole('BIDDER', 'SELLER')")
+    public ResponseEntity<ApiResponse<String>> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestBody UpdateOrderStatusRequest request
+    ) {
+        orderService.updateOrderStatus(orderId, request);
+        return ResponseEntity.ok(new ApiResponse<>("Order status updated successfully", null));
+    }
 }

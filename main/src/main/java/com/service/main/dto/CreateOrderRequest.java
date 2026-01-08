@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,6 +17,5 @@ public class CreateOrderRequest {
     private Long buyerId;
     @NotNull
     private Long sellerId;
-    @NotNull
-    private BigDecimal amount;
+    // amount will be automatically fetched from product.currentPrice
 }

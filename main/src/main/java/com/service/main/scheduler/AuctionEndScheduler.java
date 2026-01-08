@@ -24,7 +24,8 @@ public class AuctionEndScheduler {
     private final OrderPaymentRepository orderPaymentRepository;
 
     /**
-     * Check for ended auctions every minute and create orders automatically
+     * Check for ended auctions every 5 seconds (for testing)
+     * Change to 60000 (1 minute) in production
      */
     @Scheduled(fixedRate = 60000) // Run every 1 minute
     @Transactional
@@ -36,41 +37,41 @@ public class AuctionEndScheduler {
         // Find all products that have ended and have a winner (top bidder)
         List<Product> endedProducts = productRepository.findEndedProductsWithWinner(now);
         
+        if (endedProducts.isEmpty()) {
+            log.debug("No ended auctions to process");
+            return;
+        }
+        
         log.info("Found {} ended auctions to process", endedProducts.size());
         
         for (Product product : endedProducts) {
             try {
-                // Check if order already exists for this product
-                boolean orderExists = orderRepository.existsByProductId(product.getId());
+                // Query already filters products without orders, so we can directly create order
+                Order order = Order.builder()
+                        .productId(product.getId())
+                        .buyerId(product.getTopBidderId())
+                        .sellerId(product.getSellerId())
+                        .amount(product.getCurrentPrice())
+                        .createdAt(now)
+                        .isCancelled(false)
+                        .build();
                 
-                if (!orderExists && product.getTopBidderId() != null) {
-                    // Create new order
-                    Order order = Order.builder()
-                            .productId(product.getId())
-                            .buyerId(product.getTopBidderId())
-                            .sellerId(product.getSellerId())
-                            .amount(product.getCurrentPrice())
-                            .createdAt(now)
-                            .isCancelled(false)
-                            .build();
-                    
-                    order = orderRepository.save(order);
-                    
-                    // Create payment record with PENDING status
-                    OrderPayment payment = OrderPayment.builder()
-                            .orderId(order.getId())
-                            .amount(order.getAmount())
-                            .paymentStatus("PENDING")
-                            .paymentMethod("BANK_TRANSFER")
-                            .build();
-                    orderPaymentRepository.save(payment);
-                    
-                    log.info("Created order {} for product {} (seller: {}, buyer: {}, amount: {})",
-                            order.getId(), product.getId(), product.getSellerId(), product.getTopBidderId(), product.getCurrentPrice());
-                    
-                    // TODO: Send notification emails to buyer and seller
-                    // sendAuctionEndNotification(product, order);
-                }
+                order = orderRepository.save(order);
+                
+                // Create payment record with PENDING status
+                OrderPayment payment = OrderPayment.builder()
+                        .orderId(order.getId())
+                        .amount(order.getAmount())
+                        .paymentStatus("PENDING")
+                        .paymentMethod("BANK_TRANSFER")
+                        .build();
+                orderPaymentRepository.save(payment);
+                
+                log.info("Created order {} for product {} (seller: {}, buyer: {}, amount: {})",
+                        order.getId(), product.getId(), product.getSellerId(), product.getTopBidderId(), product.getCurrentPrice());
+                
+                // TODO: Send notification emails to buyer and seller
+                // sendAuctionEndNotification(product, order);
             } catch (Exception e) {
                 log.error("Error processing ended auction for product {}: {}", product.getId(), e.getMessage(), e);
             }

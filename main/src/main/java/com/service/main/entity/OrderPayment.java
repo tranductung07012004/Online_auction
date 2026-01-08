@@ -38,6 +38,9 @@ public class OrderPayment {
     @Column(name = "transaction_id", length = 255)
     private String transactionId;
 
+    @Column(name = "vnpay_transaction_no", length = 255)
+    private String vnpayTransactionNo;
+
     @Column(name = "buyer_paid_at")
     private OffsetDateTime buyerPaidAt;
 

@@ -37,4 +37,7 @@ public interface OrderService {
 
     // Cancel methods
     void cancelOrder(Long orderId, CancelOrderRequest request);
+
+    // Update order status
+    void updateOrderStatus(Long orderId, UpdateOrderStatusRequest request);
 }

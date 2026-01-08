@@ -68,6 +68,7 @@ public class OrderServiceImpl implements OrderService {
                     .buyerId(order.getBuyerId())
                     .sellerId(order.getSellerId())
                     .amount(order.getAmount())
+                    .status(order.getStatus())
                     .createdAt(order.getCreatedAt())
                     .isCancelled(order.getIsCancelled())
                     .cancelledReason(order.getCancelledReason())
@@ -78,11 +79,16 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderWithProductResponse createOrder(com.service.main.dto.CreateOrderRequest request) {
+        // Fetch product to get current price
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + request.getProductId()));
+        
+        // Use product's current price as order amount
         Order order = Order.builder()
                 .productId(request.getProductId())
                 .buyerId(request.getBuyerId())
                 .sellerId(request.getSellerId())
-                .amount(request.getAmount())
+                .amount(product.getCurrentPrice())
                 .createdAt(java.time.OffsetDateTime.now())
                 .isCancelled(false)
                 .build();
@@ -97,7 +103,6 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         orderPaymentRepository.save(payment);
         
-        Product product = productRepository.findById(order.getProductId()).orElse(null);
         OrderWithProductResponse.ProductBasicInfo productInfo = null;
         if (product != null) {
             productInfo = OrderWithProductResponse.ProductBasicInfo.builder()
@@ -115,6 +120,7 @@ public class OrderServiceImpl implements OrderService {
                 .buyerId(order.getBuyerId())
                 .sellerId(order.getSellerId())
                 .amount(order.getAmount())
+                .status(order.getStatus())
                 .createdAt(order.getCreatedAt())
                 .isCancelled(order.getIsCancelled())
                 .cancelledReason(order.getCancelledReason())
@@ -137,7 +143,6 @@ public class OrderServiceImpl implements OrderService {
                     .thumbnailUrl(product.getThumbnailUrl())
                     .startPrice(product.getStartPrice())
                     .currentPrice(product.getCurrentPrice())
-                    .buyNowPrice(product.getBuyNowPrice())
                     .build();
         }
 
@@ -147,6 +152,8 @@ public class OrderServiceImpl implements OrderService {
                 .buyerId(order.getBuyerId())
                 .sellerId(order.getSellerId())
                 .amount(order.getAmount())
+                .status(order.getStatus())
+                .status(order.getStatus())
                 .createdAt(order.getCreatedAt())
                 .isCancelled(order.getIsCancelled())
                 .cancelledReason(order.getCancelledReason())
@@ -190,6 +197,10 @@ public class OrderServiceImpl implements OrderService {
         payment.setPaymentStatus("PROOF_UPLOADED");
         payment.setBuyerPaidAt(OffsetDateTime.now());
         orderPaymentRepository.save(payment);
+        
+        // Update order status
+        order.setStatus("PAYMENT_PROOF_UPLOADED");
+        orderRepository.save(order);
     }
 
     @Override
@@ -222,6 +233,10 @@ public class OrderServiceImpl implements OrderService {
             payment.setNotes(payment.getNotes() + "\nSeller: " + request.getNotes());
         }
         orderPaymentRepository.save(payment);
+        
+        // Update order status
+        order.setStatus("PAYMENT_CONFIRMED");
+        orderRepository.save(order);
     }
 
     @Override
@@ -273,13 +288,6 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Cannot update cancelled order");
         }
 
-        // Check payment is confirmed
-        OrderPayment payment = orderPaymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment record not found"));
-        if (!"CONFIRMED".equals(payment.getPaymentStatus())) {
-            throw new IllegalArgumentException("Payment must be confirmed before providing shipping address");
-        }
-
         OrderShipping shipping = orderShippingRepository.findByOrderId(orderId)
                 .orElse(OrderShipping.builder()
                         .orderId(orderId)
@@ -288,6 +296,10 @@ public class OrderServiceImpl implements OrderService {
 
         shipping.setShippingAddress(request.getShippingAddress());
         orderShippingRepository.save(shipping);
+        
+        // Update order status
+        order.setStatus("ADDRESS_PROVIDED");
+        orderRepository.save(order);
     }
 
     @Override
@@ -315,6 +327,10 @@ public class OrderServiceImpl implements OrderService {
         shipping.setShippedAt(OffsetDateTime.now());
         shipping.setDeliveryStatus("SHIPPED");
         orderShippingRepository.save(shipping);
+        
+        // Update order status
+        order.setStatus("SHIPPED");
+        orderRepository.save(order);
     }
 
     @Override
@@ -339,6 +355,7 @@ public class OrderServiceImpl implements OrderService {
                 .trackingNumber(shipping.getTrackingNumber())
                 .shippedAt(shipping.getShippedAt())
                 .deliveryStatus(shipping.getDeliveryStatus())
+                .deliveredAt(shipping.getDeliveredAt())
                 .build();
     }
 
@@ -367,7 +384,20 @@ public class OrderServiceImpl implements OrderService {
         }
 
         shipping.setDeliveryStatus("DELIVERED");
+        shipping.setDeliveredAt(OffsetDateTime.now());
         orderShippingRepository.save(shipping);
+        
+        // Update order status
+        order.setStatus("DELIVERED");
+        orderRepository.save(order);
+        
+        // Trigger "money release" - Update payment seller_confirmed_at (giải ngân)
+        OrderPayment payment = orderPaymentRepository.findByOrderId(orderId)
+                .orElse(null);
+        if (payment != null && "CONFIRMED".equals(payment.getPaymentStatus())) {
+            payment.setSellerConfirmedAt(OffsetDateTime.now());
+            orderPaymentRepository.save(payment);
+        }
     }
 
     @Override
@@ -410,6 +440,13 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderReviewRepository.save(review);
+        
+        // Check if both parties have reviewed, update order status to REVIEWED
+        long reviewCount = orderReviewRepository.countByOrderId(orderId);
+        if (reviewCount >= 2) {
+            order.setStatus("REVIEWED");
+            orderRepository.save(order);
+        }
 
         // TODO: Update user assessment score
         // Long reviewedUserId = userId.equals(order.getBuyerId()) ? order.getSellerId() : order.getBuyerId();
@@ -468,6 +505,75 @@ public class OrderServiceImpl implements OrderService {
 
         order.setIsCancelled(true);
         order.setCancelledReason(request.getCancelledReason());
+        order.setCancelledAt(OffsetDateTime.now());
+        order.setStatus("CANCELLED");
         orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public void updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.valueOf(authentication.getName());
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        // Check if user is buyer or seller
+        boolean isBuyer = order.getBuyerId().equals(userId);
+        boolean isSeller = order.getSellerId().equals(userId);
+
+        if (!isBuyer && !isSeller) {
+            throw new IllegalArgumentException("Only buyer or seller can update order status");
+        }
+
+        // Validate status value
+        String newStatus = request.getStatus().trim().toUpperCase();
+        String[] validStatuses = {
+            "CREATED", "CONFIRMED", "ADDRESS_PROVIDED", 
+            "PAYMENT_PROOF_UPLOADED", "PAYMENT_CONFIRMED", 
+            "SHIPPED", "DELIVERED", "REVIEWED", "CANCELLED"
+        };
+        
+        boolean isValidStatus = false;
+        for (String validStatus : validStatuses) {
+            if (validStatus.equals(newStatus)) {
+                isValidStatus = true;
+                break;
+            }
+        }
+        
+        if (!isValidStatus) {
+            throw new IllegalArgumentException("Invalid status: " + newStatus);
+        }
+
+        // Check if order is already cancelled
+        if (order.getIsCancelled() && !newStatus.equals("CANCELLED")) {
+            throw new IllegalArgumentException("Cannot update status of cancelled order");
+        }
+
+        // Business logic checks based on status transitions
+        if (newStatus.equals("CONFIRMED") && !isBuyer) {
+            throw new IllegalArgumentException("Only buyer can confirm order");
+        }
+
+        if (newStatus.equals("PAYMENT_CONFIRMED") && !isSeller) {
+            throw new IllegalArgumentException("Only seller can confirm payment");
+        }
+
+        if (newStatus.equals("SHIPPED") && !isSeller) {
+            throw new IllegalArgumentException("Only seller can update to shipped status");
+        }
+
+        if (newStatus.equals("DELIVERED") && !isBuyer) {
+            throw new IllegalArgumentException("Only buyer can confirm delivery");
+        }
+
+        // Update order status
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+
+        // TODO: Send notification/email about status change
+        // emailService.sendOrderStatusUpdateEmail(order, request.getNotes());
     }
 }

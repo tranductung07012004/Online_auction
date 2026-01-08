@@ -18,4 +18,5 @@ public class OrderShippingResponse {
     private String trackingNumber;
     private OffsetDateTime shippedAt;
     private String deliveryStatus;
+    private OffsetDateTime deliveredAt;
 }

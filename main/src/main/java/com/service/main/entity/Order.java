@@ -32,6 +32,9 @@ public class Order {
     @Column(name = "amount", nullable = false, precision = 15, scale = 5)
     private BigDecimal amount;
 
+    @Column(name = "status", length = 50, nullable = false)
+    private String status; // CREATED, CONFIRMED, ADDRESS_PROVIDED, PAYMENT_PROOF_UPLOADED, PAYMENT_CONFIRMED, SHIPPED, DELIVERED, REVIEWED, CANCELLED
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -51,6 +54,9 @@ public class Order {
         }
         if (isCancelled == null) {
             isCancelled = false;
+        }
+        if (status == null) {
+            status = "CREATED";
         }
     }
 }

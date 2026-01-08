@@ -10,4 +10,5 @@ import java.util.List;
 public interface OrderReviewRepository extends JpaRepository<OrderReview, Long> {
     List<OrderReview> findByOrderId(Long orderId);
     boolean existsByOrderIdAndUserId(Long orderId, Long userId);
+    long countByOrderId(Long orderId);
 }
