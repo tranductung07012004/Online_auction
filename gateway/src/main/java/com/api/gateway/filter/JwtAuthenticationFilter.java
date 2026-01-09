@@ -35,6 +35,12 @@ public class JwtAuthenticationFilter implements GlobalFilter {
                 || path.startsWith("/api/user/auth/logout")
                 || path.startsWith("/api/user/auth/refresh")
                 || path.startsWith("/api/user/auth/verify-otp")
+                || path.startsWith("/main/api-docs/swagger-ui")
+                || path.startsWith("/main/api-docs/v3/api-docs")
+                || path.equals("/main/api-docs/swagger-ui.html")
+                || path.startsWith("/user/api-docs/swagger-ui")
+                || path.startsWith("/user/api-docs/v3/api-docs")
+                || path.equals("/user/api-docs/swagger-ui.html")
         ) {
             return chain.filter(exchange);
         }

@@ -1,15 +1,10 @@
 package com.service.user.interceptor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.service.user.exception.ApplicationException;
-import com.service.user.constants.ErrorCodes;
-import com.service.user.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -19,10 +14,7 @@ import java.util.UUID;
 public class LoggingInterceptor implements HandlerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingInterceptor.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -71,20 +63,13 @@ public class LoggingInterceptor implements HandlerInterceptor {
 
     private String extractUserId(HttpServletRequest request) {
         try {
-            // Get Authorization header
-            String authHeader = request.getHeader("Authorization");
+            String userId = request.getHeader("X-user-id");
 
-            // Check if Bearer token exists
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7); // Remove "Bearer " prefix
+            if (userId != null) return userId;
+            return "anonymous";
 
-                // Validate and extract userId using JwtUtil
-                if (jwtUtil.validateToken(token)) {
-                    return jwtUtil.extractUserId(token);
-                }
-            }
         } catch (Exception e) {
-            throw new ApplicationException(ErrorCodes.TOKEN_INVALID_INTERCEPTOR, "Token is not valid at LoggingInterceptor");
+            logger.warn("Cannot extract userId from header at logging interceptor due to unknown error", e);
         }
 
         return "anonymous";

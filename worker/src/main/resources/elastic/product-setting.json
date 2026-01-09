@@ -1,0 +1,19 @@
+{
+  "analysis": {
+    "analyzer": {
+      "asciifolding_analyzer": {
+        "tokenizer": "standard",
+        "filter": [
+          "lowercase",
+          "custom_ascii_folding"
+        ]
+      }
+    },
+    "filter": {
+      "custom_ascii_folding": {
+        "type": "asciifolding",
+        "preserve_original": true
+      }
+    }
+  }
+}

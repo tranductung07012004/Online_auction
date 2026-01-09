@@ -1,13 +1,16 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
 spring:
   application:
     name: worker
+    
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/db2
-    username: user
-    password: 123
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -16,7 +19,7 @@ spring:
   kafka:
     listener:
       ack-mode: manual
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -31,8 +34,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: nguyenquangdoan27092004@gmail.com
-    password: pvqm bxla osgr iqpn
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -48,4 +51,8 @@ otp:
   expiry-minutes: 600
 
 frontend:
-  base-url: http://localhost:5173
+  base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+
+logging:
+  file:
+    path: ${LOG_PATH}

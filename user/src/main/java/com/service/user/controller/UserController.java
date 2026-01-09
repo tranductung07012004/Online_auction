@@ -6,6 +6,7 @@ import com.service.user.dto.UpdateAvatarRequest;
 import com.service.user.dto.UpdateEmailRequest;
 import com.service.user.dto.UpdateFullnameRequest;
 import com.service.user.dto.UpdatePasswordRequest;
+import com.service.user.dto.UpdateReviewStatsRequest;
 import com.service.user.dto.UserInfoResponse;
 import com.service.user.dto.UserListResponse;
 import com.service.user.dto.UserProfileResponse;
@@ -118,5 +119,18 @@ public class UserController {
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Update address successfully", null));
+    }
+
+    @PutMapping("/review-stats")
+    public ResponseEntity<?> updateReviewStats(
+            @Valid @RequestBody UpdateReviewStatsRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long currentUserId = Long.valueOf(authentication.getName());
+        
+        userService.updateReviewStats(request, currentUserId);
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("Update review stats successfully", null));
     }
 }

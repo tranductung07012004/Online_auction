@@ -13,6 +13,21 @@ CREATE TABLE product (
     auto_extend_enabled BOOLEAN NOT NULL,
     bid_count INTEGER NOT NULL
 );
+-- because the table product will be locked 
+-- (cannot update, write) while 
+-- creating auto bid (and logic associated) so 
+-- we need to have this table for non blocking on worker side
+CREATE TABLE product_sync_es_limit (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL UNIQUE, 
+    last_cur_price_change_at TIMESTAMPTZ,
+    last_es_sync_cur_price_at TIMESTAMPTZ
+);
+-- partial index, create the query for scheduler in worker
+CREATE INDEX idx_sync_es_dirty_partial
+ON product_sync_es_limit (last_cur_price_change_at)
+WHERE last_cur_price_change_at IS NOT NULL
+AND (last_es_sync_cur_price_at IS NULL OR last_cur_price_change_at > last_es_sync_cur_price_at);
 
 CREATE TABLE wishlist (
     id BIGSERIAL PRIMARY KEY,
@@ -97,8 +112,8 @@ CREATE TABLE system_settings (
 
 CREATE TABLE user_reviews (
     id BIGSERIAL PRIMARY KEY,
-    bidder_id BIGINT,
-    seller_id BIGINT,
+    sender_id BIGINT NOT NULL,
+    receiver_id BIGINT NOT NULL,
     status SMALLINT DEFAULT 1,
     comment TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

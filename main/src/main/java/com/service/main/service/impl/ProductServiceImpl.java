@@ -1,19 +1,15 @@
 package com.service.main.service.impl;
 
 import com.service.main.constants.ErrorCodes;
-import com.service.main.dto.ProductResponse;
-import com.service.main.dto.UserInfo;
-import com.service.main.dto.UserInfoResponse;
-import com.service.main.dto.createProductRequest;
-import com.service.main.entity.Categories;
-import com.service.main.entity.Product;
-import com.service.main.entity.ProductCategory;
-import com.service.main.entity.ProductDescription;
-import com.service.main.entity.ProductPicture;
+import com.service.main.constants.KafkaEventTypes;
+import com.service.main.constants.KafkaTopics;
+import com.service.main.dto.*;
+import com.service.main.entity.*;
 import com.service.main.exception.ApplicationException;
 import com.service.main.repository.CategoriesRepository;
-import com.service.main.repository.ProductCategoryRepository;
 import com.service.main.repository.ProductRepository;
+import com.service.main.repository.ProductSyncEsLimitRepository;
+import com.service.main.service.KafkaProducerService;
 import com.service.main.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,8 +30,11 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoriesRepository categoriesRepository;
-    private final ProductCategoryRepository productCategoryRepository;
     private final UserServiceClient userServiceClient;
+
+    private final KafkaProducerService kafkaProducerService;
+
+    private final ProductSyncEsLimitRepository productSyncEsLimitRepository;
 
     @Override
     public Page<ProductResponse> getProductsByCategory(Integer categoryId, Pageable pageable) {
@@ -70,7 +69,8 @@ public class ProductServiceImpl implements ProductService {
         OffsetDateTime now = OffsetDateTime.now();
 
         Set<Integer> distinctCategoryIds = new LinkedHashSet<>(request.getCategoryIds());
-        List<Categories> categories = categoriesRepository.findAllById(distinctCategoryIds);
+        List<Integer> distinctCategoriesForEvent = new ArrayList<>();
+        List<Categories> categories = this.categoriesRepository.findAllById(distinctCategoryIds);
         if (categories.size() != distinctCategoryIds.size()) {
             throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "One or more categories do not exist");
         }
@@ -102,21 +102,40 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        Product savedProduct = this.productRepository.save(product);
-
         // build product-category links
-        List<ProductCategory> productCategories = new ArrayList<>();
         for (Categories category : categories) {
+            // Xu li de gui event only
+            distinctCategoriesForEvent.add(category.getId());
+
+
             ProductCategory pc = new ProductCategory();
-            pc.setProduct(savedProduct);
+            pc.setProduct(product);
             pc.setCategory(category);
             pc.setCreatedAt(now);
-            productCategories.add(pc);
+
+            product.getProductCategories().add(pc);
         }
-        if (!productCategories.isEmpty()) {
-            productCategoryRepository.saveAll(productCategories);
-            savedProduct.setProductCategories(productCategories);
-        }
+
+        Product savedProduct = this.productRepository.save(product);
+
+        ProductSyncEsLimit productLimit = this.buildProductSyncESLimit(savedProduct.getId());
+
+        this.productSyncEsLimitRepository.save(productLimit);
+
+        // Send event to worker
+        ProductCreatedEvent productPayload = ProductCreatedEvent.builder()
+                .id(savedProduct.getId())
+                .product_name(savedProduct.getProductName())
+                .current_price(savedProduct.getCurrentPrice())
+                .endAt(savedProduct.getEndAt())
+                .categoryIds(distinctCategoriesForEvent)
+                .build();
+
+        kafkaProducerService.sendMessage(
+                KafkaTopics.SYNC_PRODUCT_ENTITY_TO_ES,
+                KafkaEventTypes.CREATE_PRODUCT,
+                productPayload
+        );
     }
 
     private Product buildProduct(createProductRequest request, OffsetDateTime now) {
@@ -142,6 +161,13 @@ public class ProductServiceImpl implements ProductService {
                 .build();
     }
 
+    private ProductSyncEsLimit buildProductSyncESLimit(Long productId) {
+        return ProductSyncEsLimit.builder()
+                .productId(productId)
+                .lastCurPriceChangeAt(null)
+                .lastEsSyncCurPriceAt(null)
+                .build();
+    }
     @Override
     public ProductResponse getProductById(Long productId) {
         Product product = productRepository.findById(productId)

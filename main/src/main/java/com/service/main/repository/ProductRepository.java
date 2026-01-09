@@ -1,10 +1,12 @@
 package com.service.main.repository;
 
 import com.service.main.entity.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +21,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // ra them 1 cau query moi => tang ganh nang cho db => giam hieu suat
     @EntityGraph(attributePaths = {"descriptions", "pictures", "productCategories.category"})
     Optional<Product> findById(Long id);
+
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids")
+    List<Product> findByIdIn(@Param("ids") List<Long> ids);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    //@EntityGraph(attributePaths = {"descriptions", "pictures", "productCategories.category"})
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdWithLock(@Param("id") Long id);
 
     // KO dung duoc vi jpa bao loi:
     // "message": "Internal server error: org.hibernate.loader.MultipleBagFetchException: cannot simultaneously fetch multiple bags: [com.service.main.entity.Product.descriptions, com.service.main.entity.Product.pictures]",
@@ -91,7 +101,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Search active products only
     @Query("""
-        SELECT p FROM Product p 
+        SELECT p FROM Product p
         WHERE p.endAt > :now
         AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)
@@ -106,7 +116,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Search ended products only
     @Query("""
-        SELECT p FROM Product p 
+        SELECT p FROM Product p
         WHERE p.endAt <= :now
         AND (LOWER(p.productName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)
         AND (:sellerId IS NULL OR p.sellerId = :sellerId)

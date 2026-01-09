@@ -7,6 +7,7 @@ import com.service.user.dto.UpdateAvatarRequest;
 import com.service.user.dto.UpdateEmailRequest;
 import com.service.user.dto.UpdateFullnameRequest;
 import com.service.user.dto.UpdatePasswordRequest;
+import com.service.user.dto.UpdateReviewStatsRequest;
 import com.service.user.dto.UserInfoResponse;
 import com.service.user.dto.UserListResponse;
 import com.service.user.dto.UserProfileResponse;
@@ -19,6 +20,7 @@ import com.service.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -259,6 +261,57 @@ public class UserServiceImpl implements UserService {
                 .email(maskedEmail)
                 .address(details.getAddress())
                 .build();
+    }
+
+    @Override
+    public void updateReviewStats(UpdateReviewStatsRequest request, Long currentUserId) {
+        // Prevent self-review stats update
+        if (currentUserId.equals(request.getReceiverId())) {
+            throw new ApplicationException(
+                    ErrorCodes.INVALID_INPUT,
+                    "Cannot update review stats for yourself"
+            );
+        }
+
+        // Validate type
+        if (request.getType() == null || 
+            (!request.getType().equalsIgnoreCase("like") && 
+             !request.getType().equalsIgnoreCase("dislike"))) {
+            throw new ApplicationException(
+                    ErrorCodes.INVALID_INPUT,
+                    "Type must be 'like' or 'dislike'"
+            );
+        }
+
+        // Get user details for receiver
+        UserDetails userDetails = userDetailsRepo.findByUserId(request.getReceiverId())
+                .orElseThrow(() ->
+                        new ApplicationException(
+                                ErrorCodes.USER_DETAILS_NOT_FOUND,
+                                "User details not found for receiver"
+                        )
+                );
+
+        // Validate amount is not null
+        if (request.getAmount() == null) {
+            throw new ApplicationException(
+                    ErrorCodes.INVALID_INPUT,
+                    "Amount is required"
+            );
+        }
+
+        // Update like or dislike count
+        if ("like".equalsIgnoreCase(request.getType())) {
+            int newLikeCount = userDetails.getLike_count() + request.getAmount();
+            // Ensure like_count doesn't go below 0
+            userDetails.setLike_count(Math.max(0, newLikeCount));
+        } else {
+            int newDislikeCount = userDetails.getDislike_count() + request.getAmount();
+            // Ensure dislike_count doesn't go below 0
+            userDetails.setDislike_count(Math.max(0, newDislikeCount));
+        }
+
+        this.userDetailsRepo.save(userDetails);
     }
 
     private String maskEmail(String email) {

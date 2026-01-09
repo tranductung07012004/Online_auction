@@ -77,8 +77,7 @@ public class UserRegisteredConsumer {
         logger.info("Processing user registration for userId: {} with email: {}", 
                 event.getUserId(), event.getEmail());
         
-        
-        otpService.sendVerificationLink(event.getUserId(), event.getEmail(), event.getOtpCode());
+        this.otpService.sendVerificationLink(event.getUserId(), event.getEmail(), event.getOtpCode());
     }
 }
 

@@ -1,4 +1,5 @@
 import { JSX, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/header';
 import ProfileSidebar from './profile/sidebar';
 import Footer from '../../components/footer';
@@ -69,6 +70,7 @@ const mapProductToSellerProduct = (product: ProductResponseFromAPI): SellerProdu
 };
 
 export default function MyProductsPage(): JSX.Element {
+  const navigate = useNavigate();
   const [userData, setUserData] = useState<UserProfileResponse | null>(null);
   const [products, setProducts] = useState<SellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,6 +161,10 @@ export default function MyProductsPage(): JSX.Element {
   const handleCancelClick = (product: SellerProduct) => {
     setSelectedProduct(product);
     setCancelDialogOpen(true);
+  };
+
+  const handleProductClick = (productId: string) => {
+    navigate(`/product-page/${productId}`);
   };
 
   const handleSubmitReview = async () => {
@@ -351,7 +357,21 @@ export default function MyProductsPage(): JSX.Element {
               <>
                 <Stack spacing={3}>
                   {paginatedProducts.map((product) => (
-                  <Card key={product._id} sx={{ bgcolor: '#fff', borderRadius: 2, overflow: 'hidden' }}>
+                  <Card 
+                    key={product._id} 
+                    sx={{ 
+                      bgcolor: '#fff', 
+                      borderRadius: 2, 
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 4,
+                      }
+                    }}
+                    onClick={() => handleProductClick(product._id)}
+                  >
                     <CardContent sx={{ p: 3 }}>
                       <Stack spacing={2}>
                         {/* Product Info */}
@@ -442,7 +462,10 @@ export default function MyProductsPage(): JSX.Element {
                                 <Button
                                   variant="contained"
                                   startIcon={<Star className="h-5 w-5" />}
-                                  onClick={() => handleReviewClick(product)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReviewClick(product);
+                                  }}
                                   sx={{
                                     bgcolor: '#FFE082',
                                     color: '#1a1a1a',
@@ -455,9 +478,11 @@ export default function MyProductsPage(): JSX.Element {
                                   {reviewedProducts.has(product._id) ? 'Review Bidder Again' : 'Review Bidder'}
                                 </Button>
                                 <Button
-
                                   startIcon={<X className="h-5 w-5" />}
-                                  onClick={() => handleCancelClick(product)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelClick(product);
+                                  }}
                                   sx={{
                                     backgroundColor: '#a67c66',      // màu nền
                                     color: 'white',                  // màu chữ

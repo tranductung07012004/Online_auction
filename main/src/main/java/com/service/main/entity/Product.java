@@ -78,7 +78,10 @@ public class Product {
     @Builder.Default
     private List<ProductPicture> pictures = new ArrayList<>();
 
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "product",
+            cascade = {CascadeType.PERSIST, CascadeType.REMOVE},
+            fetch = FetchType.LAZY)
     @Builder.Default
     private List<ProductCategory> productCategories = new ArrayList<>();
 

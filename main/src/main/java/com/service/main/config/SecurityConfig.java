@@ -25,6 +25,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/ws-chat/**").permitAll()
                     .anyRequest().authenticated()
+                        .requestMatchers(
+                                "/main/api-docs/v3/api-docs/**",
+                               "/main/api-docs/swagger-ui/**",
+                                "/main/api-docs/swagger-ui.html"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
