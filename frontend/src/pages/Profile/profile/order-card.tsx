@@ -416,15 +416,6 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               >
                 {formatPrice(order.current_price)}
               </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "text.secondary",
-                  fontSize: "0.75rem",
-                }}
-              >
-                Current Price
-              </Typography>
             </div>
           )}
 

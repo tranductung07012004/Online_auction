@@ -24,7 +24,6 @@ import {
   AccountBalance,
   QrCode2,
   CheckCircle,
-  Cancel,
 } from "@mui/icons-material";
 import {
   getOrderById,
@@ -33,7 +32,6 @@ import {
 } from "../../../api/order";
 import { uploadImageToCloudinary } from "../../../api/cloudinary";
 import { Order } from "../../../types/order";
-import CancelOrderDialog from "../Components/CancelOrderDialog";
 
 interface OrderPaymentProps {
   onSuccess?: () => void;
@@ -64,7 +62,6 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   // State quản lý phương thức thanh toán và file ảnh
   const [paymentMethod, setPaymentMethod] = useState("BANK_TRANSFER");
@@ -636,47 +633,10 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                   ? "Your payment proof is being verified by the seller."
                   : "Your payment will be verified by the seller within 24 hours."}
               </Typography>
-
-              {/* Cancel Order Button */}
-              <Box sx={{ mt: 4, maxWidth: 500, mx: "auto" }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="error"
-                  size="large"
-                  startIcon={<Cancel />}
-                  onClick={() => setCancelDialogOpen(true)}
-                  disabled={uploading}
-                  sx={{
-                    py: 2,
-                    borderRadius: "30px",
-                    textTransform: "none",
-                  }}
-                >
-                  Cancel Order
-                </Button>
-                <Typography
-                  variant="caption"
-                  color="error"
-                  sx={{ display: "block", mt: 0.5, textAlign: "center" }}
-                >
-                  ⚠️ This action cannot be undone
-                </Typography>
-              </Box>
             </Box>
           )}
         </Box>
       </Box>
-
-      {/* Cancel Order Dialog */}
-      <CancelOrderDialog
-        open={cancelDialogOpen}
-        onClose={() => setCancelDialogOpen(false)}
-        orderId={order?.id || 0}
-        userRole="buyer"
-        orderStatus={order?.status || ""}
-        onSuccess={onSuccess || (() => window.location.reload())}
-      />
     </>
   );
 }

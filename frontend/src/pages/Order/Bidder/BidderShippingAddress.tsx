@@ -9,7 +9,7 @@ import {
   TextField,
   CircularProgress,
 } from "@mui/material";
-import { LocationOn, Payment, Cancel } from "@mui/icons-material";
+import { LocationOn, Payment } from "@mui/icons-material";
 import {
   getOrderById,
   updateShippingAddress,
@@ -17,7 +17,6 @@ import {
 } from "../../../api/order";
 import { OrderShipping } from "../../../types/order";
 import { toast } from "react-hot-toast";
-import CancelOrderDialog from "../Components/CancelOrderDialog";
 
 interface OrderDetail {
   id: number;
@@ -44,7 +43,6 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [addressLoaded, setAddressLoaded] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   // Separate address fields
   const [country, setCountry] = useState("Vietnam");
@@ -102,17 +100,9 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
   }, [id]);
 
   const handleSubmit = async () => {
-    // Validation
+    // Validation - Only Street and City are required
     if (!street.trim()) {
       toast.error("Please enter street address");
-      return;
-    }
-    if (!ward.trim()) {
-      toast.error("Please enter ward");
-      return;
-    }
-    if (!district.trim()) {
-      toast.error("Please enter district");
       return;
     }
     if (!city.trim()) {
@@ -207,7 +197,7 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
             {/* Street Address */}
             <TextField
               fullWidth
-              label="Street Address *"
+              label="Street Address"
               placeholder="e.g., 123 Ly Thuong Kiet Street"
               value={street}
               onChange={(e) => setStreet(e.target.value)}
@@ -218,10 +208,13 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
                   "&.Mui-focused fieldset": { borderColor: "#8B7355" },
                 },
                 "& .MuiInputLabel-root.Mui-focused": { color: "#8B7355" },
+                "& .MuiInputLabel-asterisk": {
+                  color: "#f44336",
+                },
               }}
             />
 
-            {/* Ward and District - Side by side */}
+            {/* Ward and District - Side by side - Optional */}
             <Box
               sx={{
                 display: "grid",
@@ -231,12 +224,11 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
             >
               <TextField
                 fullWidth
-                label="Ward *"
+                label="Ward (Optional)"
                 placeholder="e.g., Ward 14"
                 value={ward}
                 onChange={(e) => setWard(e.target.value)}
                 disabled={submitting}
-                required
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     "&.Mui-focused fieldset": { borderColor: "#8B7355" },
@@ -246,12 +238,11 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
               />
               <TextField
                 fullWidth
-                label="District *"
+                label="District (Optional)"
                 placeholder="e.g., District 10"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 disabled={submitting}
-                required
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     "&.Mui-focused fieldset": { borderColor: "#8B7355" },
@@ -271,7 +262,7 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
             >
               <TextField
                 fullWidth
-                label="City/Province *"
+                label="City/Province"
                 placeholder="e.g., Ho Chi Minh City"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
@@ -282,6 +273,9 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
                     "&.Mui-focused fieldset": { borderColor: "#8B7355" },
                   },
                   "& .MuiInputLabel-root.Mui-focused": { color: "#8B7355" },
+                  "& .MuiInputLabel-asterisk": {
+                    color: "#f44336",
+                  },
                 }}
               />
               <TextField
@@ -327,9 +321,7 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
             mt: 6,
             mb: 4,
             display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            alignItems: "center",
+            justifyContent: "center",
             width: "100%",
           }}
         >
@@ -363,44 +355,8 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
           >
             {submitting ? "Processing..." : "Confirm & Proceed to Payment"}
           </Button>
-
-          <Box sx={{ width: "100%", maxWidth: 500 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="error"
-              size="large"
-              startIcon={<Cancel />}
-              onClick={() => setCancelDialogOpen(true)}
-              disabled={submitting}
-              sx={{
-                py: 2,
-                borderRadius: "30px",
-                textTransform: "none",
-              }}
-            >
-              Cancel Order
-            </Button>
-            <Typography
-              variant="caption"
-              color="error"
-              sx={{ display: "block", mt: 0.5, textAlign: "center" }}
-            >
-              ⚠️ This action cannot be undone
-            </Typography>
-          </Box>
         </Box>
       )}
-
-      {/* Cancel Order Dialog */}
-      <CancelOrderDialog
-        open={cancelDialogOpen}
-        onClose={() => setCancelDialogOpen(false)}
-        orderId={order?.id || 0}
-        userRole="buyer"
-        orderStatus={order?.status || ""}
-        onSuccess={onSuccess || (() => window.location.reload())}
-      />
     </>
   );
 }

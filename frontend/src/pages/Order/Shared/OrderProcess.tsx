@@ -22,15 +22,17 @@ import {
 } from "../../../types/order";
 
 // Import flow components
-import ShippingAddress from "../Bidder/BidderShippingAddress";
-import OrderPaymentPage from "../Bidder/BidderPayment";
-import BuyerDeliveryConfirmation from "../Bidder/BidderDeliveryConfirmation";
 import OrderReview from "./OrderReview";
 import OrderDetail from "../../Profile/OrderDetail";
 import Header from "../../../components/header";
 import Footer from "../../../components/footer";
 import { ArrowBack } from "@mui/icons-material";
 import OrderStepper from "../../../components/OrderStepper";
+
+// Import existing Bidder components
+import ShippingAddress from "../Bidder/BidderShippingAddress";
+import OrderPaymentPage from "../Bidder/BidderPayment";
+import BuyerDeliveryConfirmation from "../Bidder/BidderDeliveryConfirmation";
 
 // Import new Seller components
 import SellerWaitingScreen from "../Seller/SellerWaitingScreen";
