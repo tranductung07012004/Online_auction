@@ -6,7 +6,7 @@ spring:
       add-mappings: false # de cho endpoint nao ko co define thi tra ve message trong GlobalExceptionHandler
       
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
 
   application:
     name: main
@@ -21,7 +21,7 @@ spring:
       ddl-auto: none  # ko tu dong sync entity voi database (nguy hiem)
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -39,7 +39,7 @@ server:
 
 user:
   service:
-    url: http://localhost:8081
+    url: ${USER_SERVICE_URL:http://localhost:8081}
 
 assessment:
   minimum: 8.0
@@ -54,3 +54,7 @@ springdoc:
   # Mac dinh la /v3/api-docs
   api-docs:
     path: /main/api-docs/v3/api-docs
+
+logging:
+  file:
+    path: ${LOG_PATH}

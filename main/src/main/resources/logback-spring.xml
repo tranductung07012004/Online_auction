@@ -13,24 +13,24 @@
 
     <!-- File appender với rotation -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/user_service_newest.log</file>
-        
+        <file>${LOG_PATH}/main_service_newest.log</file>
+
         <!-- Rolling policy: theo thời gian và kích thước -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- File pattern: logs/film-api.2024-01-15.1.log -->
-            <fileNamePattern>${LOG_PATH}/user-service.%d{yyyy-MM-dd-HH-mm}.%i.log</fileNamePattern>
-            
+            <fileNamePattern>${LOG_PATH}/main-service.%d{yyyy-MM-dd-HH-mm}.%i.log</fileNamePattern>
+
             <!-- Giới hạn kích thước file: 1MB -->
             <maxFileSize>1MB</maxFileSize>
             <maxHistory>5</maxHistory>
-            
+
             <!-- Tổng kích thước tối đa: 1GB -->
             <totalSizeCap>1GB</totalSizeCap>
-            
+
             <!-- Clean up files cũ -->
             <cleanHistoryOnStart>false</cleanHistoryOnStart>
         </rollingPolicy>
-        
+
         <!-- JSON encoder giống console -->
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
@@ -46,7 +46,7 @@
                 <pattern>
                     <pattern>
                         {
-                        "application": "user-service",
+                        "application": "main-service",
                         "environment": "development",
                         "request_id": "%X{requestId:-}",
                         "user_id": "%X{userId:-}",
@@ -70,15 +70,11 @@
     </appender>
 
     <!-- Chỉ ghi logs từ LoggingApplication và LoggingInterceptor -->
-    <logger name="com.service.user" level="INFO" additivity="false">
+    <logger name="com.service.main" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
 
-<!--    <logger name="com.service.user.interceptor.LoggingInterceptor" level="INFO" additivity="false">-->
-<!--        <appender-ref ref="CONSOLE"/>-->
-<!--        <appender-ref ref="ASYNC_FILE"/>-->
-<!--    </logger>-->
 
     <!-- Tắt logs từ các framework khác -->
     <logger name="org.springframework" level="WARN"/>

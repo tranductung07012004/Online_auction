@@ -1,0 +1,72 @@
+filebeat.inputs:
+  # User service logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/user/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+    fields:
+      app: online-auction
+      environment: development
+      service_name: user
+    fields_under_root: true
+
+  # Main service logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/main/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+    fields:
+      app: online-auction
+      environment: development
+      service_name: main
+    fields_under_root: true
+
+  # Worker service logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/worker/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+    fields:
+      app: online-auction
+      environment: development
+      service_name: worker
+    fields_under_root: true
+
+# Processors để enrich data
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+# Output to Elasticsearch
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "online-auction-%{[service_name]}-%{+yyyy.MM.dd}"   # đổi tên index theo app
+
+# Setup Kibana
+setup.kibana:
+  host: "kibana:5601"
+
+# Index template
+setup.template.name: "online-auction"
+setup.template.pattern: "online-auction-*"
+setup.ilm.enabled: false
+
+# Logging level của Filebeat
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644

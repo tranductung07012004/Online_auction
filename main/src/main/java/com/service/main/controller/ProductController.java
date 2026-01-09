@@ -15,6 +15,8 @@ import jakarta.validation.Valid;
 import com.service.main.dto.createProductRequest;
 import com.service.main.dto.ProductResponse;
 import com.service.main.dto.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -23,12 +25,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
+    private final Logger log = LoggerFactory.getLogger(ProductController.class);
+
 
     @PreAuthorize("hasRole('SELLER')")
     @PostMapping
     public ResponseEntity<?> createProduct(
         @Valid @RequestBody createProductRequest request
     ) {
+        for (int i = 1; i <= 1000; i++) {
+            log.info("Hello World {}", i);
+        }
+
         this.productService.createProduct(request);
         return ResponseEntity
             .status(201)
