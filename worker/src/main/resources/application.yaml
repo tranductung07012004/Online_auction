@@ -5,7 +5,7 @@ spring:
     name: worker
     
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
 
   datasource:
     url: ${DB_URL}
@@ -19,7 +19,7 @@ spring:
   kafka:
     listener:
       ack-mode: manual
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -51,4 +51,8 @@ otp:
   expiry-minutes: 600
 
 frontend:
-  base-url: http://localhost:5173
+  base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+
+logging:
+  file:
+    path: ${LOG_PATH}
