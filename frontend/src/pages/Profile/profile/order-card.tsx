@@ -5,9 +5,9 @@ import {
   Hourglass,
   Trash2,
   Package2,
-} from 'lucide-react';
-import { JSX, useState } from 'react';
-import { Link } from 'react-router-dom';
+} from "lucide-react";
+import { JSX, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Button,
   Dialog,
@@ -21,13 +21,13 @@ import {
   Avatar,
   ToggleButton,
   ToggleButtonGroup,
-} from '@mui/material';
-import ThumbUpIcon from '@mui/icons-material/ThumbUp';
-import ThumbDownIcon from '@mui/icons-material/ThumbDown';
-import { toast } from 'react-hot-toast';
-import { submitReview, ReviewSubmission } from '../../../api/dress';
-import { useAuthStore } from '../../../stores/authStore';
-import { styled } from '@mui/material/styles';
+} from "@mui/material";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import { toast } from "react-hot-toast";
+import { submitReview, ReviewSubmission } from "../../../api/dress";
+import { useAuthStore } from "../../../stores/authStore";
+import { styled } from "@mui/material/styles";
 
 export interface OrderItem {
   id: string;
@@ -41,10 +41,10 @@ export interface OrderItem {
   rentalDuration: string;
   arrivalDate: string;
   returnDate: string;
-  status: 'pending' | 'paid';
+  status: "pending" | "paid";
   isCartItem?: boolean;
   isPaid?: boolean;
-  purchaseType?: 'rent' | 'buy';
+  purchaseType?: "rent" | "buy";
   additionalDetails?: string;
   dressId?: string; // Product ID for review
   // Thông tin từ ProductCard
@@ -65,12 +65,12 @@ interface OrderCardProps {
 }
 
 const CustomAlert = styled(Alert)(() => ({
-  backgroundColor: '#c3937c',       // màu nền tùy ý
-  color: '#f9f8f8',                 // màu chữ
-  '& .MuiAlert-icon': {
-    color: '#c62828',               // màu icon
+  backgroundColor: "#c3937c", // màu nền tùy ý
+  color: "#f9f8f8", // màu chữ
+  "& .MuiAlert-icon": {
+    color: "#c62828", // màu icon
   },
-  '& .MuiAlert-message': {
+  "& .MuiAlert-message": {
     fontWeight: 500,
   },
 }));
@@ -79,60 +79,62 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
   const userId = useAuthStore((state) => state.userId);
   const [confirmReceivedOpen, setConfirmReceivedOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [transactionRating, setTransactionRating] = useState<'like' | 'dislike' | null>(() => {
+  const [transactionRating, setTransactionRating] = useState<
+    "like" | "dislike" | null
+  >(() => {
     // Check localStorage for transaction rating
     const saved = localStorage.getItem(`transaction_rating_${order.id}`);
-    return (saved === 'like' || saved === 'dislike') ? saved : null;
+    return saved === "like" || saved === "dislike" ? saved : null;
   });
   const [reviewText, setReviewText] = useState<string>(() => {
     // Check localStorage for transaction comment
-    return localStorage.getItem(`transaction_comment_${order.id}`) || '';
+    return localStorage.getItem(`transaction_comment_${order.id}`) || "";
   });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isConfirmedReceived, setIsConfirmedReceived] = useState(() => {
     // Check localStorage for confirmed status
     const confirmed = localStorage.getItem(`order_received_${order.id}`);
-    return confirmed === 'true';
+    return confirmed === "true";
   });
   const [isReviewed, setIsReviewed] = useState(() => {
     // Check localStorage for reviewed status
     const reviewed = localStorage.getItem(`order_reviewed_${order.id}`);
-    return reviewed === 'true';
+    return reviewed === "true";
   });
   const [sellerReviewOpen, setSellerReviewOpen] = useState(false);
-  const [sellerRating, setSellerRating] = useState<'like' | 'dislike' | null>(() => {
-    // Check localStorage for seller rating
-    const saved = localStorage.getItem(`seller_rating_${order.id}`);
-    return (saved === 'like' || saved === 'dislike') ? saved : null;
-  });
+  const [sellerRating, setSellerRating] = useState<"like" | "dislike" | null>(
+    () => {
+      // Check localStorage for seller rating
+      const saved = localStorage.getItem(`seller_rating_${order.id}`);
+      return saved === "like" || saved === "dislike" ? saved : null;
+    }
+  );
   const [sellerComment, setSellerComment] = useState(() => {
     // Check localStorage for seller comment
-    return localStorage.getItem(`seller_comment_${order.id}`) || '';
+    return localStorage.getItem(`seller_comment_${order.id}`) || "";
   });
-  const [isSubmittingSellerReview, setIsSubmittingSellerReview] = useState(false);
+  const [isSubmittingSellerReview, setIsSubmittingSellerReview] =
+    useState(false);
   const [isSellerReviewed, setIsSellerReviewed] = useState(() => {
     // Check localStorage for seller reviewed status
     const reviewed = localStorage.getItem(`seller_reviewed_${order.id}`);
-    return reviewed === 'true';
+    return reviewed === "true";
   });
 
   // Check if order can be confirmed as received (paid status)
   const canConfirmReceived =
     !order.isCartItem &&
     !isConfirmedReceived &&
-    (order.status === 'paid' || order.isPaid);
+    (order.status === "paid" || order.isPaid);
 
   // Check if order can be reviewed (after confirmed received and not yet reviewed)
   const canReview =
-    !order.isCartItem &&
-    isConfirmedReceived &&
-    !isReviewed &&
-    order.dressId;
+    !order.isCartItem && isConfirmedReceived && !isReviewed && order.dressId;
 
   // Check if seller can be reviewed (paid status and has seller info) - always allow re-review
   const canReviewSeller =
     !order.isCartItem &&
-    (order.status === 'paid' || order.isPaid) &&
+    (order.status === "paid" || order.isPaid) &&
     order.seller;
 
   const handleConfirmReceived = () => {
@@ -141,10 +143,10 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
   const handleConfirmReceivedSubmit = () => {
     // Mark as confirmed in localStorage
-    localStorage.setItem(`order_received_${order.id}`, 'true');
+    localStorage.setItem(`order_received_${order.id}`, "true");
     setIsConfirmedReceived(true);
     setConfirmReceivedOpen(false);
-    toast.success('Order received confirmed successfully!');
+    toast.success("Order received confirmed successfully!");
   };
 
   const handleReviewClick = () => {
@@ -153,17 +155,17 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
   const handleReviewSubmit = async () => {
     if (!transactionRating) {
-      toast.error('Please select Like or Dislike');
+      toast.error("Please select Like or Dislike");
       return;
     }
 
     if (!reviewText.trim()) {
-      toast.error('Please enter transaction review');
+      toast.error("Please enter transaction review");
       return;
     }
 
     if (!userId || !order.dressId) {
-      toast.error('Unable to submit review. Please sign in again.');
+      toast.error("Unable to submit review. Please sign in again.");
       return;
     }
 
@@ -181,15 +183,21 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
       // Lưu vào localStorage
       localStorage.setItem(`transaction_rating_${order.id}`, transactionRating);
-      localStorage.setItem(`transaction_comment_${order.id}`, reviewText.trim());
-      localStorage.setItem(`order_reviewed_${order.id}`, 'true');
+      localStorage.setItem(
+        `transaction_comment_${order.id}`,
+        reviewText.trim()
+      );
+      localStorage.setItem(`order_reviewed_${order.id}`, "true");
 
       setIsReviewed(true);
       setReviewOpen(false);
-      toast.success('Transaction review submitted successfully!');
+      toast.success("Transaction review submitted successfully!");
     } catch (error: any) {
-      console.error('Error submitting review:', error);
-      toast.error(error.message || 'An error occurred while submitting review. Please try again.');
+      console.error("Error submitting review:", error);
+      toast.error(
+        error.message ||
+          "An error occurred while submitting review. Please try again."
+      );
     } finally {
       setIsSubmittingReview(false);
     }
@@ -201,7 +209,7 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
   const handleSellerReviewSubmit = async () => {
     if (!sellerRating) {
-      toast.error('Please select Like or Dislike');
+      toast.error("Please select Like or Dislike");
       return;
     }
 
@@ -220,16 +228,26 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
       // Lưu vào localStorage
       localStorage.setItem(`seller_rating_${order.id}`, sellerRating);
       if (sellerComment.trim()) {
-        localStorage.setItem(`seller_comment_${order.id}`, sellerComment.trim());
+        localStorage.setItem(
+          `seller_comment_${order.id}`,
+          sellerComment.trim()
+        );
       }
-      localStorage.setItem(`seller_reviewed_${order.id}`, 'true');
+      localStorage.setItem(`seller_reviewed_${order.id}`, "true");
 
       setIsSellerReviewed(true);
       setSellerReviewOpen(false);
-      toast.success(isSellerReviewed ? 'Seller review updated successfully!' : 'Seller review submitted successfully!');
+      toast.success(
+        isSellerReviewed
+          ? "Seller review updated successfully!"
+          : "Seller review submitted successfully!"
+      );
     } catch (error: any) {
-      console.error('Error submitting seller review:', error);
-      toast.error(error.message || 'An error occurred while submitting review. Please try again.');
+      console.error("Error submitting seller review:", error);
+      toast.error(
+        error.message ||
+          "An error occurred while submitting review. Please try again."
+      );
     } finally {
       setIsSubmittingSellerReview(false);
     }
@@ -260,9 +278,9 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
     // Only 2 statuses: pending and paid
     switch (order.status) {
-      case 'paid':
+      case "paid":
         return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'pending':
+      case "pending":
         return <Clock className="h-5 w-5 text-amber-500" />;
       default:
         return null;
@@ -272,34 +290,34 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
   const getStatusText = () => {
     // Check for cart items first
     if (order.isCartItem) {
-      return 'In Cart';
+      return "In Cart";
     }
 
     // Only 2 statuses: pending and paid
     switch (order.status) {
-      case 'paid':
-        return 'Paid';
-      case 'pending':
-        return 'Pending';
+      case "paid":
+        return "Paid";
+      case "pending":
+        return "Pending";
       default:
-        return 'Pending';
+        return "Pending";
     }
   };
 
   const getStatusColor = () => {
     // For cart items, use a distinctive color
     if (order.isCartItem) {
-      return 'text-blue-500';
+      return "text-blue-500";
     }
 
     // Only 2 statuses: pending and paid
     switch (order.status) {
-      case 'paid':
-        return 'text-green-600';
-      case 'pending':
-        return 'text-amber-500';
+      case "paid":
+        return "text-green-600";
+      case "pending":
+        return "text-amber-500";
       default:
-        return 'text-amber-500';
+        return "text-amber-500";
     }
   };
 
@@ -312,28 +330,28 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
         await onDelete(order.id);
       }
     } catch (error) {
-      console.error('Error deleting order:', error);
+      console.error("Error deleting order:", error);
     }
   };
 
   // Format giá tiền
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(price);
   };
 
   // Format ngày kết thúc đấu giá
   const formatEndDate = () => {
-    if (!order.end_at) return 'N/A';
+    if (!order.end_at) return "N/A";
     const endDate = new Date(order.end_at);
-    return endDate.toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return endDate.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -343,16 +361,18 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
         {/* Thumbnail Image */}
         <div className="flex-shrink-0">
           <img
-            src={order.image || '/placeholder.svg'}
+            src={order.image || "/placeholder.svg"}
             alt={order.name}
             className="rounded-lg object-cover w-32 h-40 md:w-40 md:h-48"
-            style={{ minWidth: '128px', minHeight: '160px' }}
+            style={{ minWidth: "128px", minHeight: "160px" }}
           />
         </div>
 
         {/* Main Content */}
         <div className="flex-grow min-w-0">
-          <h3 className="font-semibold text-lg mb-2 text-gray-900">{order.name}</h3>
+          <h3 className="font-semibold text-lg mb-2 text-gray-900">
+            {order.name}
+          </h3>
 
           {/* Seller Information */}
           {order.seller && (
@@ -363,10 +383,20 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                 sx={{ width: 32, height: 32 }}
               />
               <div>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem', display: 'block' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: "0.75rem",
+                    display: "block",
+                  }}
+                >
                   Seller
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 500, fontSize: "0.875rem" }}
+                >
                   {order.seller.fullname}
                 </Typography>
               </div>
@@ -379,21 +409,12 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               <Typography
                 variant="h6"
                 sx={{
-                  color: 'text.secondary',
+                  color: "text.secondary",
                   fontWeight: 700,
-                  fontSize: '1.25rem',
+                  fontSize: "1.25rem",
                 }}
               >
                 {formatPrice(order.current_price)}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'text.secondary',
-                  fontSize: '0.75rem',
-                }}
-              >
-                Current Price
               </Typography>
             </div>
           )}
@@ -404,9 +425,9 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               <Typography
                 variant="body2"
                 sx={{
-                  color: 'text.primary',
+                  color: "text.primary",
                   fontWeight: 500,
-                  fontSize: '0.875rem',
+                  fontSize: "0.875rem",
                 }}
               >
                 ⏱️ Auction Ends: {formatEndDate()}
@@ -426,15 +447,23 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
           <div className="flex flex-col items-end space-y-2">
             <div className="flex space-x-2">
-              {order.status === 'pending' &&
-                onDelete && !order.isCartItem && (
-                  <button
-                    onClick={handleDelete}
-                    className="px-4 py-1 border rounded-full text-sm text-red-600 hover:bg-red-50 border-red-200 flex items-center"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" /> Delete
-                  </button>
-                )}
+              {/* View Details button */}
+              <Link
+                to={`/order/${order.id}`}
+                className="px-4 py-1 border rounded-full text-sm hover:bg-gray-50 border-gray-300 flex items-center"
+                style={{ color: "#8B7355", borderColor: "#8B7355" }}
+              >
+                <Package2 className="h-4 w-4 mr-1" /> View Details
+              </Link>
+
+              {order.status === "pending" && onDelete && !order.isCartItem && (
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-1 border rounded-full text-sm text-red-600 hover:bg-red-50 border-red-200 flex items-center"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                </button>
+              )}
 
               {order.isCartItem && (
                 <Link
@@ -467,10 +496,10 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                   size="small"
                   onClick={handleConfirmReceived}
                   sx={{
-                    bgcolor: '#c3937c',
-                    '&:hover': { bgcolor: '#a67c66' },
-                    textTransform: 'none',
-                    fontSize: '0.875rem',
+                    bgcolor: "#c3937c",
+                    "&:hover": { bgcolor: "#a67c66" },
+                    textTransform: "none",
+                    fontSize: "0.875rem",
                     px: 2,
                     py: 0.5,
                   }}
@@ -485,14 +514,14 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                   size="small"
                   onClick={handleReviewClick}
                   sx={{
-                    borderColor: '#c3937c',
-                    color: '#c3937c',
-                    '&:hover': {
-                      borderColor: '#a67c66',
-                      bgcolor: '#f8f3f0'
+                    borderColor: "#c3937c",
+                    color: "#c3937c",
+                    "&:hover": {
+                      borderColor: "#a67c66",
+                      bgcolor: "#f8f3f0",
                     },
-                    textTransform: 'none',
-                    fontSize: '0.875rem',
+                    textTransform: "none",
+                    fontSize: "0.875rem",
                     px: 2,
                     py: 0.5,
                   }}
@@ -503,7 +532,10 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
 
               {isReviewed && (
                 <Box sx={{ px: 2, py: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: 'green', fontSize: '0.75rem' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "green", fontSize: "0.75rem" }}
+                  >
                     ✓ Reviewed
                   </Typography>
                 </Box>
@@ -515,19 +547,19 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                   size="small"
                   onClick={handleSellerReviewClick}
                   sx={{
-                    borderColor: '#c3937c',
-                    color: '#c3937c',
-                    '&:hover': {
-                      borderColor: '#a67c66',
-                      bgcolor: '#f8f3f0'
+                    borderColor: "#c3937c",
+                    color: "#c3937c",
+                    "&:hover": {
+                      borderColor: "#a67c66",
+                      bgcolor: "#f8f3f0",
                     },
-                    textTransform: 'none',
-                    fontSize: '0.875rem',
+                    textTransform: "none",
+                    fontSize: "0.875rem",
                     px: 2,
                     py: 0.5,
                   }}
                 >
-                  {isSellerReviewed ? 'Review Seller Again' : 'Review Seller'}
+                  {isSellerReviewed ? "Review Seller Again" : "Review Seller"}
                 </Button>
               )}
             </div>
@@ -543,10 +575,14 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
             <DialogTitle>Confirm Order Received</DialogTitle>
             <DialogContent>
               <CustomAlert severity="info" sx={{ mb: 2 }}>
-                Please check your order and confirm that you have received all products according to the invoice.
+                Please check your order and confirm that you have received all
+                products according to the invoice.
               </CustomAlert>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: "medium", mb: 1 }}
+                >
                   Sản phẩm: {order.name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -556,14 +592,26 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               <Typography variant="body2" color="text.secondary">
                 Trước khi xác nhận, hãy đảm bảo:
               </Typography>
-              <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                <li style={{ fontSize: '0.875rem', color: '#666', marginBottom: '4px' }}>
+              <ul style={{ paddingLeft: "20px", marginTop: "8px" }}>
+                <li
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#666",
+                    marginBottom: "4px",
+                  }}
+                >
                   Check quantity, model, size, and product condition
                 </li>
-                <li style={{ fontSize: '0.875rem', color: '#666', marginBottom: '4px' }}>
+                <li
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#666",
+                    marginBottom: "4px",
+                  }}
+                >
                   Verify information on the invoice
                 </li>
-                <li style={{ fontSize: '0.875rem', color: '#666' }}>
+                <li style={{ fontSize: "0.875rem", color: "#666" }}>
                   If you find any issues, please contact us before confirming
                 </li>
               </ul>
@@ -573,12 +621,12 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                 onClick={() => setConfirmReceivedOpen(false)}
                 variant="outlined"
                 sx={{
-                  borderColor: '#c3937c',
-                  color: '#c3937c',
-                  '&:hover': {
-                    borderColor: '#a67c66',
-                    bgcolor: '#f8f3f0'
-                  }
+                  borderColor: "#c3937c",
+                  color: "#c3937c",
+                  "&:hover": {
+                    borderColor: "#a67c66",
+                    bgcolor: "#f8f3f0",
+                  },
                 }}
               >
                 Cancel
@@ -587,8 +635,8 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                 onClick={handleConfirmReceivedSubmit}
                 variant="contained"
                 sx={{
-                  bgcolor: '#c3937c',
-                  '&:hover': { bgcolor: '#a67c66' }
+                  bgcolor: "#c3937c",
+                  "&:hover": { bgcolor: "#a67c66" },
                 }}
               >
                 Confirm Received
@@ -606,13 +654,19 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
             <DialogTitle>Review Transaction</DialogTitle>
             <DialogContent>
               <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: "medium", mb: 1 }}
+                >
                   Sản phẩm: {order.name}
                 </Typography>
               </Box>
 
               <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ mb: 2, fontWeight: 'medium' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 2, fontWeight: "medium" }}
+                >
                   Are you satisfied with this transaction?
                 </Typography>
                 <ToggleButtonGroup
@@ -626,20 +680,20 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                   aria-label="transaction rating"
                   fullWidth
                   sx={{
-                    '& .MuiToggleButton-root': {
+                    "& .MuiToggleButton-root": {
                       flex: 1,
                       py: 1.5,
-                      borderColor: '#c3937c',
-                      color: '#c3937c',
-                      '&.Mui-selected': {
-                        bgcolor: '#c3937c',
-                        color: 'white',
-                        '&:hover': {
-                          bgcolor: '#a67c66',
+                      borderColor: "#c3937c",
+                      color: "#c3937c",
+                      "&.Mui-selected": {
+                        bgcolor: "#c3937c",
+                        color: "white",
+                        "&:hover": {
+                          bgcolor: "#a67c66",
                         },
                       },
-                      '&:hover': {
-                        bgcolor: '#f8f3f0',
+                      "&:hover": {
+                        bgcolor: "#f8f3f0",
                       },
                     },
                   }}
@@ -658,14 +712,15 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               <TextField
                 sx={{
                   mb: 2,
-                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#a67c66',
+                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                    {
+                      borderColor: "#a67c66",
+                    },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    color: "#a67c66",
                   },
-                  '& .MuiInputLabel-root.Mui-focused': {
-                    color: '#a67c66',
-                  },
-                  '& .MuiOutlinedInput-root.Mui-focused': {
-                    backgroundColor: '#f8f3f0',
+                  "& .MuiOutlinedInput-root.Mui-focused": {
+                    backgroundColor: "#f8f3f0",
                   },
                 }}
                 fullWidth
@@ -682,12 +737,12 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                 onClick={() => setReviewOpen(false)}
                 variant="outlined"
                 sx={{
-                  borderColor: '#c3937c',
-                  color: '#c3937c',
-                  '&:hover': {
-                    borderColor: '#a67c66',
-                    bgcolor: '#f8f3f0'
-                  }
+                  borderColor: "#c3937c",
+                  color: "#c3937c",
+                  "&:hover": {
+                    borderColor: "#a67c66",
+                    bgcolor: "#f8f3f0",
+                  },
                 }}
               >
                 Cancel
@@ -695,14 +750,16 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               <Button
                 onClick={handleReviewSubmit}
                 variant="contained"
-                disabled={isSubmittingReview || !transactionRating || !reviewText.trim()}
+                disabled={
+                  isSubmittingReview || !transactionRating || !reviewText.trim()
+                }
                 sx={{
-                  bgcolor: '#c3937c',
-                  '&:hover': { bgcolor: '#a67c66' },
-                  '&:disabled': { bgcolor: '#d3c4b8' }
+                  bgcolor: "#c3937c",
+                  "&:hover": { bgcolor: "#a67c66" },
+                  "&:disabled": { bgcolor: "#d3c4b8" },
                 }}
               >
-                {isSubmittingReview ? 'Sending...' : 'Submit Review'}
+                {isSubmittingReview ? "Sending..." : "Submit Review"}
               </Button>
             </DialogActions>
           </Dialog>
@@ -714,17 +771,21 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
             maxWidth="sm"
             fullWidth
           >
-            <DialogTitle>{isSellerReviewed ? 'Review Seller Again' : 'Review Seller'}</DialogTitle>
+            <DialogTitle>
+              {isSellerReviewed ? "Review Seller Again" : "Review Seller"}
+            </DialogTitle>
             <DialogContent>
               {order.seller && (
-                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2 }}
+                >
                   <Avatar
                     src={order.seller.avatar}
                     alt={order.seller.fullname}
                     sx={{ width: 48, height: 48 }}
                   />
                   <Box>
-                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                    <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                       {order.seller.fullname}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -735,7 +796,10 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
               )}
 
               <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ mb: 2, fontWeight: 'medium' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 2, fontWeight: "medium" }}
+                >
                   Are you satisfied with this seller?
                 </Typography>
                 <ToggleButtonGroup
@@ -749,20 +813,20 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                   aria-label="seller rating"
                   fullWidth
                   sx={{
-                    '& .MuiToggleButton-root': {
+                    "& .MuiToggleButton-root": {
                       flex: 1,
                       py: 1.5,
-                      borderColor: '#c3937c',
-                      color: '#c3937c',
-                      '&.Mui-selected': {
-                        bgcolor: '#c3937c',
-                        color: 'white',
-                        '&:hover': {
-                          bgcolor: '#a67c66',
+                      borderColor: "#c3937c",
+                      color: "#c3937c",
+                      "&.Mui-selected": {
+                        bgcolor: "#c3937c",
+                        color: "white",
+                        "&:hover": {
+                          bgcolor: "#a67c66",
                         },
                       },
-                      '&:hover': {
-                        bgcolor: '#f8f3f0',
+                      "&:hover": {
+                        bgcolor: "#f8f3f0",
                       },
                     },
                   }}
@@ -794,12 +858,12 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                 onClick={() => setSellerReviewOpen(false)}
                 variant="outlined"
                 sx={{
-                  borderColor: '#c3937c',
-                  color: '#c3937c',
-                  '&:hover': {
-                    borderColor: '#a67c66',
-                    bgcolor: '#f8f3f0'
-                  }
+                  borderColor: "#c3937c",
+                  color: "#c3937c",
+                  "&:hover": {
+                    borderColor: "#a67c66",
+                    bgcolor: "#f8f3f0",
+                  },
                 }}
               >
                 Cancel
@@ -809,12 +873,12 @@ export function OrderCard({ order, onDelete }: OrderCardProps): JSX.Element {
                 variant="contained"
                 disabled={isSubmittingSellerReview || !sellerRating}
                 sx={{
-                  bgcolor: '#c3937c',
-                  '&:hover': { bgcolor: '#a67c66' },
-                  '&:disabled': { bgcolor: '#d3c4b8' }
+                  bgcolor: "#c3937c",
+                  "&:hover": { bgcolor: "#a67c66" },
+                  "&:disabled": { bgcolor: "#d3c4b8" },
                 }}
               >
-                {isSubmittingSellerReview ? 'Sending...' : 'Submit Review'}
+                {isSubmittingSellerReview ? "Sending..." : "Submit Review"}
               </Button>
             </DialogActions>
           </Dialog>

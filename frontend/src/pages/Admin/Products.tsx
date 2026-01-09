@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Container,
@@ -20,65 +20,45 @@ import {
   Button,
   Pagination,
   Divider,
+  CircularProgress,
+  Alert,
+  Avatar,
 } from "@mui/material";
 import { Trash2, Eye } from "lucide-react";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
 import { ProductSearchBar } from "./components/ProductSearchBar";
 import { useSearchParams } from "react-router-dom";
+import {
+  getAdminProducts,
+  deleteAdminProduct,
+  AdminProduct,
+} from "../../api/adminProduct";
 
 interface Product {
-  id: string;
+  id: number;
   name: string;
+  thumbnailUrl: string;
   category: string;
   startPrice: number;
-  stepPrice: number;
-  buyNowPrice?: number;
-  status: "active" | "ended" | "draft";
+  currentPrice: number | null;
+  buyNowPrice: number | null;
+  status: "ACTIVE" | "ENDED" | "CANCELLED";
   bids: number;
   createdAt: string;
+  endAt: string;
+  sellerName: string | null;
+  sellerEmail: string | null;
+  topBidderName: string | null;
 }
 
 const Products: React.FC = () => {
   // --------------------------------------
-  // 1) DATA STATE (original + filtered)
+  // 1) DATA STATE
   // --------------------------------------
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: "1",
-      name: "iPhone 15 Pro Max",
-      category: "Electronics",
-      startPrice: 25000000,
-      stepPrice: 100000,
-      buyNowPrice: 28000000,
-      status: "active",
-      bids: 24,
-      createdAt: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "Designer Handbag",
-      category: "Fashion",
-      startPrice: 5000000,
-      stepPrice: 50000,
-      status: "active",
-      bids: 12,
-      createdAt: "2024-01-16",
-    },
-    {
-      id: "3",
-      name: "Laptop Dell XPS 13",
-      category: "Electronics",
-      startPrice: 20000000,
-      stepPrice: 200000,
-      buyNowPrice: 25000000,
-      status: "ended",
-      bids: 8,
-      createdAt: "2024-01-10",
-    },
-  ]);
-
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   // --------------------------------------
   // 2) URL SYNC
@@ -87,7 +67,8 @@ const Products: React.FC = () => {
 
   const urlQ = searchParams.get("q") || "";
   const urlCategory = searchParams.get("category") || "";
-  const urlStatus = searchParams.get("status") || "";
+  const urlStatus = searchParams.get("status") || "ALL";
+  const urlPage = parseInt(searchParams.get("page") || "1", 10);
 
   // --------------------------------------
   // 3) SEARCH / FILTER STATE
@@ -97,93 +78,152 @@ const Products: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState(urlStatus);
 
   // --------------------------------------
-  // 4) LOADING STATE (giống ProductPage)
+  // 4) LOADING STATE
   // --------------------------------------
   const [loading, setLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [, setDeleteLoading] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
 
   // Pagination state
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(urlPage);
   const [rowsPerPage] = useState(10);
 
   // --------------------------------------
-  // 5) APPLY URL FILTERS ON PAGE LOAD
+  // 5) FETCH PRODUCTS FROM API
+  // --------------------------------------
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await getAdminProducts({
+        page: page - 1, // API uses 0-based index
+        size: rowsPerPage,
+        search: searchText.trim() || undefined,
+        status:
+          filterStatus === "ALL"
+            ? undefined
+            : (filterStatus as "ACTIVE" | "ENDED"),
+        categoryId: filterCategory ? parseInt(filterCategory) : undefined,
+      });
+
+      const pageData = response.data;
+
+      // Map API response to local Product format
+      const mappedProducts: Product[] = pageData.content.map(
+        (p: AdminProduct) => ({
+          id: p.id,
+          name: p.productName,
+          thumbnailUrl: p.thumbnailUrl,
+          category: p.categoryName || "Uncategorized",
+          startPrice: p.startPrice,
+          currentPrice: p.currentPrice,
+          buyNowPrice: p.buyNowPrice,
+          status: p.status,
+          bids: p.bidCount,
+          createdAt: p.createdAt,
+          endAt: p.endAt,
+          sellerName: p.sellerName,
+          sellerEmail: p.sellerEmail,
+          topBidderName: p.topBidderName,
+        })
+      );
+
+      setProducts(mappedProducts);
+      setTotalElements(pageData.totalElements);
+      setTotalPages(pageData.totalPages);
+    } catch (err: any) {
+      console.error("Error fetching products:", err);
+      setError(err.response?.data?.message || "Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, rowsPerPage, searchText, filterStatus, filterCategory]);
+
+  // --------------------------------------
+  // 6) APPLY URL FILTERS ON PAGE LOAD
   // --------------------------------------
   useEffect(() => {
     setSearchText(urlQ);
     setFilterCategory(urlCategory);
     setFilterStatus(urlStatus);
-  }, [urlQ, urlCategory, urlStatus]);
+    setPage(urlPage);
+  }, [urlQ, urlCategory, urlStatus, urlPage]);
 
   // --------------------------------------
-  // 6) MAIN FILTER LOGIC (giống ProductPage)
+  // 7) FETCH PRODUCTS WHEN FILTERS CHANGE
   // --------------------------------------
   useEffect(() => {
-    setIsSearching(true);
-
-    let result = [...products];
-
-    // Search text
-    if (searchText.trim()) {
-      result = result.filter((p) =>
-        p.name.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (filterCategory.trim()) {
-      result = result.filter((p) => p.category === filterCategory);
-    }
-
-    // Status filter
-    if (filterStatus.trim()) {
-      result = result.filter((p) => p.status === filterStatus);
-    }
-
-    setFilteredProducts(result);
-    setIsSearching(false);
-  }, [products, searchText, filterCategory, filterStatus]);
+    fetchProducts();
+  }, [fetchProducts]);
 
   // --------------------------------------
-  // 7) DELETE PRODUCT
+  // 8) DELETE PRODUCT
   // --------------------------------------
+  const handleDeleteProduct = async (id: number) => {
+    setDeleteLoading(true);
+    try {
+      await deleteAdminProduct(id);
+      // Refetch products after deletion
+      await fetchProducts();
+      setDeleteConfirmOpen(false);
+      setProductToDelete(null);
+    } catch (err: any) {
+      console.error("Error deleting product:", err);
+      setError(err.response?.data?.message || "Failed to delete product");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleViewProduct = (product: Product) => {
     setViewingProduct(product);
     setViewDialogOpen(true);
   };
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-US", {
+  const formatPrice = (price: number | null) => {
+    if (price === null) return "N/A";
+    return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(price);
   };
 
   // Pagination logic
-  const handleChangePage = (_event: React.ChangeEvent<unknown>, newPage: number) => {
+  const handleChangePage = (
+    _event: React.ChangeEvent<unknown>,
+    newPage: number
+  ) => {
     setPage(newPage);
   };
-
-  const paginatedProducts = filteredProducts.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredProducts.length / rowsPerPage);
 
   // --------------------------------------
   // RENDER
   // --------------------------------------
+  if (loading && products.length === 0) {
+    return (
+      <div className="relative flex flex-col min-h-screen">
+        <Header />
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <CircularProgress sx={{ color: "#C3937C" }} />
+        </Box>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col min-h-screen">
       <Header />
@@ -194,33 +234,54 @@ const Products: React.FC = () => {
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               Products Management
             </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Total: {totalElements} products
+            </Typography>
           </Box>
 
-          {/* Search Bar (bạn sẽ xử lý truyền filter vào đây sau) */}
+          {/* Error Alert */}
+          {error && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={() => setError(null)}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {/* Search Bar */}
           <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
             <ProductSearchBar />
           </Box>
 
-          {/* TABLE - giữ nguyên */}
+          {/* Loading Overlay */}
+          {loading && (
+            <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+              <CircularProgress size={24} sx={{ color: "#C3937C" }} />
+            </Box>
+          )}
+
+          {/* TABLE */}
           <Card>
             <CardContent sx={{ p: 0 }}>
               <TableContainer>
                 <Table>
                   <TableHead sx={{ bgcolor: "rgba(195, 147, 124, 0.1)" }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Product</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
                       <TableCell sx={{ fontWeight: 600 }} align="right">
-                        Start Price
+                        Current Price
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600 }} align="right">
-                        Step Price
+                        Buy Now
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                       <TableCell sx={{ fontWeight: 600 }} align="center">
                         Bids
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>End Date</TableCell>
                       <TableCell sx={{ fontWeight: 600 }} align="center">
                         Actions
                       </TableCell>
@@ -228,7 +289,7 @@ const Products: React.FC = () => {
                   </TableHead>
 
                   <TableBody>
-                    {paginatedProducts.length === 0 ? (
+                    {products.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                           <Typography color="textSecondary">
@@ -237,15 +298,51 @@ const Products: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      paginatedProducts.map((product) => (
+                      products.map((product: Product) => (
                         <TableRow key={product.id} hover>
-                          <TableCell>{product.name}</TableCell>
-                          <TableCell>{product.category}</TableCell>
-                          <TableCell align="right">
-                            {formatPrice(product.startPrice)}
+                          <TableCell>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                              }}
+                            >
+                              <Avatar
+                                src={product.thumbnailUrl}
+                                variant="rounded"
+                                sx={{ width: 48, height: 48 }}
+                              />
+                              <Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 500 }}
+                                >
+                                  {product.name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="textSecondary"
+                                >
+                                  Seller: {product.sellerName || "Unknown"}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={product.category}
+                              size="small"
+                              variant="outlined"
+                            />
                           </TableCell>
                           <TableCell align="right">
-                            {formatPrice(product.stepPrice)}
+                            {formatPrice(
+                              product.currentPrice || product.startPrice
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatPrice(product.buyNowPrice)}
                           </TableCell>
 
                           <TableCell>
@@ -253,20 +350,30 @@ const Products: React.FC = () => {
                               label={product.status}
                               size="small"
                               color={
-                                product.status === "active"
+                                product.status === "ACTIVE"
                                   ? "success"
-                                  : product.status === "ended"
-                                    ? "error"
-                                    : "default"
+                                  : product.status === "ENDED"
+                                  ? "error"
+                                  : "default"
                               }
                             />
                           </TableCell>
 
                           <TableCell align="center">{product.bids}</TableCell>
-                          <TableCell>{product.createdAt}</TableCell>
+                          <TableCell>
+                            {new Date(product.endAt).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </TableCell>
 
                           <TableCell align="center">
-                            <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 1,
+                                justifyContent: "center",
+                              }}
+                            >
                               <IconButton
                                 size="small"
                                 color="primary"
@@ -333,7 +440,8 @@ const Products: React.FC = () => {
 
         <DialogContent>
           <Typography>
-            Are you sure you want to remove this product? This action cannot be undone.
+            Are you sure you want to remove this product? This action cannot be
+            undone.
           </Typography>
         </DialogContent>
 
@@ -367,37 +475,57 @@ const Products: React.FC = () => {
         <DialogContent sx={{ pt: 2 }}>
           {viewingProduct && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
-                  Product Name
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {viewingProduct.name}
-                </Typography>
+              {/* Product Image and Name */}
+              <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+                <Avatar
+                  src={viewingProduct.thumbnailUrl}
+                  variant="rounded"
+                  sx={{ width: 120, height: 120 }}
+                />
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {viewingProduct.name}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mt: 1 }}
+                  >
+                    ID: {viewingProduct.id}
+                  </Typography>
+                </Box>
               </Box>
 
               <Divider />
 
               <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Category
                   </Typography>
                   <Chip label={viewingProduct.category} size="small" />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Status
                   </Typography>
                   <Chip
                     label={viewingProduct.status}
                     size="small"
                     color={
-                      viewingProduct.status === "active"
+                      viewingProduct.status === "ACTIVE"
                         ? "success"
-                        : viewingProduct.status === "ended"
-                          ? "error"
-                          : "default"
+                        : viewingProduct.status === "ENDED"
+                        ? "error"
+                        : "default"
                     }
                   />
                 </Box>
@@ -405,27 +533,69 @@ const Products: React.FC = () => {
 
               <Divider />
 
+              {/* Seller Info */}
               <Box>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ mb: 1 }}
+                >
+                  Seller Information
+                </Typography>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+                >
+                  <Typography variant="body1">
+                    Name:{" "}
+                    <strong>{viewingProduct.sellerName || "Unknown"}</strong>
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Email: {viewingProduct.sellerEmail || "N/A"}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ mb: 1 }}
+                >
                   Pricing Information
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="body2">Start Price:</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {formatPrice(viewingProduct.startPrice)}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2">Step Price:</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatPrice(viewingProduct.stepPrice)}
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <Typography variant="body2">Current Price:</Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: 500, color: "#C3937C" }}
+                    >
+                      {formatPrice(
+                        viewingProduct.currentPrice || viewingProduct.startPrice
+                      )}
                     </Typography>
                   </Box>
                   {viewingProduct.buyNowPrice && (
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
                       <Typography variant="body2">Buy Now Price:</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 500, color: "#C3937C" }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: 500, color: "#2e7d32" }}
+                      >
                         {formatPrice(viewingProduct.buyNowPrice)}
                       </Typography>
                     </Box>
@@ -435,9 +605,13 @@ const Products: React.FC = () => {
 
               <Divider />
 
-              <Box sx={{ display: "flex", gap: 3 }}>
+              <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <Box>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Total Bids
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -445,15 +619,55 @@ const Products: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    Top Bidder
+                  </Typography>
+                  <Typography variant="body1">
+                    {viewingProduct.topBidderName || "No bids yet"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Created Date
                   </Typography>
                   <Typography variant="body1">
-                    {new Date(viewingProduct.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {new Date(viewingProduct.createdAt).toLocaleDateString(
+                      "vi-VN",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 0.5 }}
+                  >
+                    End Date
+                  </Typography>
+                  <Typography variant="body1">
+                    {new Date(viewingProduct.endAt).toLocaleDateString(
+                      "vi-VN",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
                   </Typography>
                 </Box>
               </Box>
@@ -461,18 +675,18 @@ const Products: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setViewDialogOpen(false);
-            setViewingProduct(null);
-
-          }}
+          <Button
+            onClick={() => {
+              setViewDialogOpen(false);
+              setViewingProduct(null);
+            }}
             sx={{
-              borderColor: '#c3937c',
-              color: '#c3937c',
-              '&:hover': {
-                borderColor: '#a67c66',
-                bgcolor: '#f8f3f0'
-              }
+              borderColor: "#c3937c",
+              color: "#c3937c",
+              "&:hover": {
+                borderColor: "#a67c66",
+                bgcolor: "#f8f3f0",
+              },
             }}
           >
             Close

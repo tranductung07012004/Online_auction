@@ -1,250 +1,140 @@
-import axios from 'axios';
+import apiClient from "./apiClient";
 
-const API = axios.create({
-  baseURL: 'http://localhost:3000',
-  withCredentials: true,
-});
-
-// Get user orders
-export const getUserOrders = async () => {
-  try {
-    console.log('Making API request to fetch user orders');
-    const response = await API.get('/orders/user');
-    console.log('Orders API response status:', response.status);
-    console.log('Orders API response headers:', response.headers);
-
-    if (!response.data || !response.data.data) {
-      console.warn('API returned unexpected data structure:', response.data);
-      return [];
-    }
-
-    console.log('Orders API data count:', response.data.data.length);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to fetch orders - detailed error:', error);
-    if (error.response) {
-      console.error('Error response status:', error.response.status);
-      console.error('Error response data:', error.response.data);
-    }
-    throw new Error(error.response?.data?.message || 'Failed to fetch orders');
-  }
+// Lấy tất cả order của user hiện tại (buyer hoặc seller)
+export const getAllOrders = async (page = 0, size = 10) => {
+  const response = await apiClient.get("/api/main/order", {
+    params: { page, size },
+  });
+  return response.data.data.content || response.data.data; // Nếu backend trả về PageResponse
 };
 
-// Get order by ID
-export const getOrderById = async (orderId: string) => {
-  try {
-    const response = await API.get(`/orders/${orderId}`);
-    return response.data.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to fetch order');
-  }
+// Lấy chi tiết order theo ID
+export const getOrderById = async (orderId: string | number) => {
+  const response = await apiClient.get(`/api/main/order/${orderId}`);
+  return response.data.data; // Trả về OrderWithProductResponse
 };
 
-// Create order
-export const createOrder = async (localItems?: any[]) => {
-  try {
-    console.log('Creating order from cart items...');
-    
-    // If localItems are provided, use them to create the order
-    let requestData = {};
-    if (localItems && localItems.length > 0) {
-      console.log('Using provided local items for order creation:', localItems);
-      requestData = {
-        useLocalData: true,
-        items: localItems,
-        startDate: localItems[0].startDate,
-        endDate: localItems[0].endDate
-      };
-    }
-    
-    const response = await API.post('/orders/create', requestData);
-    console.log('Order creation API response status:', response.status);
-
-    if (!response.data || !response.data.data) {
-      console.warn(
-        'Order creation API returned unexpected data structure:',
-        response.data,
-      );
-      throw new Error('Unexpected response format');
-    }
-
-    console.log('New order created with ID:', response.data.data._id);
-    console.log('New order status:', response.data.data.status);
-    console.log(
-      'New order full data:',
-      JSON.stringify(response.data.data, null, 2),
-    );
-
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to create order - detailed error:', error);
-    if (error.response) {
-      console.error('Error response status:', error.response.status);
-      console.error('Error response data:', error.response.data);
-      
-      // If the error is "Cart is empty" and we have items in localStorage, try to create order from localStorage
-      if (error.response.data?.message === 'Cart is empty' && !localItems) {
-        console.log('Cart is empty, trying to create order from localStorage data');
-        const orderDataStr = localStorage.getItem('currentOrder');
-        if (orderDataStr) {
-          try {
-            const orderData = JSON.parse(orderDataStr);
-            if (orderData && orderData.items && orderData.items.length > 0) {
-              console.log('Found items in localStorage, retrying order creation');
-              return createOrder(orderData.items);
-            }
-          } catch (e) {
-            console.error('Error parsing localStorage data:', e);
-          }
-        }
-      }
-    }
-    throw new Error(error.response?.data?.message || 'Failed to create order');
-  }
+export const updateOrderStatus = async (orderId: number, status: string) => {
+  const response = await apiClient.put(`/api/main/order/${orderId}/status`, {
+    status,
+  });
+  return response.data.data;
 };
 
-// Cancel order
-export const cancelOrder = async (orderId: string) => {
-  try {
-    const response = await API.put(`/orders/cancel/${orderId}`);
-    return response.data.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to cancel order');
-  }
-};
-
-// Get all orders (Admin function)
-export const getAllOrders = async () => {
-  try {
-    const response = await API.get('/orders/admin');
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to fetch all orders:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to fetch all orders',
-    );
-  }
-};
-
-// Update order status (Admin function)
-export const updateOrderStatus = async (orderId: string, status: string) => {
-  try {
-    const response = await API.put(`/orders/${orderId}/status`, { status });
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to update order status:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to update order status',
-    );
-  }
-};
-
-// Update payment status (Admin function)
-export const updatePaymentStatus = async (
-  orderId: string,
-  paymentStatus: string,
+// Cập nhật địa chỉ giao hàng
+export const updateShippingAddress = async (
+  orderId: number,
+  shippingAddress: string
 ) => {
-  try {
-    const response = await API.put(`/orders/${orderId}/payment-status`, {
-      paymentStatus,
-    });
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to update payment status:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to update payment status',
-    );
-  }
+  const response = await apiClient.post(`/api/main/order/${orderId}/shipping`, {
+    shippingAddress,
+  });
+  return response.data.data;
 };
 
-// Process dress return with condition assessment and final payment (Admin function)
-export const processReturn = async (
-  orderId: string,
-  returnData: {
-    condition: 'perfect' | 'good' | 'damaged';
-    damageDescription?: string;
-    additionalCharges?: number;
-    sendPaymentReminder: boolean;
-  },
+// Xác nhận đã nhận tiền và gửi vận đơn (seller)
+export const confirmPaymentAndShipping = async (
+  orderId: number,
+  trackingNumber: string
 ) => {
-  try {
-    console.log(
-      'Processing return for order ID:',
-      orderId,
-      'with data:',
-      returnData,
-    );
-
-    // Gọi API thực từ backend
-    const response = await API.post(
-      `/orders/${orderId}/process-return`,
-      returnData,
-    );
-
-    // Kiểm tra phản hồi từ API
-    if (!response.data || !response.data.success) {
-      throw new Error(response.data?.message || 'Failed to process return');
+  const response = await apiClient.post(
+    `/api/main/order/${orderId}/confirm-shipping`,
+    {
+      trackingNumber,
     }
-
-    const updatedOrder = response.data.data;
-    console.log('Return processed successfully from API:', updatedOrder);
-    return updatedOrder;
-  } catch (error: any) {
-    console.error('Failed to process return:', error);
-    throw new Error(
-      error.response?.data?.message ||
-        error.message ||
-        'Failed to process return',
-    );
-  }
+  );
+  return response.data.data;
 };
 
-// Track order by order code
-export const trackOrder = async (orderCode: string) => {
-  try {
-    console.log('Tracking order with code:', orderCode);
-
-    // Gọi API tra cứu đơn hàng
-    const response = await API.get(`/orders/track/${orderCode}`);
-
-    // Kiểm tra phản hồi từ API
-    if (!response.data || !response.data.success) {
-      throw new Error(response.data?.message || 'Failed to track order');
-    }
-
-    console.log('Order tracking info:', response.data.data);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to track order:', error);
-    throw new Error(
-      error.response?.data?.message || error.message || 'Failed to track order',
-    );
-  }
+// Xác nhận đã nhận hàng (buyer)
+export const confirmDelivery = async (orderId: number) => {
+  const response = await apiClient.post(
+    `/api/main/order/${orderId}/confirm-delivery`
+  );
+  return response.data.data;
 };
 
-// Track order by phone number
-export const trackOrderByPhone = async (phone: string) => {
-  try {
-    console.log('Tracking orders with phone number:', phone);
+// Đánh giá đơn hàng
+export const submitOrderReview = async (
+  orderId: number,
+  rating: number,
+  comment: string
+) => {
+  const response = await apiClient.post(`/api/main/order/${orderId}/review`, {
+    status: rating, // 1 for positive, -1 for negative
+    comment,
+  });
+  return response.data.data;
+};
 
-    // Gọi API tra cứu đơn hàng bằng số điện thoại
-    const response = await API.get(`/orders/track-by-phone/${phone}`);
+// Hủy đơn hàng (seller)
+export const cancelOrder = async (orderId: number, reason: string) => {
+  const response = await apiClient.post(`/api/main/order/${orderId}/cancel`, {
+    cancelledReason: reason,
+  });
+  return response.data.data;
+};
 
-    // Kiểm tra phản hồi từ API
-    if (!response.data || !response.data.success) {
-      throw new Error(
-        response.data?.message || 'Failed to track order by phone',
-      );
+// Lấy thông tin shipping
+export const getOrderShipping = async (orderId: number) => {
+  const response = await apiClient.get(`/api/main/order/${orderId}/shipping`);
+  return response.data.data;
+};
+
+// Lấy thông tin payment
+export const getOrderPayment = async (orderId: number) => {
+  const response = await apiClient.get(`/api/main/order/${orderId}/payment`);
+  return response.data.data;
+};
+
+// Upload payment proof (buyer)
+export const uploadPaymentProof = async (
+  orderId: number,
+  paymentProofUrl: string,
+  paymentMethod?: string,
+  notes?: string
+) => {
+  const response = await apiClient.post(
+    `/api/main/order/${orderId}/payment/upload-proof`,
+    {
+      paymentProofUrl,
+      paymentMethod,
+      notes,
     }
+  );
+  return response.data.data;
+};
 
-    console.log('Orders found by phone:', response.data.data);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Failed to track order by phone:', error);
-    throw new Error(
-      error.response?.data?.message ||
-        error.message ||
-        'Failed to track order by phone',
-    );
-  }
+// Confirm payment received (seller)
+export const confirmPaymentReceived = async (
+  orderId: number,
+  notes?: string
+) => {
+  const response = await apiClient.post(
+    `/api/main/order/${orderId}/payment/confirm`,
+    {
+      notes,
+    }
+  );
+  return response.data.data;
+};
+
+// Lấy reviews của order
+export const getOrderReviews = async (orderId: number) => {
+  const response = await apiClient.get(`/api/main/order/${orderId}/reviews`);
+  return response.data.data;
+};
+
+// Lấy chat messages
+export const getOrderChatMessages = async (orderId: number) => {
+  const response = await apiClient.get(`/api/main/order/${orderId}/chat`);
+  return response.data.data;
+};
+
+// Gửi chat message
+export const sendChatMessage = async (orderId: number, message: string) => {
+  const response = await apiClient.post(`/api/main/order/${orderId}/chat`, {
+    message,
+  });
+  return response.data.data;
 };

@@ -12,16 +12,15 @@ const PDP = lazy(() => import("../pages/PDP/PDP"));
 const PCP = lazy(() => import("../pages/PCP/PCP"));
 const ProfilePage = lazy(() => import("../pages/Profile/ProfilePage"));
 const OrderHistory = lazy(() => import("../pages/Profile/OrderHistory"));
-const OrderDetails = lazy(() => import("../pages/Profile/OrderDetails"));
 const SellerRequest = lazy(() => import("../pages/Profile/SellerRequest"));
 const WatchList = lazy(() => import("../pages/Profile/WatchList"));
 const MyBids = lazy(() => import("../pages/Profile/MyBids"));
 const MyProducts = lazy(() => import("../pages/Profile/MyProducts"));
 const CreateProduct = lazy(() => import("../pages/Seller/CreateProduct"));
-const Checkout = lazy(() => import("../pages/Payment/Checkout"));
-const Information = lazy(() => import("../pages/Payment/Information"));
-const Successful = lazy(() => import("../pages/Payment/Successful"));
-const PaymentReview = lazy(() => import("../pages/Payment/PaymentReview"));
+
+// Order Flow
+const OrderProcess = lazy(() => import("../pages/Order/Shared/OrderProcess"));
+
 const SearchOverlay = lazy(() => import("../pages/Search/SearchOverlay"));
 
 // Admin Components
@@ -39,7 +38,7 @@ const Cart = lazy(() => import("../pages/Cart/Cart"));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'BIDDER' | 'SELLER' | null;
+  requiredRole?: "ADMIN" | "BIDDER" | "SELLER" | null;
 }
 
 // Protected Route component - requires authentication
@@ -74,10 +73,18 @@ interface GuestRouteProps {
 
 const GuestRoute: React.FC<GuestRouteProps> = ({
   children,
-  redirectPath = '/',
+  redirectPath = "/",
 }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      toast("You have already logged in, please logout", {
+        duration: 2000,
+      });
+    }
+  }, [isAuthenticated, isLoading]);
 
   if (isLoading) {
     return <LoadingOverlay message="Verifying your account..." fullScreen />;
@@ -95,30 +102,20 @@ const AppRoutes = () => {
     { path: "/", element: <HomeNew /> },
     { path: "/product-page", element: <PDP /> },
     { path: "/product-page/:id", element: <PDP /> },
-    // { path: '/product/:id', element: <PDP /> },
     { path: "/pcp", element: <PCP /> },
     {
       path: "/profile",
-      //(
-      element: (
-        // <ProtectedRoute requiredRole="user">
-        <ProfilePage />
-      ),
-      // </ProtectedRoute>
-      // ),
+      element: <ProfilePage />,
     },
     { path: "/order-history", element: <OrderHistory /> },
-    { path: "/order-details/:id", element: <OrderDetails /> },
+    { path: "/order/:id", element: <OrderProcess /> },
+
+    // Demo & Other
     { path: "/become-seller", element: <SellerRequest /> },
     { path: "/watchlist", element: <WatchList /> },
     { path: "/my-bids", element: <MyBids /> },
     { path: "/my-products", element: <MyProducts /> },
     { path: "/create-product", element: <CreateProduct /> },
-    { path: "/payment-checkout", element: <Checkout /> },
-    { path: "/payment-information", element: <Information /> },
-    { path: "/payment-successful", element: <Successful /> },
-    { path: "/payment-review", element: <PaymentReview /> },
-    { path: "/order-success", element: <Successful /> },
 
     // Admin Routes
     { path: "/admin/dashboard", element: <Dashboard /> },
@@ -126,11 +123,25 @@ const AppRoutes = () => {
     { path: "/admin/categories", element: <Categories /> },
     { path: "/admin/users", element: <Users /> },
 
-    // Auth Routes - only accessible when not authenticated
-    { path: "/signin", element: <GuestRoute> <SignIn /> </GuestRoute>},
-    { path: "/signup", element: <GuestRoute><SignUp /></GuestRoute> },
-    { path: "/verify-email", element: <VerifyEmail />},
-    { path: "/forgot-password", element: <GuestRoute><ForgotPassword /></GuestRoute> },
+    // Auth Routes
+    { path: "/signin", element: <SignIn /> },
+    {
+      path: "/signup",
+      element: (
+        <GuestRoute>
+          <SignUp />
+        </GuestRoute>
+      ),
+    },
+    { path: "/verify-email", element: <VerifyEmail /> },
+    {
+      path: "/forgot-password",
+      element: (
+        <GuestRoute>
+          <ForgotPassword />
+        </GuestRoute>
+      ),
+    },
     { path: "/reset-password", element: <ResetPassword /> },
 
     // Other Routes
