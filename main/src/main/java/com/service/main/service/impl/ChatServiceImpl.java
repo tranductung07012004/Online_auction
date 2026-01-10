@@ -21,25 +21,27 @@ public class ChatServiceImpl implements ChatService {
     private OrderRepository orderRepository;
     
     @Override
-    @Transactional
-    public ChatMessage sendMessage(Long orderId, Long senderId, String message) {
-        // Validate order exists
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        
-        // Validate sender is either buyer or seller
-        if (!senderId.equals(order.getBuyerId()) && !senderId.equals(order.getSellerId())) {
-            throw new RuntimeException("You are not authorized to send messages in this chat");
-        }
-        
-        // Create and save message
-        ChatMessage chatMessage = new ChatMessage();
-        chatMessage.setOrderId(orderId);
-        chatMessage.setSenderId(senderId);
-        chatMessage.setMessage(message);
-        
-        return chatMessageRepository.save(chatMessage);
+@Transactional
+public ChatMessage sendMessage(Long orderId, Long senderId, String message) {
+    if (orderId == null) throw new RuntimeException("orderId is required");
+    if (senderId == null) throw new RuntimeException("senderId is required");
+    if (message == null || message.trim().isEmpty()) throw new RuntimeException("message is empty");
+
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+
+    if (!senderId.equals(order.getBuyerId()) && !senderId.equals(order.getSellerId())) {
+        throw new RuntimeException("You are not authorized to send messages in this chat");
     }
+
+    ChatMessage chatMessage = new ChatMessage();
+    chatMessage.setOrderId(orderId);
+    chatMessage.setSenderId(senderId);
+    chatMessage.setMessage(message.trim());
+
+    return chatMessageRepository.save(chatMessage);
+}
+
     
     @Override
     public List<ChatMessage> getChatHistory(Long orderId) {

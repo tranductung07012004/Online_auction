@@ -3,3 +3,5 @@ user.zip
 .vscode/
 .DS_Store
 node_modules/
+
+logs/

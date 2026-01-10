@@ -28,9 +28,11 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         String requestURI = req.getServletPath();
 
+        // Bypass authentication for public endpoints
         if (requestURI.startsWith("/main/api-docs/swagger-ui") ||
                 requestURI.startsWith("/main/api-docs/v3/api-docs") ||
-                requestURI.equals("/main/api-docs/swagger-ui.html")
+                requestURI.equals("/main/api-docs/swagger-ui.html") ||
+                requestURI.startsWith("/ws-chat")  // Bypass WebSocket
         ) {
             filterChain.doFilter(req, res);
             return;

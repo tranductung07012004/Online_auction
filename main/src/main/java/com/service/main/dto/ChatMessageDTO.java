@@ -9,6 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChatMessageDTO {
     private Long orderId;
-    private Long senderId;
     private String message;
 }
