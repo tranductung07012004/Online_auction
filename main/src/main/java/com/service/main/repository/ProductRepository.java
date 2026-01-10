@@ -171,6 +171,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         ORDER BY p.endAt ASC
     """)
     List<Product> findEndedProductsWithWinner(@Param("now") OffsetDateTime now);
+
+    @Query("""
+        SELECT p FROM Product p
+        WHERE p.id IN :productIds
+        AND p.endAt > :now
+        ORDER BY p.createdAt DESC
+    """)
+    Page<Product> findActiveProductsByIds(
+        @Param("productIds") List<Long> productIds,
+        @Param("now") OffsetDateTime now,
+        Pageable pageable
+    );
 }
 
 

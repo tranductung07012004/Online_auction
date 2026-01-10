@@ -15,6 +15,9 @@ public interface AutoBidRepository extends JpaRepository<AutoBid, Long> {
     @Query("SELECT a FROM AutoBid a WHERE a.productId = :productId AND a.bidderId = :bidderId")
     Optional<AutoBid> findByProductIdAndBidderId(@Param("productId") Long productId, @Param("bidderId") Long bidderId);
 
+    @Query("SELECT a FROM AutoBid a WHERE a.bidderId = :bidderId")
+    List<AutoBid> findByBidderId(@Param("bidderId") Long bidderId);
+
     @Query("SELECT a FROM AutoBid a WHERE a.productId = :productId")
     Page<AutoBid> findByProductId(@Param("productId") Long productId, Pageable pageable);
 

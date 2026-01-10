@@ -19,5 +19,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             @Param("senderId") Long senderId,
             @Param("receiverId") Long receiverId
     );
+
+    @Query("SELECT r FROM Review r WHERE r.receiverId = :receiverId ORDER BY r.createdAt DESC")
+    Page<Review> findByReceiverId(@Param("receiverId") Long receiverId, Pageable pageable);
 }
 

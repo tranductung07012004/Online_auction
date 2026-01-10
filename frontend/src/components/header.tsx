@@ -12,14 +12,12 @@ import {
   Box,
   Divider,
   Avatar,
-  Badge,
   Collapse,
   CircularProgress
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  ShoppingCart as CartIcon,
   Person as PersonIcon,
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
@@ -35,6 +33,7 @@ import { useNavigate } from "react-router-dom";
 import { useNavigationStore } from "../stores";
 import { useAuthStore } from "../stores/authStore";
 import { getCategoriesGrouped } from "../api/categories";
+import RoleWrapper from "./RoleWrapper";
 
 // MenuItem type for drawer menu
 interface SubCategory {
@@ -98,19 +97,15 @@ const MenuButton = ({ onClick }: { onClick: () => void }) => (
 
 interface UserActionsProps {
   onProfileClick: () => void;
-  onCartClick: () => void;
   onCreateProductClick: () => void;
-  isAdmin?: boolean;
 }
 
 const UserActions: React.FC<UserActionsProps> = ({
   onProfileClick,
-  onCartClick,
   onCreateProductClick,
-  isAdmin = false,
 }) => (
   <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 } }}>
-    {!isAdmin && (
+    <RoleWrapper onlyRole="SELLER">
       <IconButton
         onClick={onCreateProductClick}
         sx={{
@@ -120,7 +115,7 @@ const UserActions: React.FC<UserActionsProps> = ({
       >
         <InventoryIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
       </IconButton>
-    )}
+    </RoleWrapper>
 
     <IconButton
       onClick={onProfileClick}
@@ -131,20 +126,6 @@ const UserActions: React.FC<UserActionsProps> = ({
     >
       <PersonIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
     </IconButton>
-
-    {!isAdmin && (
-      <IconButton
-        onClick={onCartClick}
-        sx={{
-          color: "#C3937C",
-          "&:hover": { bgcolor: "rgba(195, 147, 124, 0.08)" },
-        }}
-      >
-        <Badge badgeContent={0} color="error">
-          <CartIcon sx={{ fontSize: { xs: 22, md: 24 } }} />
-        </Badge>
-      </IconButton>
-    )}
   </Box>
 );
 
@@ -457,10 +438,6 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
     }
   };
 
-  const goToCartPage = (): void => {
-    navigate("/cart");
-  };
-
   const goToCreateProductPage = (): void => {
     navigate("/create-product");
   };
@@ -641,9 +618,7 @@ const Header: React.FC<NavigationProps> = ({ isSticky = true }) => {
           <Box sx={{ display: "flex", justifyContent: "flex-end", flex: 1 }}>
             <UserActions
               onProfileClick={goToProfilePage}
-              onCartClick={goToCartPage}
               onCreateProductClick={goToCreateProductPage}
-              isAdmin={isAdmin}
             />
           </Box>
         </Toolbar>

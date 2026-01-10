@@ -178,6 +178,26 @@ public class AutoBidServiceImpl implements AutoBidService {
         BigDecimal buyNowPrice = product.getBuyNowPrice();
         OffsetDateTime endAt = product.getEndAt();
 
+        // . Buy now trigger
+        if (buyNowPrice != null && maxPrice.compareTo(buyNowPrice) >= 0) {
+            product.setTopBidderId(currentUserId);
+            product.setCurrentPrice(buyNowPrice);
+            product.setBidCount(product.getBidCount() + 1);
+            product.setEndAt(now);
+            this.productRepository.save(product);
+
+            this.createBidHistory(product.getId(), currentUserId, buyNowPrice, now);
+
+            AutoBid autoBidRes =  this.createOrUpdateAutoBid(product.getId(), currentUserId, maxPrice, now);
+            return new CreateAutoBidResult(
+                    autoBidRes,
+                    true,
+                    buyNowPrice.compareTo(currentPrice) != 0,
+                    buyNowPrice,
+                    now
+            );
+        }
+
         if (product.getTopBidderId() != null && currentUserId == product.getTopBidderId()) {
             // new max price >= old max price else throw
             // Khong tang bid count
@@ -230,28 +250,6 @@ public class AutoBidServiceImpl implements AutoBidService {
                     "Product " + product.getId() + "has bid_count < 0, error data"
             );
         }
-
-
-        // 3. Buy now trigger
-        if (buyNowPrice != null && maxPrice.compareTo(buyNowPrice) >= 0) {
-            product.setTopBidderId(currentUserId);
-            product.setCurrentPrice(buyNowPrice);
-            product.setBidCount(product.getBidCount() + 1);
-            product.setEndAt(now);
-            this.productRepository.save(product);
-
-            this.createBidHistory(product.getId(), currentUserId, buyNowPrice, now);
-
-            AutoBid autoBidRes =  this.createOrUpdateAutoBid(product.getId(), currentUserId, maxPrice, now);
-            return new CreateAutoBidResult(
-                    autoBidRes,
-                    true,
-                    buyNowPrice.compareTo(currentPrice) != 0,
-                    buyNowPrice,
-                    now
-            );
-        }
-
 
         BidUpdateResult result = handleBidCases(product, maxPrice, minBidStep, currentUserId, now);
 

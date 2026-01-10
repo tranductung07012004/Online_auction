@@ -6,7 +6,9 @@ import com.service.main.constants.KafkaTopics;
 import com.service.main.dto.*;
 import com.service.main.entity.*;
 import com.service.main.exception.ApplicationException;
+import com.service.main.repository.AutoBidRepository;
 import com.service.main.repository.CategoriesRepository;
+import com.service.main.repository.ProductDescriptionRepository;
 import com.service.main.repository.ProductRepository;
 import com.service.main.repository.ProductSyncEsLimitRepository;
 import com.service.main.service.KafkaProducerService;
@@ -31,6 +33,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoriesRepository categoriesRepository;
     private final UserServiceClient userServiceClient;
+    private final AutoBidRepository autoBidRepository;
+    private final ProductDescriptionRepository productDescriptionRepository;
 
     private final KafkaProducerService kafkaProducerService;
 
@@ -183,7 +187,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = this.productRepository.findTopEndingSoon(now);
 
         if (products.isEmpty()) {
-            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "All products has ended section");
+            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "All products has ended");
         }
 
         // only take the first 5 product
@@ -214,7 +218,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepository.findTop5HighestCurrentPrice(now);
 
         if (products.isEmpty()) {
-            throw new ApplicationException("PRODUCT_NOT_FOUND", "No product found with current price");
+            throw new ApplicationException("PRODUCT_NOT_FOUND", "No product found");
         }
 
         return products.stream()
@@ -308,6 +312,43 @@ public class ProductServiceImpl implements ProductService {
             formattedUser.setAssessment(like / (like + dislike) * 10);
         }
         return formattedUser;
+    }
+
+    @Override
+    public Page<ProductResponse> getActiveProductBasedOnBidderWhoIsBidding(Long bidderId, Pageable pageable) {
+        List<AutoBid> autoBids = this.autoBidRepository.findByBidderId(bidderId);
+        
+        if (autoBids.isEmpty()) {
+            throw new ApplicationException(
+                ErrorCodes.RESOURCE_NOT_FOUND, 
+                "User id" + bidderId + "have not bid any product yet!" );
+        }
+        
+        List<Long> productIds = autoBids.stream()
+                .map(AutoBid::getProductId)
+                .collect(Collectors.toList());
+        
+        OffsetDateTime now = OffsetDateTime.now();
+        Page<Product> productPage = this.productRepository.findActiveProductsByIds(productIds, now, pageable);
+        
+        return productPage.map(this::mapToProductResponse);
+    }
+
+    @Override
+    public void addProductDescription(Long productId, AddProductDescriptionRequest request, Long userId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        ProductDescription description = ProductDescription.builder()
+                .content(request.getDescriptionContent().trim())
+                .product(product)
+                .createdAt(now)
+                .createdBy(userId)
+                .build();
+
+        this.productDescriptionRepository.save(description);
     }
 
     private void validatePrices(createProductRequest request) {

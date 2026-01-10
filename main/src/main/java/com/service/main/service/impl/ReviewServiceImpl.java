@@ -31,32 +31,27 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public ReviewResponse createReview(CreateReviewRequest request, Long senderId) {
-        // Validate status is 0 or 1
         if (request.getStatus() == null || (request.getStatus() != 0 && request.getStatus() != 1)) {
             throw new ApplicationException(ErrorCodes.VALIDATION_FAILED, 
                 "Status must be 0 (dislike) or 1 (like)");
         }
 
-        // Verify sender exists
         UserInfoResponse senderInfo = userServiceClient.getUserBasicInfo(senderId);
         if (senderInfo == null) {
             throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Sender not found");
         }
 
-        // Verify receiver exists
         UserInfoResponse receiverInfo = userServiceClient.getUserBasicInfo(request.getReceiverId());
         if (receiverInfo == null) {
             throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, 
                 "Receiver not found");
         }
 
-        // Prevent self-review
         if (senderId.equals(request.getReceiverId())) {
             throw new ApplicationException(ErrorCodes.INVALID_OPERATION, 
                 "Cannot review yourself");
         }
 
-        // Check if review already exists
         Optional<Review> existingReviewOpt = reviewRepository.findBySenderIdAndReceiverId(
                 senderId,
                 request.getReceiverId()
@@ -115,7 +110,6 @@ public class ReviewServiceImpl implements ReviewService {
             return mapToReviewResponse(savedReview);
         }
 
-        // No existing review - create new one
         OffsetDateTime now = OffsetDateTime.now();
 
         Review review = Review.builder()
@@ -148,7 +142,18 @@ public class ReviewServiceImpl implements ReviewService {
             throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Sender not found");
         }
 
-        Page<Review> reviews = reviewRepository.findBySenderId(senderId, pageable);
+        Page<Review> reviews = this.reviewRepository.findBySenderId(senderId, pageable);
+        return reviews.map(this::mapToReviewResponse);
+    }
+
+    @Override
+    public Page<ReviewResponse> getReviewsByReceiverId(Long receiverId, Pageable pageable) {
+        UserInfoResponse receiverInfo = userServiceClient.getUserBasicInfo(receiverId);
+        if (receiverInfo == null) {
+            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Receiver not found");
+        }
+
+        Page<Review> reviews = this.reviewRepository.findByReceiverId(receiverId, pageable);
         return reviews.map(this::mapToReviewResponse);
     }
 

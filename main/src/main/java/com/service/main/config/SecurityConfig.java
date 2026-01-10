@@ -29,7 +29,14 @@ public class SecurityConfig {
                     "/ws-chat/**",
                     "/main/api-docs/v3/api-docs/**",
                     "/main/api-docs/swagger-ui/**",
-                    "/main/api-docs/swagger-ui.html"
+                    "/main/api-docs/swagger-ui.html",
+                    "/api/main/categories/search-norm-parent**",
+                    "/api/main/categories/search-norm-child**",
+                    "/api/main/product/top-ending-soon**",
+                    "/api/main/product/most-bid-count**",
+                    "/api/main/product/highest-current-price",
+                    "/api/main/search**",
+                    "/api/main/system-settings/by-key" 
                 ).permitAll()
                 .anyRequest().authenticated()
             )

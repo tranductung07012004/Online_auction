@@ -9,5 +9,7 @@ public interface ReviewService {
     ReviewResponse createReview(CreateReviewRequest request, Long senderId);
     
     Page<ReviewResponse> getReviewsBySenderId(Long senderId, Pageable pageable);
+    
+    Page<ReviewResponse> getReviewsByReceiverId(Long receiverId, Pageable pageable);
 }
 

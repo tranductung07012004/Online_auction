@@ -41,6 +41,14 @@ public class JwtAuthenticationFilter implements GlobalFilter {
                 || path.startsWith("/user/api-docs/swagger-ui")
                 || path.startsWith("/user/api-docs/v3/api-docs")
                 || path.equals("/user/api-docs/swagger-ui.html")
+                || path.startsWith("/api/main/categories/search-norm-parent")
+                || path.startsWith("/api/main/categories/search-norm-child")
+                || path.startsWith("/api/main/product/top-ending-soon")
+                || path.startsWith("/api/main/product/most-bid-count")
+                || path.startsWith("/api/main/product/highest-current-price")
+                || path.startsWith("/api/main/search")
+                || path.startsWith("/api/main/system-settings/by-key")  
+
         ) {
             return chain.filter(exchange);
         }

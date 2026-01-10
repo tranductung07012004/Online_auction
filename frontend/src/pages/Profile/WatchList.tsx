@@ -158,11 +158,11 @@ export default function WatchListPage(): JSX.Element {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Heart className="h-8 w-8" style={{ color: '#FFE082' }} />
                     <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
-                      Watch List
+                      Wish List
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Danh sách các sản phẩm bạn đã thêm vào watchlist
+                    The products that you have added to wishlist
                   </Typography>
                 </Stack>
               </CardContent>
@@ -180,10 +180,10 @@ export default function WatchListPage(): JSX.Element {
               >
                 <Heart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                  Watchlist trống
+                  Wishlist Empty
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Bạn chưa thêm sản phẩm nào vào watchlist. Hãy khám phá và thêm các sản phẩm yêu thích!
+                  Lets explore and add products to your wish list
                 </Typography>
               </Paper>
             ) : (

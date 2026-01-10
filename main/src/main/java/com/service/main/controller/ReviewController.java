@@ -30,12 +30,13 @@ public class ReviewController {
 
         ReviewResponse res = this.reviewService.createReview(req, currentUserId);
 
-        return ResponseEntity.status(201)
+        return ResponseEntity
+        .status(201)
                 .body(new ApiResponse<>("Review created successfully", res));
     }
 
-    @GetMapping
-    public ResponseEntity<?> getReviews(
+    @GetMapping("sender")
+    public ResponseEntity<?> getReviewsBySenderId(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -45,9 +46,28 @@ public class ReviewController {
         Pageable pageable = PageRequest.of(page, size);
         Page<ReviewResponse> reviews = this.reviewService.getReviewsBySenderId(currentUserId, pageable);
 
-        return ResponseEntity.ok(
-                new ApiResponse<>("Reviews retrieved successfully", reviews)
-        );
+        return ResponseEntity
+                .status(200)
+                .body(
+                        new ApiResponse<>("Reviews retrieved successfully", reviews)
+                );
+    }
+    @GetMapping("receiver")
+    public ResponseEntity<?> getReviewsByReceiverId(
+        @RequestParam(defaultValue = "0") int page, 
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long currentUserId = Long.valueOf(authentication.getName());
+        Pageable pageable = PageRequest.of(page, size);
+        
+        Page<ReviewResponse> reviews = this.reviewService.getReviewsByReceiverId(currentUserId, pageable);
+
+        return ResponseEntity
+                .status(200)
+                .body(
+                        new ApiResponse<>("Reviews retrieved successfully", reviews)
+                );
     }
 }
 

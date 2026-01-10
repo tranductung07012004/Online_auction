@@ -103,7 +103,7 @@ export default function TransactionHistory({ productId }: TransactionHistoryProp
                 <TableRow sx={{ backgroundColor: '#EAD9C9' }}>
                   <TableCell sx={{ fontWeight: 600, color: '#333333' }}>Time</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#333333' }}>Bidder</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#333333' }} align="right">Price</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#333333' }} align="right">Price bid (not max price)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

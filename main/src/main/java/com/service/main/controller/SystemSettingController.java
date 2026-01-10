@@ -30,7 +30,7 @@ public class SystemSettingController {
     }
 
 
-    @GetMapping()
+    @GetMapping("by-key")
     public ResponseEntity<?> getSystemSettingByKey(
             @RequestParam String key) {
 

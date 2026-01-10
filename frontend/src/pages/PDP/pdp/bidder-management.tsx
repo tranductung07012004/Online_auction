@@ -331,9 +331,6 @@ export default function BidderManagement({ productId, isSeller }: BidderManageme
                         <Typography variant="body2" sx={{ fontWeight: 500, color: '#333333' }}>
                           {bidder.fullname}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#868686' }}>
-                          @{bidder.username}
-                        </Typography>
                       </Box>
                     </Box>
                   </TableCell>
