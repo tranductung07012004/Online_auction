@@ -152,7 +152,7 @@ export default function MyBidsPage(): JSX.Element {
               >
                 <Gavel className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                  You have not bid any product yet!
+                  You have not bid any product or the product has just ended
                 </Typography>
               </Paper>
             ) : (

@@ -82,3 +82,19 @@ export const getReviewsByReceiverId = async (
   return response.data.data;
 };
 
+// Get reviews by receiver ID (public endpoint - anyone can view)
+export const getReviewsByReceiverIdPublic = async (
+  userId: number,
+  page: number = 0,
+  size: number = 10
+): Promise<ReviewsPageResponse> => {
+  const response = await api.get<ApiResponse<ReviewsPageResponse>>(
+    `/api/main/reviews/public/user/${userId}`,
+    {
+      params: { page, size }
+    }
+  );
+
+  return response.data.data;
+};
+

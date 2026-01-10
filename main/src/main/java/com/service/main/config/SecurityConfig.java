@@ -36,7 +36,8 @@ public class SecurityConfig {
                     "/api/main/product/most-bid-count**",
                     "/api/main/product/highest-current-price",
                     "/api/main/search**",
-                    "/api/main/system-settings/by-key" 
+                    "/api/main/system-settings/by-key",
+                    "/api/main/reviews/public/user/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

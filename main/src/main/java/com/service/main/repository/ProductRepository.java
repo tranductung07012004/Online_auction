@@ -172,6 +172,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     """)
     List<Product> findEndedProductsWithWinner(@Param("now") OffsetDateTime now);
 
+    /**
+     * Find all ended products that have no winner (no bids) and no order yet
+     * This query excludes products that already have an order created
+     */
+    @Query("""
+        SELECT p FROM Product p 
+        WHERE p.endAt <= :now
+        AND p.topBidderId IS NULL
+        AND NOT EXISTS (
+            SELECT 1 FROM Order o 
+            WHERE o.productId = p.id
+        )
+        ORDER BY p.endAt ASC
+    """)
+    List<Product> findEndedProductsWithoutWinner(@Param("now") OffsetDateTime now);
+
     @Query("""
         SELECT p FROM Product p
         WHERE p.id IN :productIds

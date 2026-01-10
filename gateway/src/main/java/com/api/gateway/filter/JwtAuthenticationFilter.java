@@ -48,6 +48,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
                 || path.startsWith("/api/main/product/highest-current-price")
                 || path.startsWith("/api/main/search")
                 || path.startsWith("/api/main/system-settings/by-key")  
+                || path.startsWith("/api/main/reviews/public/user/")
 
         ) {
             return chain.filter(exchange);

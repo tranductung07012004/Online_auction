@@ -1,12 +1,15 @@
 package com.service.user.controller;
 
 import com.service.user.dto.ApiResponse;
+import com.service.user.dto.GetUserEmailsRequest;
 import com.service.user.dto.UpdateAddressRequest;
 import com.service.user.dto.UpdateAvatarRequest;
 import com.service.user.dto.UpdateEmailRequest;
 import com.service.user.dto.UpdateFullnameRequest;
 import com.service.user.dto.UpdatePasswordRequest;
 import com.service.user.dto.UpdateReviewStatsRequest;
+import com.service.user.dto.UserEmailItemResponse;
+import com.service.user.dto.UserEmailResponse;
 import com.service.user.dto.UserInfoResponse;
 import com.service.user.dto.UserListResponse;
 import com.service.user.dto.UserProfileResponse;
@@ -35,6 +38,26 @@ public class UserController {
         return ResponseEntity
                 .status(200)
                 .body(new ApiResponse<>("Get user basic info successfully", res));
+    }
+
+    @GetMapping("/{userId}/email")
+    public ResponseEntity<?> getUserEmail(
+            @PathVariable Long userId
+    ) {
+        UserEmailResponse res = this.userService.getUserEmail(userId);
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("Get user email successfully", res));
+    }
+
+    @PostMapping("/emails")
+    public ResponseEntity<?> getUserEmails(
+            @Valid @RequestBody GetUserEmailsRequest request
+    ) {
+        List<UserEmailItemResponse> res = this.userService.getUserEmails(request.getUserIds());
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("Get user emails successfully", res));
     }
 
     @GetMapping("/all")

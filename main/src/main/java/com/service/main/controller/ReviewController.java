@@ -69,5 +69,22 @@ public class ReviewController {
                         new ApiResponse<>("Reviews retrieved successfully", reviews)
                 );
     }
+
+    @GetMapping("/public/user/{userId}")
+    public ResponseEntity<?> getReviewsByReceiverIdPublic(
+        @PathVariable Long userId,
+        @RequestParam(defaultValue = "0") int page, 
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        
+        Page<ReviewResponse> reviews = this.reviewService.getReviewsByReceiverId(userId, pageable);
+
+        return ResponseEntity
+                .status(200)
+                .body(
+                        new ApiResponse<>("Reviews retrieved successfully", reviews)
+                );
+    }
 }
 

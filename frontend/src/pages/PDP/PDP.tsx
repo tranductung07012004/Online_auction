@@ -541,6 +541,19 @@ export default function ProductDetailPage(): JSX.Element {
               </div>
             </div>
             
+            {/* Display product created date */}
+            {product?.createdAt && (
+              <div className="text-sm text-gray-600">
+                Product created: {new Date(product.createdAt).toLocaleString('vi-VN', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            )}
+            
             {/* Display auction status */}
             <div className={`text-lg font-bold ${isEndingSoon ? 'text-[#f0c88b]' : 'text-gray-600'}`}>
               {isAuctionEnded 
@@ -604,6 +617,14 @@ export default function ProductDetailPage(): JSX.Element {
                         {product.seller.assessment ? product.seller.assessment.toFixed(1) : 'N/A'}
                       </span>
                     </div>
+                    <div className="mt-2">
+                      <span
+                        onClick={() => navigate(`/reviews/user/${product.seller.id}`)}
+                        className="text-sm text-[#8B4513] italic underline cursor-pointer hover:text-[#654321] transition-colors"
+                      >
+                        see detailed reviews
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -623,12 +644,6 @@ export default function ProductDetailPage(): JSX.Element {
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-[#333333]">{product.topBidder.fullname}</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Current bid: {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND',
-                      }).format(product.currentPrice)}
-                    </div>
                     <div className="flex items-center space-x-2 mt-2">
                       <div className="flex">
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => {
@@ -648,6 +663,14 @@ export default function ProductDetailPage(): JSX.Element {
                       </div>
                       <span className="text-sm text-gray-600">
                         {product.topBidder.assessment ? product.topBidder.assessment.toFixed(1) : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <span
+                        onClick={() => product.topBidder && navigate(`/reviews/user/${product.topBidder.id}`)}
+                        className="text-sm text-[#8B4513] italic underline cursor-pointer hover:text-[#654321] transition-colors"
+                      >
+                        see detailed reviews
                       </span>
                     </div>
                   </div>

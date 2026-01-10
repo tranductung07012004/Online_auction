@@ -28,7 +28,7 @@ public class BlackListController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long currentUserId = Long.valueOf(authentication.getName());
 
-        BlackListResponse result = blackListService.blockUser(
+        BlackListResponse result = this.blackListService.blockUser(
                 request.getBidderId(),
                 request.getProductId(),
                 currentUserId
@@ -48,7 +48,7 @@ public class BlackListController {
     ) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<BlackListResponse> result = blackListService.getBlackListsByProductId(productId, pageable);
+        Page<BlackListResponse> result = this.blackListService.getBlackListsByProductId(productId, pageable);
 
         return ResponseEntity.ok(new ApiResponse<>("Blacklists retrieved successfully", result));
     }

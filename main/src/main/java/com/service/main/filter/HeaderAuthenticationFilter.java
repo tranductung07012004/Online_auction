@@ -37,7 +37,8 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
                 requestURI.startsWith("/api/main/product/most-bid-count") ||
                 requestURI.startsWith("/api/main/product/highest-current-price") ||
                 requestURI.startsWith("/api/main/search") ||
-                requestURI.startsWith("/api/main/system-settings/by-key")      
+                requestURI.startsWith("/api/main/system-settings/by-key") || 
+                requestURI.startsWith("/api/main/reviews/public/user/")
 
         ) {
             filterChain.doFilter(req, res);

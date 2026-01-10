@@ -8,7 +8,7 @@ import com.service.main.entity.OrderPayment;
 import com.service.main.repository.OrderPaymentRepository;
 import com.service.main.repository.OrderRepository;
 import com.service.main.service.PaymentService;
-import com.service.main.util.VNPayUtil;
+import com.service.main.utils.VNPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -18,6 +18,7 @@ const WatchList = lazy(() => import("../pages/Profile/WatchList"));
 const MyBids = lazy(() => import("../pages/Profile/MyBids"));
 const MyProducts = lazy(() => import("../pages/Profile/MyProducts"));
 const UserReview = lazy(() => import("../pages/Profile/UserReview"));
+const PublicUserReview = lazy(() => import("../pages/Public/PublicUserReview"));
 const CreateProduct = lazy(() => import("../pages/Seller/CreateProduct"));
 
 // Order Flow
@@ -140,6 +141,32 @@ const GuestRoute: React.FC<GuestRouteProps> = ({
   return <>{children}</>;
 };
 
+// Public Route component - allows guest, bidder, seller but excludes admin
+interface PublicRouteProps {
+  children: React.ReactNode;
+  redirectTo?: string;
+}
+
+const PublicRoute: React.FC<PublicRouteProps> = ({
+  children,
+  redirectTo = "/admin/dashboard",
+}) => {
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const role: UserRole = useAuthStore((state) => state.role);
+
+  if (isLoading) {
+    return <LoadingOverlay message="Verifying your account..." fullScreen />;
+  }
+
+  // Redirect admin away from public pages
+  if (role === "ADMIN") {
+    return <Navigate to={redirectTo} replace={true} />;
+  }
+
+  // Allow guest, bidder, seller
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const routes = [
     // Public routes - anyone can access
@@ -148,6 +175,14 @@ const AppRoutes = () => {
     { path: "/product-page/:id", element: <PDP /> },
     { path: "/pcp", element: <PCP /> },
     { path: "/search", element: <SearchOverlay /> },
+    {
+      path: "/reviews/user/:userId",
+      element: (
+        <PublicRoute>
+          <PublicUserReview />
+        </PublicRoute>
+      ),
+    },
 
     // Guest only routes - redirect if authenticated
     {

@@ -1,7 +1,11 @@
 package com.service.main.service.impl;
 
 import com.service.main.constants.ErrorCodes;
+import com.service.main.constants.KafkaEventTypes;
+import com.service.main.constants.KafkaTopics;
+import com.service.main.dto.BlackListEvent;
 import com.service.main.dto.BlackListResponse;
+import com.service.main.dto.UserEmailResponse;
 import com.service.main.dto.UserInfo;
 import com.service.main.dto.UserInfoResponse;
 import com.service.main.entity.AutoBid;
@@ -12,6 +16,7 @@ import com.service.main.repository.AutoBidRepository;
 import com.service.main.repository.BlackListRepository;
 import com.service.main.repository.ProductRepository;
 import com.service.main.service.BlackListService;
+import com.service.main.service.KafkaProducerService;
 import com.service.main.service.UserServiceClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +37,7 @@ public class BlackListServiceImpl implements BlackListService {
     private final UserServiceClient userServiceClient;
     private final ProductRepository productRepository;
     private final AutoBidRepository autoBidRepository;
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
     public Page<BlackListResponse> getBlackListsByProductId(Long productId, Pageable pageable) {
@@ -61,7 +67,7 @@ public class BlackListServiceImpl implements BlackListService {
             throw new ApplicationException(ErrorCodes.DUPLICATE_KEY, "User is already blocked for this product");
         }
 
-        // Check if user being blocked is the top bidder
+        // Check if user being blocked is the top bidder, can check lai xu li logic cua cai nay
         if (product.getTopBidderId() != null && product.getTopBidderId().equals(userId)) {
             // Find the second highest auto bid (excluding the blocked user)
             List<AutoBid> autoBids = autoBidRepository.findByProductIdExcludingBidderOrderByMaxPriceDesc(productId, userId);
@@ -88,6 +94,32 @@ public class BlackListServiceImpl implements BlackListService {
                 .build();
 
         BlackList savedBlackList = this.blackListRepository.save(blackList);
+        
+        // Get bidder email and send Kafka event
+        String bidderEmail = null;
+        try {
+            UserEmailResponse userEmailResponse = userServiceClient.getUserEmail(userId);
+            if (userEmailResponse != null) {
+                bidderEmail = userEmailResponse.getEmail();
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the block operation
+            // Email might be null if user service is unavailable
+        }
+        
+        // Send Kafka event to worker
+        BlackListEvent eventPayload = BlackListEvent.builder()
+                .productId(productId)
+                .bidderId(userId)
+                .bidderEmail(bidderEmail)
+                .build();
+        
+        kafkaProducerService.sendMessage(
+                KafkaTopics.BIDDING_PROCESS_SIDE_EVENT,
+                KafkaEventTypes.BLACK_LIST,
+                eventPayload
+        );
+        
         return mapToResponse(savedBlackList);
     }
 

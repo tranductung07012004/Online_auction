@@ -26,16 +26,16 @@ public class KafkaTopicConfig {
     }
 
     @Bean
-    public NewTopic userEventsTopic() {
+    public NewTopic syncProductEntityToEs() {
         return TopicBuilder.name(KafkaTopics.SYNC_PRODUCT_ENTITY_TO_ES)
-                .partitions(3)  // Số partitions cho topic
-                .replicas(1)    // Số replicas (vì chỉ có 1 broker nên để 1)
+                .partitions(3)
+                .replicas(1)
                 .build();
     }
 
     @Bean
-    public NewTopic syncProductEntityToEs() {
-        return TopicBuilder.name(KafkaTopics.SYNC_PRODUCT_ENTITY_TO_ES)
+    public NewTopic biddingProcessSideEvent() {
+        return TopicBuilder.name(KafkaTopics.BIDDING_PROCESS_SIDE_EVENT)
                 .partitions(3)
                 .replicas(1)
                 .build();
