@@ -30,7 +30,16 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
 
         if (requestURI.startsWith("/main/api-docs/swagger-ui") ||
                 requestURI.startsWith("/main/api-docs/v3/api-docs") ||
-                requestURI.equals("/main/api-docs/swagger-ui.html")
+                requestURI.equals("/main/api-docs/swagger-ui.html") ||
+                requestURI.startsWith("/api/main/categories/search-norm-parent") ||
+                requestURI.startsWith("/api/main/categories/search-norm-child") ||
+                requestURI.startsWith("/api/main/product/top-ending-soon") ||
+                requestURI.startsWith("/api/main/product/most-bid-count") ||
+                requestURI.startsWith("/api/main/product/highest-current-price") ||
+                requestURI.startsWith("/api/main/search") ||
+                requestURI.startsWith("/api/main/system-settings/by-key") || 
+                requestURI.startsWith("/api/main/reviews/public/user/")
+
         ) {
             filterChain.doFilter(req, res);
             return;

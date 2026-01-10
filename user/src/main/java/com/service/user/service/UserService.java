@@ -6,6 +6,8 @@ import com.service.user.dto.UpdateEmailRequest;
 import com.service.user.dto.UpdateFullnameRequest;
 import com.service.user.dto.UpdatePasswordRequest;
 import com.service.user.dto.UpdateReviewStatsRequest;
+import com.service.user.dto.UserEmailItemResponse;
+import com.service.user.dto.UserEmailResponse;
 import com.service.user.dto.UserInfoResponse;
 import com.service.user.dto.UserListResponse;
 import com.service.user.dto.UserProfileResponse;
@@ -30,4 +32,8 @@ public interface UserService {
     UserProfileResponse getUserProfile(Long userId);
     
     void updateReviewStats(UpdateReviewStatsRequest request, Long currentUserId);
+    
+    UserEmailResponse getUserEmail(Long userId);
+    
+    List<UserEmailItemResponse> getUserEmails(List<Long> userIds);
 }

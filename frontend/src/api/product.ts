@@ -419,7 +419,7 @@ export const getMyBids = async (
   size: number = 10
 ): Promise<MyBidsPageResponse> => {
   const response = await api.get<ApiResponse<MyBidsPageResponse>>(
-    '/api/main/product/seller',
+    '/api/main/product/bidder/active',
     {
       params: { page, size }
     }
@@ -527,6 +527,23 @@ export interface CreateAnswerRequest {
   questionId: number;
   content: string;
 }
+
+// Add product description request interface
+export interface AddProductDescriptionRequest {
+  descriptionContent: string;
+}
+
+// Add product description
+export const addProductDescription = async (
+  productId: string | number,
+  descriptionContent: string
+): Promise<void> => {
+  const response = await api.post<ApiResponse<null>>(
+    `/api/main/product/${productId}/description`,
+    { descriptionContent }
+  );
+  // Response doesn't return data, just success message
+};
 
 // Answer response interface
 export interface AnswerResponse {

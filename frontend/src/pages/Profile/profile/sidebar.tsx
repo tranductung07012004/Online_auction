@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   LogOut,
@@ -13,12 +13,14 @@ import {
   Boxes,
   PlusCircle,
   Star,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import { LogoutModal } from './logout-modal';
 import { updateAvatar } from '../../../api/profileApi';
 import { uploadImageToCloudinary } from '../../../api/cloudinary';
 import { Notification } from '../../../components/ui/Notification';
+import RoleWrapper from '../../../components/RoleWrapper';
 
 interface ProfileSidebarProps {
   activeTab: string;
@@ -64,7 +66,7 @@ export default function ProfileSidebar({
     },
     {
       id: 'watchlist',
-      label: 'Watch List',
+      label: 'Wish List',
       icon: <Heart className="h-5 w-5" />,
     },
     {
@@ -81,6 +83,11 @@ export default function ProfileSidebar({
       id: 'create-product',
       label: 'Create Product',
       icon: <PlusCircle className="h-5 w-5" />,
+    },
+    {
+      id: 'user-review',
+      label: 'My Reviews',
+      icon: <MessageSquare className="h-5 w-5" />,
     },
   ];
 
@@ -244,21 +251,36 @@ export default function ProfileSidebar({
 
       <nav className="flex-1">
         <ul className="space-y-1">
-          {menuItems.map((item) => (
-            <li key={item.id}>
-              <Link
-                to={`/${item.id}`}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md ${
-                  activeTab === item.id
-                    ? 'bg-[#EAD9C9] text-[#8c6550] font-medium'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          ))}
+          {menuItems.map((item) => {
+            // Wrap seller-only items with RoleWrapper
+            const isSellerOnly = item.id === 'my-products' || item.id === 'create-product';
+            
+            const menuItemContent = (
+              <li>
+                <Link
+                  to={`/${item.id}`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                    activeTab === item.id
+                      ? 'bg-[#EAD9C9] text-[#8c6550] font-medium'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+
+            if (isSellerOnly) {
+              return (
+                <RoleWrapper key={item.id} onlyRole="SELLER">
+                  {menuItemContent}
+                </RoleWrapper>
+              );
+            }
+
+            return <React.Fragment key={item.id}>{menuItemContent}</React.Fragment>;
+          })}
         </ul>
       </nav>
 

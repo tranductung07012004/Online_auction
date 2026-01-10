@@ -15,8 +15,8 @@ import { getProductByIdFromMain, getProductsByCategory, ProductResponseFromAPI, 
 import { checkUserCanBid } from '../../api/bidderManagement';
 import { addToWishlist, isProductInUserWishlist } from '../../api/wishlist';
 import { useAuthStore } from '../../stores/authStore';
-import { useSystemSettingStore } from '../../stores/systemSettingStore';
-import { Box, Container, Typography } from '@mui/material';
+import { Box, Container, Typography, Pagination } from '@mui/material';
+import RoleWrapper from '../../components/RoleWrapper';
 
 // 3. Các field hiển thị từ API:
 // Product name, images, prices, seller, top bidder, description, categories, bid count, auction end time
@@ -27,7 +27,6 @@ export default function ProductDetailPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { checkAuthStatus, userId, role } = useAuthStore();
-  const timeRemainingThreshold = useSystemSettingStore((state) => state.timeRemaining);
   const [product, setProduct] = useState<ProductResponseFromAPI | null>(null);
   const [similarProducts, setSimilarProducts] = useState<ProductResponseFromAPI[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -44,8 +43,20 @@ export default function ProductDetailPage(): JSX.Element {
   const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
   
+  // Description pagination state
+  const [descriptionPage, setDescriptionPage] = useState<number>(1);
+  const descriptionsPerPage = 5;
+  
   // Check if auction has ended
   const isAuctionEnded = product ? new Date(product.endAt) < new Date() : false;
+
+  // Check if current user is the top bidder
+  const isCurrentUserTopBidder = useMemo(() => {
+    if (!product?.topBidder || !userId) {
+      return false;
+    }
+    return parseInt(userId, 10) === product.topBidder.id;
+  }, [product?.topBidder, userId]);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -64,6 +75,8 @@ export default function ProductDetailPage(): JSX.Element {
         console.log('Fetched product data:', JSON.stringify(productData, null, 2));
         
         setProduct(productData);
+        // Reset description page when product changes
+        setDescriptionPage(1);
 
         // Fetch similar products by category
         if (productData.categories && productData.categories.length > 0) {
@@ -261,18 +274,16 @@ export default function ProductDetailPage(): JSX.Element {
   // Keep isBidEnabled for backward compatibility (used in button styling)
   const isBidEnabled = canPlaceBid;
 
-  // Check if user can submit questions (only BIDDER or SELLER)
-  const canSubmitQuestion = role === 'BIDDER' || role === 'SELLER';
-
   // Check if user can answer questions (only product seller)
+  // Note: This is ownership-based, not role-based, so cannot use RoleWrapper
   const canAnswerQuestion = isProductSeller;
 
-  // Check if user can view bid history (only SELLER or BIDDER)
-  const canViewBidHistory = role === 'SELLER' || role === 'BIDDER';
+  // Hard set threshold: 3 days
+  const ENDING_SOON_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
 
-  // Calculate if auction is ending soon (similar to ProductCard logic)
+  // Calculate if auction is ending soon (hard set to 3 days)
   const isEndingSoon = useMemo(() => {
-    if (!product || !timeRemainingThreshold) {
+    if (!product) {
       return false;
     }
 
@@ -287,26 +298,67 @@ export default function ProductDetailPage(): JSX.Element {
     // Calculate time remaining in milliseconds
     const timeRemainingMs = end.getTime() - now.getTime();
 
-    // Convert threshold to milliseconds
-    let thresholdMs = 0;
-    const { time, format } = timeRemainingThreshold;
+    return timeRemainingMs <= ENDING_SOON_THRESHOLD_MS;
+  }, [product]);
 
-    switch (format.toLowerCase()) {
-      case 'hour':
-        thresholdMs = time * 60 * 60 * 1000;
-        break;
-      case 'minute':
-        thresholdMs = time * 60 * 1000;
-        break;
-      case 'day':
-        thresholdMs = time * 24 * 60 * 60 * 1000;
-        break;
-      default:
-        thresholdMs = time * 60 * 60 * 1000; // Default to hour
+  // State for time remaining text (updates every second)
+  const [timeRemainingText, setTimeRemainingText] = useState<string>('');
+
+  // Update time remaining text every second
+  useEffect(() => {
+    if (!product) {
+      setTimeRemainingText('');
+      return;
     }
 
-    return timeRemainingMs <= thresholdMs;
-  }, [product, timeRemainingThreshold]);
+    const calculateTimeRemaining = () => {
+      const now = new Date();
+      const end = new Date(product.endAt);
+      const diff = end.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeRemainingText('Ended');
+        return;
+      }
+
+      // If > 3 days: display "Auction ends: [date time]"
+      if (diff > ENDING_SOON_THRESHOLD_MS) {
+        setTimeRemainingText(`Auction ends: ${end.toLocaleString('vi-VN')}`);
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      // If >= 1 day: display "X day(s) left"
+      if (days >= 1) {
+        setTimeRemainingText(`${days} ${days === 1 ? 'day' : 'days'} left`);
+        return;
+      }
+
+      // If < 1 day but >= 1 hour: display "X hour(s) left"
+      if (hours >= 1) {
+        setTimeRemainingText(`${hours} ${hours === 1 ? 'hour' : 'hours'} left`);
+        return;
+      }
+
+      // If < 1 hour but >= 1 minute: display "X minute(s) left"
+      if (minutes >= 1) {
+        setTimeRemainingText(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'} left`);
+        return;
+      }
+
+      // If < 1 minute: display "X second(s) left"
+      setTimeRemainingText(`${seconds} ${seconds === 1 ? 'second' : 'seconds'} left`);
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+
+    return () => clearInterval(interval);
+  }, [product]);
 
   // Handle question submission
   const handleQuestionSubmitted = () => {
@@ -441,6 +493,15 @@ export default function ProductDetailPage(): JSX.Element {
               )}
             </div>
 
+            {/* Top Bidder Notification */}
+            {isCurrentUserTopBidder && !isAuctionEnded && (
+              <div className="border-2 border-yellow-400 rounded-lg p-3 bg-yellow-50">
+                <p className="text-lg font-semibold text-[#8B4513] text-center">
+                  🏆 You are the top bidder right now, keep going!!
+                </p>
+              </div>
+            )}
+
             {/* Current Price and Buy Now Price */}
             <div className="space-y-2">
               <div>
@@ -480,16 +541,24 @@ export default function ProductDetailPage(): JSX.Element {
               </div>
             </div>
             
+            {/* Display product created date */}
+            {product?.createdAt && (
+              <div className="text-sm text-gray-600">
+                Product created: {new Date(product.createdAt).toLocaleString('vi-VN', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            )}
+            
             {/* Display auction status */}
-            <div className={`text-sm ${isEndingSoon ? 'text-[#f0c88b] font-bold' : 'text-gray-600'}`}>
+            <div className={`text-lg font-bold ${isEndingSoon ? 'text-[#f0c88b]' : 'text-gray-600'}`}>
               {isAuctionEnded 
                 ? "Auction Ended" 
-                : (
-                  <span>
-                    {isEndingSoon && '⚠️ '}
-                    Auction ends: {product?.endAt ? new Date(product.endAt).toLocaleString('vi-VN') : 'N/A'}
-                  </span>
-                )}
+                : timeRemainingText}
             </div>
 
             {/* Bid Button */}
@@ -518,7 +587,7 @@ export default function ProductDetailPage(): JSX.Element {
               <div className="border-t border-gray-200 pt-6 mt-6">
                 <h3 className="text-lg font-medium text-[#333333] mb-4">Seller Information</h3>
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div className="w-12 h-12 min-w-12 min-h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     <img 
                       src={product.seller.avatar || "/placeholder-user.jpg"} 
                       alt="Seller" 
@@ -548,6 +617,14 @@ export default function ProductDetailPage(): JSX.Element {
                         {product.seller.assessment ? product.seller.assessment.toFixed(1) : 'N/A'}
                       </span>
                     </div>
+                    <div className="mt-2">
+                      <span
+                        onClick={() => navigate(`/reviews/user/${product.seller.id}`)}
+                        className="text-sm text-[#8B4513] italic underline cursor-pointer hover:text-[#654321] transition-colors"
+                      >
+                        see detailed reviews
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -558,7 +635,7 @@ export default function ProductDetailPage(): JSX.Element {
               <div className="border-t border-gray-200 pt-6 mt-6">
                 <h3 className="text-lg font-medium text-[#333333] mb-4">Highest Bidder</h3>
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div className="w-12 h-12 min-w-12 min-h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     <img 
                       src={product.topBidder.avatar || "/placeholder-user.jpg"} 
                       alt="Highest Bidder" 
@@ -567,12 +644,6 @@ export default function ProductDetailPage(): JSX.Element {
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-[#333333]">{product.topBidder.fullname}</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Current bid: {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND',
-                      }).format(product.currentPrice)}
-                    </div>
                     <div className="flex items-center space-x-2 mt-2">
                       <div className="flex">
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => {
@@ -594,23 +665,96 @@ export default function ProductDetailPage(): JSX.Element {
                         {product.topBidder.assessment ? product.topBidder.assessment.toFixed(1) : 'N/A'}
                       </span>
                     </div>
+                    <div className="mt-2">
+                      <span
+                        onClick={() => product.topBidder && navigate(`/reviews/user/${product.topBidder.id}`)}
+                        className="text-sm text-[#8B4513] italic underline cursor-pointer hover:text-[#654321] transition-colors"
+                      >
+                        see detailed reviews
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
             
             {/* Product Description */}
-            {product?.descriptions && product.descriptions.length > 0 && (
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <h3 className="text-lg font-medium text-[#333333] mb-4">Description</h3>
-                <div 
-                  className="text-sm text-gray-700 prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ 
-                    __html: product.descriptions[product.descriptions.length - 1].content 
-                  }}
-                />
-              </div>
-            )}
+            {product?.descriptions && product.descriptions.length > 0 && (() => {
+              // Sort descriptions by createdAt (newest first)
+              const sortedDescriptions = [...product.descriptions].sort((a, b) => {
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+              });
+
+              // Calculate pagination
+              const totalDescriptionPages = Math.ceil(sortedDescriptions.length / descriptionsPerPage);
+              const startIndex = (descriptionPage - 1) * descriptionsPerPage;
+              const endIndex = startIndex + descriptionsPerPage;
+              const paginatedDescriptions = sortedDescriptions.slice(startIndex, endIndex);
+
+              return (
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h3 className="text-lg font-medium text-[#333333] mb-4">Description</h3>
+                  
+                  {/* Display all descriptions in current page */}
+                  <div className="space-y-6">
+                    {paginatedDescriptions.map((desc, index) => (
+                      <div key={desc.id} className="border-b border-gray-100 pb-4 last:border-b-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-gray-500">
+                            {new Date(desc.createdAt).toLocaleString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          {index === 0 && (
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                              Latest
+                            </span>
+                          )}
+                        </div>
+                        <div 
+                          className="text-sm text-gray-700 prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: desc.content }} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination for descriptions */}
+                  {totalDescriptionPages > 1 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                      <Pagination
+                        count={totalDescriptionPages}
+                        page={descriptionPage}
+                        onChange={(_event, value) => setDescriptionPage(value)}
+                        color="primary"
+                        size="small"
+                        sx={{
+                          '& .MuiPaginationItem-root': {
+                            color: '#333333',
+                            '&.Mui-selected': {
+                              backgroundColor: '#EAD9C9',
+                              color: '#8c6550',
+                              '&:hover': {
+                                backgroundColor: '#EAD9C9',
+                                opacity: 0.8,
+                              },
+                            },
+                            '&:hover': {
+                              backgroundColor: '#EAD9C9',
+                              opacity: 0.6,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Categories */}
             {product?.categories && product.categories.length > 0 && (
@@ -632,11 +776,11 @@ export default function ProductDetailPage(): JSX.Element {
         </div>
 
         {/* Transaction History Section - Only visible to SELLER or BIDDER */}
-        {canViewBidHistory && (
+        <RoleWrapper requiredRole="BIDDER">
           <div className="mt-16">
             <TransactionHistory productId={id} />
           </div>
-        )}
+        </RoleWrapper>
 
         {/* Bidder Management Section - Only visible to product seller */}
         {isProductSeller && (
@@ -651,18 +795,18 @@ export default function ProductDetailPage(): JSX.Element {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Question Form - Only visible to BIDDER or SELLER */}
-            {canSubmitQuestion && (
+            <RoleWrapper requiredRole="BIDDER">
               <div className="lg:col-span-1">
                 <ReviewForm 
                   dressId={id || ''} 
                   onReviewSubmitted={handleQuestionSubmitted}
-                  canSubmitQuestion={canSubmitQuestion}
+                  canSubmitQuestion={true}
                 />
               </div>
-            )}
+            </RoleWrapper>
             
             {/* Question List - Visible to everyone, but only seller can answer */}
-            <div className={canSubmitQuestion ? "lg:col-span-2" : "lg:col-span-full"}>
+            <div className={role === 'BIDDER' || role === 'SELLER' ? "lg:col-span-2" : "lg:col-span-full"}>
               {questionsLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="w-6 h-6 border-2 border-gray-300 border-t-[#ead9c9] rounded-full animate-spin"></div>

@@ -62,8 +62,12 @@ public class SearchServiceImpl implements SearchService {
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             String wildcardValue = "*" + keyword.trim().toLowerCase() + "*";
-            boolQuery.must(m -> m.wildcard(
-                    mm -> mm.field("productName").value(wildcardValue).caseInsensitive(true)));
+        //     boolQuery.must(m -> m.wildcard(
+        //             mm -> mm.field("productName").value(wildcardValue).caseInsensitive(true)));
+                boolQuery.must(m -> m.match(
+                        mm -> mm.field("productName")
+                          .query(keyword)
+                ));
             hasCondition = true;
         }
 
@@ -170,6 +174,13 @@ public class SearchServiceImpl implements SearchService {
         UserInfoResponse topBidderInfoRes = product.getTopBidderId() == null ? null
                 : userServiceClient.getUserBasicInfo(product.getTopBidderId());
 
+        UserInfo sellerInfo = formatUserInfo(sellerInfoRes);
+        UserInfo topBidderInfo = formatUserInfo(topBidderInfoRes);
+        
+        // Mask fullname with ** for seller and topBidder
+        maskFullname(sellerInfo);
+        maskFullname(topBidderInfo);
+
         // Lấy currentPrice và endAt từ ES, các field khác từ DB
         return new ProductResponse(
                 product.getId(),
@@ -181,8 +192,8 @@ public class SearchServiceImpl implements SearchService {
                 // make it more consistent
                 product.getBuyNowPrice(),
                 product.getMinimumBidStep(),
-                formatUserInfo(sellerInfoRes),
-                formatUserInfo(topBidderInfoRes),
+                sellerInfo,
+                topBidderInfo,
                 product.getAutoExtendEnabled(),
                 product.getBidCount(),
                 product.getCreatedAt(),
@@ -221,5 +232,75 @@ public class SearchServiceImpl implements SearchService {
             formattedUser.setAssessment(like / (like + dislike) * 10);
         }
         return formattedUser;
+    }
+
+    /**
+     * Masks the fullname field in UserInfo by masking some characters of each word
+     * Example: "nguyen van aabcc" -> "nguy*e v** a**cc"
+     * @param userInfo UserInfo object to mask (can be null)
+     */
+    private static void maskFullname(UserInfo userInfo) {
+        if (userInfo != null && userInfo.getFullname() != null) {
+            String fullname = userInfo.getFullname().trim();
+            if (fullname.isEmpty()) {
+                userInfo.setFullname("**");
+                return;
+            }
+            
+            // Split by spaces to get words
+            String[] words = fullname.split("\\s+");
+            StringBuilder masked = new StringBuilder();
+            
+            for (int i = 0; i < words.length; i++) {
+                if (i > 0) {
+                    masked.append(" ");
+                }
+                masked.append(maskWord(words[i]));
+            }
+            
+            userInfo.setFullname(masked.toString());
+        }
+    }
+    
+    /**
+     * Masks a single word by keeping some characters at the beginning and end,
+     * masking the middle part with *
+     * @param word the word to mask
+     * @return masked word
+     */
+    private static String maskWord(String word) {
+        if (word == null || word.isEmpty()) {
+            return "**";
+        }
+        
+        int length = word.length();
+        
+        if (length <= 2) {
+            // If word is too short, mask completely
+            return "**";
+        } else if (length == 3) {
+            // Keep first character, mask the rest
+            return word.charAt(0) + "**";
+        } else if (length == 4) {
+            // Keep first 2 characters, mask 1, keep last 1
+            return word.substring(0, 2) + "*" + word.charAt(length - 1);
+        } else if (length == 5) {
+            // Keep first 1 character, mask 2, keep last 2
+            return word.charAt(0) + "**" + word.substring(length - 2);
+        } else {
+            // For longer words: keep first 4 characters, mask middle, keep last 1-2 characters
+            int keepStart = 4;
+            int keepEnd = length >= 7 ? 2 : 1;
+            int maskLength = length - keepStart - keepEnd;
+            
+            StringBuilder masked = new StringBuilder();
+            masked.append(word.substring(0, keepStart));
+            for (int i = 0; i < maskLength; i++) {
+                masked.append("*");
+            }
+            masked.append(word.substring(length - keepEnd));
+            
+            return masked.toString();
+        }
     }
 }

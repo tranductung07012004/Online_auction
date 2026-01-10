@@ -14,4 +14,11 @@ import java.math.BigDecimal;
 public class ProductCurrentPriceUpdatedEvent {
     private Long productId;
     private BigDecimal newCurrentPrice;
+    private Long oldTopBidderId;
+    private Long userCreateBidId;
+    private Long sellerId;
+    private Long newTopBidderId;
+    private String sellerEmail;
+    private String userCreateBidEmail;
+    private String oldTopBidderEmail;
 }

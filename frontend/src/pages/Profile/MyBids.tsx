@@ -134,7 +134,7 @@ export default function MyBidsPage(): JSX.Element {
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Danh sách các sản phẩm bạn đang đấu giá (chưa kết thúc)
+                    List of products you are bidding on (not finished)
                   </Typography>
                 </Stack>
               </CardContent>
@@ -152,10 +152,7 @@ export default function MyBidsPage(): JSX.Element {
               >
                 <Gavel className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                  Chưa có sản phẩm đang đấu giá
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Bạn chưa tham gia đấu giá sản phẩm nào. Hãy khám phá và đặt giá cho các sản phẩm yêu thích!
+                  You have not bid any product or the product has just ended
                 </Typography>
               </Paper>
             ) : (
@@ -198,17 +195,21 @@ export default function MyBidsPage(): JSX.Element {
                         >
                           {isWinning && (
                             <Chip
-                              label="Đang dẫn đầu"
-                              color="success"
+                              label="You are the top bidder"
                               size="small"
                               sx={{
                                 fontWeight: 600,
                                 fontSize: '0.75rem',
+                                backgroundColor: '#8B4513',
+                                color: '#FFFFFF',
+                                '&:hover': {
+                                  backgroundColor: '#A0522D',
+                                },
                               }}
                             />
                           )}
                           <Chip
-                            label={`Giá hiện tại: ${formatPrice(product.currentPrice)}`}
+                            label={`Current price: ${formatPrice(product.currentPrice)}`}
                             sx={{
                               bgcolor: 'rgba(255, 255, 255, 0.95)',
                               color: '#1a1a1a',

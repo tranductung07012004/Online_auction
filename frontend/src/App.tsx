@@ -6,24 +6,39 @@ import { getSystemSettingByKey } from "./api/systemSetting";
 import { useSystemSettingStore } from "./stores/systemSettingStore";
 import { Toaster } from "react-hot-toast";
 const App: React.FC = () => {
+  const setNewCreatedProduct = useSystemSettingStore(
+    (state) => state.setNewCreatedProduct
+  );
   const setTimeRemaining = useSystemSettingStore(
     (state) => state.setTimeRemaining
   );
 
   useEffect(() => {
-    const fetchSystemSetting = async () => {
+    const fetchSystemSettings = async () => {
       try {
+        // Fetch newCreatedProduct setting for ProductCard
+        const newCreatedProductResponse = await getSystemSettingByKey("newCreatedProduct");
+        console.log("✅ Success:", newCreatedProductResponse); // ← Thêm
+        setNewCreatedProduct(newCreatedProductResponse.data.value);
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message;
+        console.error("Failed to fetch newCreatedProduct setting:", errorMessage);
+        setNewCreatedProduct(null);
+      }
+
+      try {
+        // Fetch timeRemaining setting for PDP (keep existing logic)
         const response = await getSystemSettingByKey("timeRemaining");
         setTimeRemaining(response.data.value);
       } catch (error: any) {
-        const errorCode = error.response.data.data?.errorCode;
-        const errorMessage = error.response.data.message;
-        console.error("Failed to fetch system setting:", errorMessage);
+        const errorMessage = error.response?.data?.message || error.message;
+        console.error("Failed to fetch timeRemaining setting:", errorMessage);
+        setTimeRemaining(null);
       }
     };
 
-    fetchSystemSetting();
-  }, [setTimeRemaining]);
+    fetchSystemSettings();
+  }, [setNewCreatedProduct, setTimeRemaining]);
 
   return (
     <Router>

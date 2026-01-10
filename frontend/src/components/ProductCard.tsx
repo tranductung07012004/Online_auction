@@ -1,5 +1,5 @@
 import { JSX, useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Card,
   CardMedia,
@@ -10,8 +10,14 @@ import {
   Avatar,
   Stack,
   Divider,
+  IconButton,
 } from '@mui/material';
+import { Heart } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useSystemSettingStore } from '../stores/systemSettingStore';
+import { useAuthStore } from '../stores/authStore';
+import { addToWishlist, isProductInUserWishlist } from '../api/wishlist';
+import RoleWrapper from './RoleWrapper';
 
 interface SellerProps {
   id: number;
@@ -54,11 +60,20 @@ export default function ProductCard({
   createdAt,
   bidCount,
 }: ProductCardProps): JSX.Element {
+  const navigate = useNavigate();
+  const { checkAuthStatus, userId, role } = useAuthStore();
+  
   // State cho countdown timer
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   
-  // Lấy thông tin threshold từ Zustand store để xác định product sắp ended
-  const timeRemainingThreshold = useSystemSettingStore((state) => state.timeRemaining);
+  // State cho wishlist
+  const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
+  const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
+  
+  // Lấy thông tin threshold từ Zustand store để xác định product mới tạo
+  const newCreatedProductThreshold = useSystemSettingStore((state) => state.newCreatedProduct);
+  // Trong ProductCard.tsx, sau dòng 74
+  console.log('ProductCard - newCreatedProductThreshold:', newCreatedProductThreshold);
 
   // Tính toán status dựa trên startAt, endAt và system setting
   const status = useMemo(() => {
@@ -76,17 +91,18 @@ export default function ProductCard({
       return { label: 'Ended', color: 'info' as const };
     }
 
-    // Tính thời gian còn lại (milliseconds)
-    const timeRemainingMs = end.getTime() - now.getTime();
+    // Tính thời gian từ khi tạo sản phẩm đến hiện tại (milliseconds)
+    const createdAtDate = new Date(createdAt);
+    const timeSinceCreatedMs = now.getTime() - createdAtDate.getTime();
 
     // Nếu không có setting từ store, mặc định là Available
-    if (!timeRemainingThreshold) {
+    if (!newCreatedProductThreshold) {
       return { label: 'Available', color: 'info' as const };
     }
 
     // Chuyển đổi threshold từ store thành milliseconds
     let thresholdMs = 0;
-    const { time, format } = timeRemainingThreshold;
+    const { time, format } = newCreatedProductThreshold;
 
     switch (format.toLowerCase()) {
       case 'hour':
@@ -103,15 +119,15 @@ export default function ProductCard({
         thresholdMs = time * 60 * 60 * 1000;
     }
 
-    // So sánh thời gian còn lại với threshold
-    if (timeRemainingMs <= thresholdMs) {
-      // Trạng thái 3: Ended Soon - sắp kết thúc (màu nổi bật)
-      return { label: 'Ended Soon', color: 'error' as const };
+    // So sánh thời gian từ khi tạo với threshold
+    if (timeSinceCreatedMs <= thresholdMs) {
+      // Trạng thái 3: New - sản phẩm mới (màu nổi bật)
+      return { label: 'New', color: 'error' as const };
     } else {
       // Trạng thái 2: Available - đang diễn ra bình thường
       return { label: 'Available', color: 'info' as const };
     }
-  }, [startAt, endAt, createdAt, timeRemainingThreshold]);
+  }, [startAt, endAt, createdAt, newCreatedProductThreshold]);
 
   // Tính toán thời gian còn lại
   useEffect(() => {
@@ -147,6 +163,64 @@ export default function ProductCard({
     return () => clearInterval(interval);
   }, [endAt]);
 
+  // Check if product is in wishlist
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      // Only check if user is authenticated and has BIDDER or SELLER role
+      if (!id || !userId || (role !== 'BIDDER' && role !== 'SELLER')) {
+        setIsInWishlist(false);
+        return;
+      }
+
+      try {
+        const inWishlist = await isProductInUserWishlist(id);
+        setIsInWishlist(inWishlist);
+      } catch (error) {
+        console.error('Failed to check wishlist status:', error);
+        setIsInWishlist(false);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [id, userId, role]);
+
+  // Handle add to wishlist
+  const handleAddToWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking wishlist button
+    e.stopPropagation();
+
+    // Check authentication
+    const isAuthenticatedNow = await checkAuthStatus();
+    if (!isAuthenticatedNow) {
+      toast.error('Please sign in to add to wishlist');
+      navigate('/signin');
+      return;
+    }
+
+    // Role check is handled by RoleWrapper, but we keep this as a safety check
+    if (role !== 'BIDDER' && role !== 'SELLER') {
+      toast.error('Only Bidders and Sellers can add products to wishlist');
+      return;
+    }
+
+    // If already in wishlist, don't do anything
+    if (isInWishlist) {
+      return;
+    }
+
+    try {
+      setWishlistLoading(true);
+      await addToWishlist(id);
+      toast.success('Product added to wishlist successfully');
+      setIsInWishlist(true);
+    } catch (error: any) {
+      console.error('Error adding to wishlist:', error);
+      toast.error(error.message || 'Failed to add product to wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
   // Format giá tiền
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -169,8 +243,13 @@ export default function ProductCard({
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.3s ease',
+        // Viền màu vàng cho sản phẩm mới
+        border: status.color === 'error' ? '3px solid #FFD700' : 'none',
+        boxShadow: status.color === 'error' ? '0 0 0 1px rgba(255, 215, 0, 0.3), 0 4px 6px rgba(0,0,0,0.1)' : 'none',
         '&:hover': {
-          boxShadow: 6,
+          boxShadow: status.color === 'error' 
+            ? '0 0 0 1px rgba(255, 215, 0, 0.5), 0 8px 12px rgba(0,0,0,0.15)' 
+            : 6,
           transform: 'translateY(-4px)',
         },
       }}
@@ -208,6 +287,54 @@ export default function ProductCard({
             }}
           />
         </Box>
+        {/* Wishlist Button */}
+        <RoleWrapper requiredRole="BIDDER">
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              zIndex: 2,
+            }}
+          >
+            {!isInWishlist ? (
+              <IconButton
+                onClick={handleAddToWishlist}
+                disabled={wishlistLoading}
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 1)',
+                  },
+                  transition: 'all 0.2s',
+                }}
+                title="Add to wishlist"
+              >
+                <Heart 
+                  className="w-5 h-5" 
+                  style={{ color: '#666' }}
+                />
+              </IconButton>
+            ) : (
+              <Box
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '50%',
+                  p: 0.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="In your wishlist"
+              >
+                <Heart 
+                  className="w-5 h-5" 
+                  style={{ color: '#E53935', fill: '#E53935' }}
+                />
+              </Box>
+            )}
+          </Box>
+        </RoleWrapper>
       </Box>
 
       <CardContent sx={{ flexGrow: 1, p: 2 }}>

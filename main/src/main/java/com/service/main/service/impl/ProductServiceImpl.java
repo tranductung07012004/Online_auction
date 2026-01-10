@@ -6,7 +6,9 @@ import com.service.main.constants.KafkaTopics;
 import com.service.main.dto.*;
 import com.service.main.entity.*;
 import com.service.main.exception.ApplicationException;
+import com.service.main.repository.AutoBidRepository;
 import com.service.main.repository.CategoriesRepository;
+import com.service.main.repository.ProductDescriptionRepository;
 import com.service.main.repository.ProductRepository;
 import com.service.main.repository.ProductSyncEsLimitRepository;
 import com.service.main.service.KafkaProducerService;
@@ -31,6 +33,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoriesRepository categoriesRepository;
     private final UserServiceClient userServiceClient;
+    private final AutoBidRepository autoBidRepository;
+    private final ProductDescriptionRepository productDescriptionRepository;
 
     private final KafkaProducerService kafkaProducerService;
 
@@ -183,7 +187,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = this.productRepository.findTopEndingSoon(now);
 
         if (products.isEmpty()) {
-            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "All products has ended section");
+            throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "All products has ended");
         }
 
         // only take the first 5 product
@@ -214,7 +218,7 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepository.findTop5HighestCurrentPrice(now);
 
         if (products.isEmpty()) {
-            throw new ApplicationException("PRODUCT_NOT_FOUND", "No product found with current price");
+            throw new ApplicationException("PRODUCT_NOT_FOUND", "No product found");
         }
 
         return products.stream()
@@ -259,7 +263,11 @@ public class ProductServiceImpl implements ProductService {
 
         UserInfoResponse topBidderInfoRes = product.getTopBidderId() == null ? null : userServiceClient.getUserBasicInfo(product.getTopBidderId());
 
-
+        UserInfo sellerInfo = formatUserInfo(sellerInfoRes);
+        UserInfo topBidderInfo = formatUserInfo(topBidderInfoRes);
+        
+        // Mask fullname with ** for topBidder
+        maskFullname(topBidderInfo);
 
         return new ProductResponse(
                 product.getId(),
@@ -269,8 +277,8 @@ public class ProductServiceImpl implements ProductService {
                 product.getCurrentPrice(),
                 product.getBuyNowPrice(),
                 product.getMinimumBidStep(),
-                formatUserInfo(sellerInfoRes),
-                formatUserInfo(topBidderInfoRes),
+                sellerInfo,
+                topBidderInfo,
                 product.getAutoExtendEnabled(),
                 product.getBidCount(),
                 product.getCreatedAt(),
@@ -308,6 +316,113 @@ public class ProductServiceImpl implements ProductService {
             formattedUser.setAssessment(like / (like + dislike) * 10);
         }
         return formattedUser;
+    }
+
+    /**
+     * Masks the fullname field in UserInfo by masking some characters of each word
+     * Example: "nguyen van aabcc" -> "nguy*e v** a**cc"
+     * @param userInfo UserInfo object to mask (can be null)
+     */
+    private static void maskFullname(UserInfo userInfo) {
+        if (userInfo != null && userInfo.getFullname() != null) {
+            String fullname = userInfo.getFullname().trim();
+            if (fullname.isEmpty()) {
+                userInfo.setFullname("**");
+                return;
+            }
+            
+            // Split by spaces to get words
+            String[] words = fullname.split("\\s+");
+            StringBuilder masked = new StringBuilder();
+            
+            for (int i = 0; i < words.length; i++) {
+                if (i > 0) {
+                    masked.append(" ");
+                }
+                masked.append(maskWord(words[i]));
+            }
+            
+            userInfo.setFullname(masked.toString());
+        }
+    }
+    
+    /**
+     * Masks a single word by keeping some characters at the beginning and end,
+     * masking the middle part with *
+     * @param word the word to mask
+     * @return masked word
+     */
+    private static String maskWord(String word) {
+        if (word == null || word.isEmpty()) {
+            return "**";
+        }
+        
+        int length = word.length();
+        
+        if (length <= 2) {
+            // If word is too short, mask completely
+            return "**";
+        } else if (length == 3) {
+            // Keep first character, mask the rest
+            return word.charAt(0) + "**";
+        } else if (length == 4) {
+            // Keep first 2 characters, mask 1, keep last 1
+            return word.substring(0, 2) + "*" + word.charAt(length - 1);
+        } else if (length == 5) {
+            // Keep first 1 character, mask 2, keep last 2
+            return word.charAt(0) + "**" + word.substring(length - 2);
+        } else {
+            // For longer words: keep first 4 characters, mask middle, keep last 1-2 characters
+            int keepStart = 4;
+            int keepEnd = length >= 7 ? 2 : 1;
+            int maskLength = length - keepStart - keepEnd;
+            
+            StringBuilder masked = new StringBuilder();
+            masked.append(word.substring(0, keepStart));
+            for (int i = 0; i < maskLength; i++) {
+                masked.append("*");
+            }
+            masked.append(word.substring(length - keepEnd));
+            
+            return masked.toString();
+        }
+    }
+
+    @Override
+    public Page<ProductResponse> getActiveProductBasedOnBidderWhoIsBidding(Long bidderId, Pageable pageable) {
+        List<AutoBid> autoBids = this.autoBidRepository.findByBidderId(bidderId);
+        
+        if (autoBids.isEmpty()) {
+            throw new ApplicationException(
+                ErrorCodes.RESOURCE_NOT_FOUND, 
+                "User id" + bidderId + "have not bid any product yet!" );
+        }
+        
+        List<Long> productIds = autoBids.stream()
+                .map(AutoBid::getProductId)
+                .collect(Collectors.toList());
+        
+        OffsetDateTime now = OffsetDateTime.now();
+        Page<Product> productPage = this.productRepository.findActiveProductsByIds(productIds, now, pageable);
+        
+        return productPage.map(this::mapToProductResponse);
+    }
+
+    @Override
+    public void addProductDescription(Long productId, AddProductDescriptionRequest request, Long userId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        ProductDescription description = ProductDescription.builder()
+                .content(request.getDescriptionContent().trim())
+                .product(product)
+                .createdAt(now)
+                .createdBy(userId)
+                .build();
+
+        this.productDescriptionRepository.save(description);
     }
 
     private void validatePrices(createProductRequest request) {

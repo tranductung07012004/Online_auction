@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import com.service.main.service.ProductService;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
+import com.service.main.dto.AddProductDescriptionRequest;
 import com.service.main.dto.createProductRequest;
 import com.service.main.dto.ProductResponse;
 import com.service.main.dto.ApiResponse;
@@ -135,5 +136,36 @@ public class ProductController {
         Page<ProductResponse> res = productService.getProductsBySellerId(sellerId, pageable);
 
         return ResponseEntity.ok(new ApiResponse<>("Products retrieved successfully", res));
+    }
+
+    @GetMapping("/bidder/active")
+    public ResponseEntity<?> getActiveProductsByBidder(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "2") int size
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long bidderId = Long.valueOf(authentication.getName());
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProductResponse> res = this.productService.getActiveProductBasedOnBidderWhoIsBidding(bidderId, pageable);
+
+        return ResponseEntity
+        .status(200)
+        .body(new ApiResponse<>("Active products based on bidder's bids retrieved successfully", res));
+    }
+
+    @PreAuthorize("hasRole('SELLER')")
+    @PostMapping("/{productId}/description")
+    public ResponseEntity<?> addProductDescription(
+            @PathVariable Long productId,
+            @Valid @RequestBody AddProductDescriptionRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.valueOf(authentication.getName());
+
+        this.productService.addProductDescription(productId, request, userId);
+        return ResponseEntity
+                .status(201)
+                .body(new ApiResponse<>("Product description added successfully", null));
     }
 }

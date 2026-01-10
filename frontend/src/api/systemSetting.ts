@@ -21,7 +21,7 @@ export interface SystemSettingApiResponse {
 }
 
 export const getSystemSettingByKey = async (key: string): Promise<SystemSettingApiResponse> => {
-  const response = await api.get('/api/main/system-settings', {
+  const response = await api.get('/api/main/system-settings/by-key', {
     params: { key },
   });
   return response.data;

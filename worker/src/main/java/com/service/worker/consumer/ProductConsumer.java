@@ -8,6 +8,7 @@ import com.service.worker.dto.ProductCreatedEvent;
 import com.service.worker.dto.ProductCurrentPriceUpdatedEvent;
 import com.service.worker.dto.ProductEndAtUpdatedEvent;
 import com.service.worker.service.ElasticSearchService;
+import com.service.worker.service.NotifyBiddingService;
 import com.service.worker.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ProductConsumer {
     private final ObjectMapper objectMapper;
     private final ElasticSearchService elasticSearchService;
     private final ProductService productService;
+    private final NotifyBiddingService notifyBiddingService;
 
     @KafkaListener(topics = KafkaTopics.SYNC_PRODUCT_ENTITY_TO_ES, groupId = "worker-service-group")
     public void consumeProductRelatedEvent(
@@ -72,6 +74,8 @@ public class ProductConsumer {
 
                 this.elasticSearchService.updateCurrentPriceToProductInES(eventData);
 
+                // Send email notifications
+                this.notifyBiddingService.notifyBiddingPriceChange(eventData);
 
                 shouldAck = true;
 

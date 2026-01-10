@@ -1,5 +1,6 @@
 package com.service.main.service;
 
+import com.service.main.dto.AddProductDescriptionRequest;
 import com.service.main.dto.ProductResponse;
 import com.service.main.dto.createProductRequest;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,8 @@ public interface ProductService {
     Page<ProductResponse> getActiveProductsBySellerId(Long sellerId, Pageable pageable);
     Page<ProductResponse> getEndedProductsBySellerId(Long sellerId, Pageable pageable);
     Page<ProductResponse> getProductsBySellerId(Long sellerId, Pageable pageable);
+    Page<ProductResponse> getActiveProductBasedOnBidderWhoIsBidding(Long bidderId, Pageable pageable);
+    void addProductDescription(Long productId, AddProductDescriptionRequest request, Long userId);
 }
 
 

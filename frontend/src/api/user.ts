@@ -1,12 +1,4 @@
-import axios from "axios";
-
-const API = axios.create({
-  baseURL: "http://localhost:3000",
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import api from "./apiClient";
 
 export interface UserSettings {
   emailNotifications: boolean;
@@ -80,7 +72,7 @@ const generateFakeUserProfile = (): UserProfile => {
 // Get user profile
 export const getUserProfile = async (): Promise<UserProfile> => {
   try {
-    const response = await API.get("/users/profile");
+    const response = await api.get("/users/profile");
     return response.data.data;
   } catch (error: any) {
     // If it's a network error (backend not running), return fake data
@@ -99,7 +91,7 @@ export const updateProfile = async (
   data: UpdateProfileData
 ): Promise<UserProfile> => {
   try {
-    const response = await API.put("/users/profile", data);
+    const response = await api.put("/users/profile", data);
     return response.data.data;
   } catch (error: any) {
     // If it's a network error (backend not running), return fake updated data
@@ -123,7 +115,7 @@ export const updatePassword = async (
   data: UpdatePasswordData
 ): Promise<{ message: string }> => {
   try {
-    const response = await API.put("/users/password", data);
+    const response = await api.put("/users/password", data);
     return response.data.data;
   } catch (error: any) {
     throw new Error(
@@ -137,7 +129,7 @@ export const updateUsername = async (
   data: UpdateUsernameData
 ): Promise<UserProfile> => {
   try {
-    const response = await API.put("/users/username", data);
+    const response = await api.put("/users/username", data);
     return response.data.data;
   } catch (error: any) {
     throw new Error(
@@ -151,7 +143,7 @@ export const uploadProfileImage = async (
   formData: FormData
 ): Promise<{ imageUrl: string }> => {
   try {
-    const response = await API.post("/users/profile/image", formData, {
+    const response = await api.post("/users/profile/image", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -172,7 +164,7 @@ export const updateUserSettings = async (
   data: UserSettings
 ): Promise<UserProfile> => {
   try {
-    const response = await API.put("/users/settings", data);
+    const response = await api.put("/users/settings", data);
     return response.data.data;
   } catch (error: any) {
     throw new Error(
@@ -196,7 +188,7 @@ export const sendSellerRequest = async (
   reason?: string
 ): Promise<SellerRequest> => {
   try {
-    const response = await API.post("/users/seller-request", { reason });
+    const response = await api.post("/users/seller-request", { reason });
     return response.data.data || response.data;
   } catch (error: any) {
     throw new Error(
@@ -209,7 +201,7 @@ export const sendSellerRequest = async (
 export const getSellerRequestStatus =
   async (): Promise<SellerRequest | null> => {
     try {
-      const response = await API.get("/users/seller-request");
+      const response = await api.get("/users/seller-request");
       return response.data.data || response.data || null;
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -254,7 +246,7 @@ export interface WatchlistItem {
 // Get watchlist
 export const getWatchlist = async (): Promise<WatchlistItem[]> => {
   try {
-    const response = await API.get("/users/watchlist");
+    const response = await api.get("/users/watchlist");
     return response.data.data || response.data || [];
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -269,7 +261,7 @@ export const addToWatchlist = async (
   productId: string
 ): Promise<WatchlistItem> => {
   try {
-    const response = await API.post("/users/watchlist", { productId });
+    const response = await api.post("/users/watchlist", { productId });
     return response.data.data || response.data;
   } catch (error: any) {
     throw new Error(
@@ -281,7 +273,7 @@ export const addToWatchlist = async (
 // Remove product from watchlist
 export const removeFromWatchlist = async (productId: string): Promise<void> => {
   try {
-    await API.delete(`/users/watchlist/${productId}`);
+    await api.delete(`/users/watchlist/${productId}`);
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message || "Failed to remove from watchlist"
@@ -325,7 +317,7 @@ export interface BiddingItem {
 // Get user's active bidding products (products user has bid on that are still active)
 export const getMyBids = async (): Promise<BiddingItem[]> => {
   try {
-    const response = await API.get("/users/my-bids");
+    const response = await api.get("/users/my-bids");
     return response.data.data || response.data || [];
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -372,7 +364,7 @@ export interface SellerProduct {
 // Get seller's products
 export const getMyProducts = async (): Promise<SellerProduct[]> => {
   try {
-    const response = await API.get("/users/my-products");
+    const response = await api.get("/users/my-products");
     return response.data.data || response.data || [];
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -394,7 +386,16 @@ export interface ReviewBidderData {
 
 export const reviewBidder = async (data: ReviewBidderData): Promise<void> => {
   try {
-    await API.post("/users/review-bidder", data);
+    // Map frontend data to backend API format
+    // Backend endpoint: POST /api/main/reviews
+    // Backend expects: { receiverId: Long, status: Short (0=dislike, 1=like), comment: String }
+    const requestBody = {
+      receiverId: parseInt(data.bidderId), // Convert string to number
+      status: data.reviewType === "like" ? 1 : 0, // Map "like" -> 1, "dislike" -> 0
+      comment: data.reviewText || "", // Map reviewText to comment
+    };
+    
+    await api.post("/api/main/reviews", requestBody);
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to review bidder");
   }
@@ -406,7 +407,7 @@ export const cancelTransaction = async (
   bidderId: string
 ): Promise<void> => {
   try {
-    await API.post("/users/cancel-transaction", { productId, bidderId });
+    await api.post("/users/cancel-transaction", { productId, bidderId });
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message || "Failed to cancel transaction"

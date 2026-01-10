@@ -164,12 +164,12 @@ export default function SellerRequestPage(): JSX.Element {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Store className="h-8 w-8" style={{ color: '#FFE082' }} />
                     <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
-                      Trở thành Seller
+                      Become seller
                     </Typography>
                   </Box>
 
                   <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Bạn muốn bán sản phẩm trên nền tảng của chúng tôi? Gửi yêu cầu để admin xem xét và phê duyệt tài khoản seller của bạn.
+                    You want to sell products on our platform? Send a request to admin to review and approve your seller account.
                   </Typography>
 
                   {/* Current Request Status */}
@@ -217,17 +217,17 @@ export default function SellerRequestPage(): JSX.Element {
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                         {requestStatus?.status?.toLowerCase() === 'rejected' 
-                          ? 'Gửi lại yêu cầu' 
-                          : 'Gửi yêu cầu trở thành Seller'}
+                          ? 'Send another request' 
+                          : 'Send request to become seller'}
                       </Typography>
                       <Stack spacing={2}>
                         <TextField
-                          label="Lý do bạn muốn trở thành Seller"
+                          label="Send us some reasons why you want to become seller"
                           multiline
                           rows={6}
                           value={reason}
                           onChange={(e) => setReason(e.target.value)}
-                          placeholder="Ví dụ: Tôi có nhiều kinh nghiệm trong việc bán áo dài và muốn mở rộng kinh doanh trên nền tảng này..."
+                          placeholder="For example: i have experience..."
                           fullWidth
                           sx={{
                             '& .MuiOutlinedInput-root': {
@@ -259,7 +259,7 @@ export default function SellerRequestPage(): JSX.Element {
                             py: 1.5,
                           }}
                         >
-                          {submitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                          {submitting ? 'Sending...' : 'Send request'}
                         </Button>
                       </Stack>
                     </Box>

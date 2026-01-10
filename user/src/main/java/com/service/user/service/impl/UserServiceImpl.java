@@ -8,6 +8,8 @@ import com.service.user.dto.UpdateEmailRequest;
 import com.service.user.dto.UpdateFullnameRequest;
 import com.service.user.dto.UpdatePasswordRequest;
 import com.service.user.dto.UpdateReviewStatsRequest;
+import com.service.user.dto.UserEmailItemResponse;
+import com.service.user.dto.UserEmailResponse;
 import com.service.user.dto.UserInfoResponse;
 import com.service.user.dto.UserListResponse;
 import com.service.user.dto.UserProfileResponse;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -334,5 +337,41 @@ public class UserServiceImpl implements UserService {
         // Keep first character, mask the rest
         String maskedLocal = localPart.charAt(0) + "***";
         return maskedLocal + domain;
+    }
+
+    @Override
+    public UserEmailResponse getUserEmail(Long userId) {
+        User user = this.userRepo.findById(userId)
+                .orElseThrow(() ->
+                        new ApplicationException(
+                                ErrorCodes.USER_NOT_FOUND,
+                                "User not found"
+                        )
+                );
+
+        return new UserEmailResponse(user.getEmail());
+    }
+
+    @Override
+    public List<UserEmailItemResponse> getUserEmails(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> users = this.userRepo.findAllById(userIds);
+
+        Map<Long, String> userEmailMap = users.stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        User::getEmail
+                ));
+
+        // Trả về danh sách với tất cả userIds, nếu không tìm thấy thì email = null
+        return userIds.stream()
+                .map(userId -> new UserEmailItemResponse(
+                        userId,
+                        userEmailMap.getOrDefault(userId, null)
+                ))
+                .collect(Collectors.toList());
     }
 }

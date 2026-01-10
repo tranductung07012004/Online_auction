@@ -1,7 +1,10 @@
 package com.service.main.service.impl;
 
 import com.service.main.dto.ApiResponse;
+import com.service.main.dto.GetUserEmailsRequest;
 import com.service.main.dto.UpdateReviewStatsRequest;
+import com.service.main.dto.UserEmailItemResponse;
+import com.service.main.dto.UserEmailResponse;
 import com.service.main.dto.UserInfoResponse;
 import com.service.main.service.UserServiceClient;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,6 +42,8 @@ public class UserServiceClientImpl implements UserServiceClient {
         }
         
         try {
+            System.out.println("This is userId in getUserBasicInfo" + userId);
+            
             String url = userServiceUrl + "/api/user/internal/" + userId + "/info";
             
             // Get authentication info from SecurityContext
@@ -131,6 +138,74 @@ public class UserServiceClientImpl implements UserServiceClient {
         } catch (RestClientException e) {
             log.error("Error calling user service to update review stats", e);
             // Don't throw exception to avoid rolling back the review creation
+        }
+    }
+
+    @Override
+    public UserEmailResponse getUserEmail(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        
+        try {
+            String url = userServiceUrl + "/api/user/internal/" + userId + "/email";
+            
+            // Get authentication info from SecurityContext
+            HttpHeaders headers = createHeadersWithAuth();
+            
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<ApiResponse<UserEmailResponse>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                new ParameterizedTypeReference<>() {}
+            );
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return response.getBody().getData();
+            }
+            
+            log.warn("Failed to get user email for userId: {}, status: {}", userId, response.getStatusCode());
+            return null;
+        } catch (RestClientException e) {
+            log.error("Error calling user service to get user email for userId: {}", userId, e);
+            return null;
+        }
+    }
+
+    @Override
+    public List<UserEmailItemResponse> getUserEmails(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        
+        try {
+            String url = userServiceUrl + "/api/user/internal/emails";
+            
+            // Get authentication info from SecurityContext
+            HttpHeaders headers = createHeadersWithAuth();
+            headers.set("Content-Type", "application/json");
+            
+            GetUserEmailsRequest request = new GetUserEmailsRequest(userIds);
+            HttpEntity<GetUserEmailsRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<ApiResponse<List<UserEmailItemResponse>>> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                new ParameterizedTypeReference<>() {}
+            );
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return response.getBody().getData();
+            }
+            
+            log.warn("Failed to get user emails for userIds: {}, status: {}", userIds, response.getStatusCode());
+            return List.of();
+        } catch (RestClientException e) {
+            log.error("Error calling user service to get user emails for userIds: {}", userIds, e);
+            return List.of();
         }
     }
 }

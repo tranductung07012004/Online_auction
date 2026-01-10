@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Tabs,
@@ -62,6 +63,7 @@ interface BidderManagementProps {
 }
 
 export default function BidderManagement({ productId, isSeller }: BidderManagementProps): JSX.Element {
+  const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState<number>(0);
   const [reviewedBidders, setReviewedBidders] = useState<Bidder[]>([]);
   const [unreviewedBidders, setUnreviewedBidders] = useState<Bidder[]>([]);
@@ -331,9 +333,23 @@ export default function BidderManagement({ productId, isSeller }: BidderManageme
                         <Typography variant="body2" sx={{ fontWeight: 500, color: '#333333' }}>
                           {bidder.fullname}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#868686' }}>
-                          @{bidder.username}
-                        </Typography>
+                        {!isUnreviewedTab && (
+                          <Typography
+                            variant="caption"
+                            onClick={() => navigate(`/reviews/user/${bidder.id}`)}
+                            sx={{
+                              color: '#8B4513',
+                              fontStyle: 'italic',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                color: '#654321',
+                              },
+                            }}
+                          >
+                            see detailed views
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                   </TableCell>
@@ -348,7 +364,7 @@ export default function BidderManagement({ productId, isSeller }: BidderManageme
                         {bidder.rating !== undefined ? (
                           <Tooltip title={bidder.reviewText || ''}>
                             <Chip
-                              label={`${bidder.rating}/10`}
+                              label={`${typeof bidder.rating === 'number' ? bidder.rating.toFixed(2) : bidder.rating}/10`}
                               size="small"
                               sx={{
                                 bgcolor: '#EAD9C9',
@@ -479,9 +495,6 @@ export default function BidderManagement({ productId, isSeller }: BidderManageme
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 500, color: '#333333' }}>
                           {item.bidder.fullname}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#868686' }}>
-                          ID: {item.bidder.id}
                         </Typography>
                       </Box>
                     </Box>

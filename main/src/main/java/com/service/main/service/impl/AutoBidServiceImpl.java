@@ -15,6 +15,7 @@ import com.service.main.constants.KafkaTopics;
 import com.service.main.constants.KafkaEventTypes;
 import com.service.main.dto.ProductEndAtUpdatedEvent;
 import com.service.main.dto.ProductCurrentPriceUpdatedEvent;
+import com.service.main.dto.UserEmailItemResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +26,10 @@ import com.service.main.dto.BidUpdateResult;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.service.main.service.impl.ProductServiceImpl.formatUserInfo;
 import org.springframework.beans.factory.annotation.Value;
@@ -177,6 +181,32 @@ public class AutoBidServiceImpl implements AutoBidService {
         BigDecimal minBidStep = product.getMinimumBidStep();
         BigDecimal buyNowPrice = product.getBuyNowPrice();
         OffsetDateTime endAt = product.getEndAt();
+        Long oldTopBidderId = product.getTopBidderId();
+        Long sellerId = product.getSellerId();
+
+        // . Buy now trigger
+        if (buyNowPrice != null && maxPrice.compareTo(buyNowPrice) >= 0) {
+            product.setTopBidderId(currentUserId);
+            product.setCurrentPrice(buyNowPrice);
+            product.setBidCount(product.getBidCount() + 1);
+            product.setEndAt(now);
+            this.productRepository.save(product);
+
+            this.createBidHistory(product.getId(), currentUserId, buyNowPrice, now);
+
+            AutoBid autoBidRes =  this.createOrUpdateAutoBid(product.getId(), currentUserId, maxPrice, now);
+            return new CreateAutoBidResult(
+                    autoBidRes,
+                    true,
+                    buyNowPrice.compareTo(currentPrice) != 0,
+                    buyNowPrice,
+                    now,
+                    oldTopBidderId,
+                    sellerId,
+                    oldTopBidderId == null ? true : oldTopBidderId != currentUserId,
+                    currentUserId
+            );
+        }
 
         if (product.getTopBidderId() != null && currentUserId == product.getTopBidderId()) {
             // new max price >= old max price else throw
@@ -205,7 +235,12 @@ public class AutoBidServiceImpl implements AutoBidService {
                 false, 
                 false, 
                 currentPrice,
-                endAt);
+                endAt,
+                oldTopBidderId,
+                sellerId,
+                false,
+                currentUserId
+            );
         }
 
         // 2. Validate max_price
@@ -231,28 +266,6 @@ public class AutoBidServiceImpl implements AutoBidService {
             );
         }
 
-
-        // 3. Buy now trigger
-        if (buyNowPrice != null && maxPrice.compareTo(buyNowPrice) >= 0) {
-            product.setTopBidderId(currentUserId);
-            product.setCurrentPrice(buyNowPrice);
-            product.setBidCount(product.getBidCount() + 1);
-            product.setEndAt(now);
-            this.productRepository.save(product);
-
-            this.createBidHistory(product.getId(), currentUserId, buyNowPrice, now);
-
-            AutoBid autoBidRes =  this.createOrUpdateAutoBid(product.getId(), currentUserId, maxPrice, now);
-            return new CreateAutoBidResult(
-                    autoBidRes,
-                    true,
-                    buyNowPrice.compareTo(currentPrice) != 0,
-                    buyNowPrice,
-                    now
-            );
-        }
-
-
         BidUpdateResult result = handleBidCases(product, maxPrice, minBidStep, currentUserId, now);
 
         // Handle auto extend if enabled
@@ -271,7 +284,11 @@ public class AutoBidServiceImpl implements AutoBidService {
                 newEndAt != endAt,
                 result.newCurrentPrice.compareTo(currentPrice) != 0,
                 result.newCurrentPrice,
-                newEndAt
+                newEndAt,
+                oldTopBidderId,
+                sellerId,
+                oldTopBidderId == null ? true : oldTopBidderId != result.newTopBidderId,
+                result.newTopBidderId
         );
     }
 
@@ -285,6 +302,7 @@ public class AutoBidServiceImpl implements AutoBidService {
         );
 
         if (res != null && res.hasEndAtChange) {
+            System.out.println("hahahaha123123123");
             // send event END_AT CHANGE TO WORKER
             ProductEndAtUpdatedEvent endAtEvent = ProductEndAtUpdatedEvent.builder()
                     .productId(request.getProductId())
@@ -298,15 +316,40 @@ public class AutoBidServiceImpl implements AutoBidService {
             );
         }
         if (res != null && res.hasCurrentPriceChange) {
+            System.out.println("hahahaha456456");
             // send event current price change to worker
+            // Get emails for seller, current user, and old top bidder (if exists) in one call
+            List<Long> userIds = List.of(res.sellerId, currentUserId);
+            if (res.oldTopBidderId != null) {
+                userIds = List.of(res.sellerId, currentUserId, res.oldTopBidderId);
+            }
+            
+            List<UserEmailItemResponse> emailResponses = userServiceClient.getUserEmails(userIds);
+            Map<Long, String> emailMap = emailResponses.stream()
+                    .collect(Collectors.toMap(
+                            UserEmailItemResponse::getUserId,
+                            UserEmailItemResponse::getEmail
+                    ));
+            
+            String sellerEmail = emailMap.get(res.sellerId);
+            String userCreateBidEmail = emailMap.get(currentUserId);
+            String oldTopBidderEmail = res.oldTopBidderId != null ? emailMap.get(res.oldTopBidderId) : null;
+            
             ProductCurrentPriceUpdatedEvent currentPriceEvent = ProductCurrentPriceUpdatedEvent.builder()
                     .productId(request.getProductId())
                     .newCurrentPrice(res.newCurrentPrice)
+                    .sellerId(res.sellerId)
+                    .oldTopBidderId(res.oldTopBidderId)
+                    .userCreateBidId(currentUserId)
+                    .newTopBidderId(res.newTopBidderId)
+                    .sellerEmail(sellerEmail)
+                    .userCreateBidEmail(userCreateBidEmail)
+                    .oldTopBidderEmail(oldTopBidderEmail)
                     .build();
 
             kafkaProducerService.sendMessage(
                     KafkaTopics.SYNC_PRODUCT_ENTITY_TO_ES,
-                    KafkaEventTypes.UPDATE_PRODUCT_CURRENT_PRICE, // UPDATE_PRODUCT_CURRENT_PRICE
+                    KafkaEventTypes.UPDATE_PRODUCT_CURRENT_PRICE, 
                     currentPriceEvent
             );
 

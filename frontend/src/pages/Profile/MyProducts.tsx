@@ -5,7 +5,7 @@ import ProfileSidebar from './profile/sidebar';
 import Footer from '../../components/footer';
 import { reviewBidder, cancelTransaction, type ReviewBidderData } from '../../api/user';
 import { getUserProfile, type UserProfileResponse } from '../../api/profileApi';
-import { getActiveProductsBySeller, getEndedProductsBySeller, type ProductResponseFromAPI } from '../../api/product';
+import { getActiveProductsBySeller, getEndedProductsBySeller, type ProductResponseFromAPI, addProductDescription } from '../../api/product';
 import type { SellerProduct } from '../../api/user';
 import {
   Box,
@@ -22,7 +22,6 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Avatar,
-  Chip,
   Stack,
   Paper,
   Alert,
@@ -30,8 +29,9 @@ import {
 } from '@mui/material';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
-import { Boxes, Star, X, CheckCircle } from 'lucide-react';
+import { Boxes, Star, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import RichTextEditor from '../../pages/Seller/components/RichTextEditor';
 
 // Map ProductResponseFromAPI to SellerProduct
 const mapProductToSellerProduct = (product: ProductResponseFromAPI): SellerProduct => {
@@ -85,6 +85,11 @@ export default function MyProductsPage(): JSX.Element {
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
+  
+  // Description dialog state
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
+  const [descriptionContent, setDescriptionContent] = useState('');
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -213,6 +218,60 @@ export default function MyProductsPage(): JSX.Element {
     }
   };
 
+  const handleAddDescriptionClick = (product: SellerProduct) => {
+    setSelectedProduct(product);
+    setDescriptionContent('');
+    setDescriptionDialogOpen(true);
+  };
+
+  const handleCloseDescriptionDialog = () => {
+    setDescriptionDialogOpen(false);
+    setDescriptionContent('');
+    setSelectedProduct(null);
+  };
+
+  const handleSubmitDescription = async () => {
+    if (!selectedProduct) return;
+
+    // Validate: check if description has content (remove HTML tags)
+    const textContent = descriptionContent.replace(/<[^>]*>/g, '').trim();
+    if (textContent.length === 0) {
+      toast.error('Please enter a description');
+      return;
+    }
+
+    try {
+      setDescriptionLoading(true);
+      await addProductDescription(selectedProduct.id, descriptionContent);
+      toast.success('Description added successfully');
+      handleCloseDescriptionDialog();
+      
+      // Refresh products
+      const fetchProducts = async () => {
+        try {
+          const pageIndex = page - 1;
+          let productsResponse;
+          if (filter === 'active') {
+            productsResponse = await getActiveProductsBySeller(pageIndex, itemsPerPage);
+          } else {
+            productsResponse = await getEndedProductsBySeller(pageIndex, itemsPerPage);
+          }
+          const mappedProducts = productsResponse.content.map(mapProductToSellerProduct);
+          setProducts(mappedProducts);
+          setTotalPages(productsResponse.totalPages);
+        } catch (error) {
+          console.error('Failed to refresh products:', error);
+        }
+      };
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error adding description:', error);
+      toast.error(error.response?.data?.message || 'Failed to add description');
+    } finally {
+      setDescriptionLoading(false);
+    }
+  };
+
   const handleCancelTransaction = async () => {
     if (!selectedProduct || !selectedProduct.winningBidder) return;
 
@@ -306,12 +365,16 @@ export default function MyProductsPage(): JSX.Element {
                           py: 1.5,
                           textTransform: 'none',
                           fontWeight: 600,
+                          color: '#666',
                           '&.Mui-selected': {
-                            bgcolor: '#e8d45f',
-                            color: '#1a1a1a',
+                            bgcolor: '#EAD9C9',
+                            color: '#8c6550',
                             '&:hover': {
-                              bgcolor: '#e8d45f',
+                              bgcolor: '#d4c4b0',
                             },
+                          },
+                          '&:hover': {
+                            bgcolor: 'rgba(234, 217, 201, 0.3)',
                           },
                         },
                       }}
@@ -408,21 +471,6 @@ export default function MyProductsPage(): JSX.Element {
                               </Typography>
                             </Stack>
                           </Box>
-                          <Box>
-                            {product.status === 'active' ? (
-                              <Chip
-                                label="Active"
-                                color="success"
-                                icon={<CheckCircle className="h-4 w-4" />}
-                              />
-                            ) : (
-                              <Chip
-                                label="Completed"
-                                color="warning"
-                                icon={<Star className="h-4 w-4" />}
-                              />
-                            )}
-                          </Box>
                         </Box>
 
                         {/* Winning Bidder Info (for won products) */}
@@ -516,6 +564,28 @@ export default function MyProductsPage(): JSX.Element {
                             </Typography>
                           </Box>
                         )}
+
+                        {/* Add Description Button */}
+                        <Box sx={{ mt: 2 }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddDescriptionClick(product);
+                            }}
+                            sx={{
+                              borderColor: '#EAD9C9',
+                              color: '#8c6550',
+                              '&:hover': {
+                                borderColor: '#d4c4b0',
+                                bgcolor: 'rgba(234, 217, 201, 0.1)',
+                              },
+                            }}
+                          >
+                            Add Description
+                          </Button>
+                        </Box>
                       </Stack>
                     </CardContent>
                   </Card>
@@ -724,10 +794,73 @@ export default function MyProductsPage(): JSX.Element {
           <Button
             onClick={handleCancelTransaction}
             variant="contained"
-            color="error"
             disabled={isSubmitting}
+            sx={{
+              backgroundColor: '#8c6550',      // màu nâu
+              color: 'white',
+              textTransform: 'none',
+              '&:hover': {
+                backgroundColor: '#a67c66',    // màu nâu nhạt hơn khi hover
+              },
+              '&:disabled': {
+                backgroundColor: '#d3c4b8',
+              },
+            }}
           >
-            {isSubmitting ? 'Processing...' : 'Confirm Cancel'}
+            {isSubmitting ? 'Processing...' : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Description Dialog */}
+      <Dialog
+        open={descriptionDialogOpen}
+        onClose={handleCloseDescriptionDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Add Product Description</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <RichTextEditor
+              value={descriptionContent}
+              onChange={setDescriptionContent}
+              placeholder="Enter detailed description for your product..."
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseDescriptionDialog}
+            variant="outlined"
+            sx={{
+              borderColor: '#c3937c',
+              color: '#c3937c',
+              '&:hover': {
+                borderColor: '#a67c66',
+                bgcolor: '#f8f3f0'
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmitDescription}
+            variant="contained"
+            disabled={descriptionLoading}
+            sx={{
+              bgcolor: '#EAD9C9',
+              color: '#8c6550',
+              '&:hover': {
+                bgcolor: '#d4c4b0',
+              },
+              '&:disabled': {
+                bgcolor: '#EAD9C9',
+                opacity: 0.6,
+              },
+            }}
+          >
+            {descriptionLoading ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
