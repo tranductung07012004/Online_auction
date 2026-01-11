@@ -17,6 +17,8 @@ const WatchList = lazy(() => import("../pages/Profile/WatchList"));
 const MyBids = lazy(() => import("../pages/Profile/MyBids"));
 const MyProducts = lazy(() => import("../pages/Profile/MyProducts"));
 const CreateProduct = lazy(() => import("../pages/Seller/CreateProduct"));
+const ChatPage = lazy(() => import("../pages/Profile/ChatPage"));
+const ChatDetailPage = lazy(() => import("../pages/Profile/ChatDetailPage"));
 
 // Order Flow
 const OrderProcess = lazy(() => import("../pages/Order/Shared/OrderProcess"));
@@ -116,6 +118,8 @@ const AppRoutes = () => {
     { path: "/my-bids", element: <MyBids /> },
     { path: "/my-products", element: <MyProducts /> },
     { path: "/create-product", element: <CreateProduct /> },
+    { path: "/chat", element: <ChatPage /> },
+    { path: "/chat/:orderId", element: <ChatDetailPage /> },
 
     // Admin Routes
     { path: "/admin/dashboard", element: <Dashboard /> },
