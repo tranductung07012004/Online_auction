@@ -27,25 +27,16 @@ public class OrderPayment {
     private BigDecimal amount;
 
     @Column(name = "payment_method", length = 50)
-    private String paymentMethod; // BANK_TRANSFER, PAYPAL, CREDIT_CARD, COD
+    private String paymentMethod; 
 
     @Column(name = "payment_status", nullable = false, length = 50)
-    private String paymentStatus; // PENDING, PROOF_UPLOADED, CONFIRMED, FAILED, REFUNDED
+    private String paymentStatus; 
 
     @Column(name = "payment_proof_url", columnDefinition = "TEXT")
     private String paymentProofUrl;
 
-    @Column(name = "transaction_id", length = 255)
-    private String transactionId;
-
-    @Column(name = "vnpay_transaction_no", length = 255)
-    private String vnpayTransactionNo;
-
     @Column(name = "buyer_paid_at")
     private OffsetDateTime buyerPaidAt;
-
-    @Column(name = "seller_confirmed_at")
-    private OffsetDateTime sellerConfirmedAt;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -60,7 +51,7 @@ public class OrderPayment {
             paymentStatus = "PENDING";
         }
         if (paymentMethod == null) {
-            paymentMethod = "BANK_TRANSFER";
+            paymentMethod = "STRIPE";
         }
     }
 }

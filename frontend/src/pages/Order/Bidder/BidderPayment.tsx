@@ -43,10 +43,7 @@ interface PaymentInfo {
   paymentMethod: string;
   paymentStatus: string;
   paymentProofUrl: string | null;
-  transactionId: string | null;
-  vnpayTransactionNo: string | null;
   buyerPaidAt: string | null;
-  sellerConfirmedAt: string | null;
   notes: string | null;
   createdAt: string;
 }
@@ -428,7 +425,7 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                   </Typography>
                   <Divider sx={{ mb: 2 }} />
 
-                  {/* Show payment status if proof already uploaded */}
+                  {/* Show payment status if proof already uploaded
                   {paymentInfo && paymentInfo.paymentProofUrl && (
                     <Alert
                       severity={
@@ -472,7 +469,7 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                           </Typography>
                         )}
                     </Alert>
-                  )}
+                  )} */}
 
                   <Box
                     sx={{
