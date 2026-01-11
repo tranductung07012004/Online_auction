@@ -261,9 +261,10 @@ public class OrderServiceImpl implements OrderService {
                 .paymentMethod(payment.getPaymentMethod())
                 .paymentStatus(payment.getPaymentStatus())
                 .paymentProofUrl(payment.getPaymentProofUrl())
-                .transactionId(payment.getTransactionId())
                 .buyerPaidAt(payment.getBuyerPaidAt())
                 .sellerConfirmedAt(payment.getSellerConfirmedAt())
+                .stripeSessionId(payment.getStripeSessionId())
+                .stripePaymentUrl(payment.getStripePaymentUrl())
                 .notes(payment.getNotes())
                 .createdAt(payment.getCreatedAt())
                 .build();

@@ -2,6 +2,7 @@ package com.service.main.controller;
 
 import com.service.main.dto.*;
 import com.service.main.service.OrderService;
+import com.service.main.service.StripePaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
+    private final StripePaymentService stripePaymentService;
 
     @GetMapping("")
     @PreAuthorize("hasAnyRole('BIDDER', 'SELLER')")
@@ -43,6 +45,15 @@ public class OrderController {
     }
     
     // ==================== Payment Management ====================
+    
+    @PostMapping("/{orderId}/payment/stripe/create-session")
+    @PreAuthorize("hasRole('BIDDER')")
+    public ResponseEntity<ApiResponse<StripePaymentResponse>> createStripePaymentSession(
+            @PathVariable Long orderId
+    ) {
+        StripePaymentResponse response = stripePaymentService.createPaymentSession(orderId);
+        return ResponseEntity.ok(new ApiResponse<>("Stripe payment session created successfully", response));
+    }
     
     @PostMapping("/{orderId}/payment/upload-proof")
     @PreAuthorize("hasRole('BIDDER')")

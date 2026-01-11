@@ -38,6 +38,15 @@ public class OrderPayment {
     @Column(name = "buyer_paid_at")
     private OffsetDateTime buyerPaidAt;
 
+    @Column(name = "seller_confirmed_at")
+    private OffsetDateTime sellerConfirmedAt;
+
+    @Column(name = "stripe_session_id", columnDefinition = "TEXT")
+    private String stripeSessionId;
+
+    @Column(name = "stripe_payment_url", columnDefinition = "TEXT")
+    private String stripePaymentUrl;
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
@@ -51,7 +60,7 @@ public class OrderPayment {
             paymentStatus = "PENDING";
         }
         if (paymentMethod == null) {
-            paymentMethod = "STRIPE";
+            paymentMethod = "BANK_TRANSFER";
         }
     }
 }

@@ -19,9 +19,10 @@ public class OrderPaymentResponse {
     private String paymentMethod;
     private String paymentStatus;
     private String paymentProofUrl;
-    private String transactionId;
     private OffsetDateTime buyerPaidAt;
     private OffsetDateTime sellerConfirmedAt;
+    private String stripeSessionId;
+    private String stripePaymentUrl;
     private String notes;
     private OffsetDateTime createdAt;
 }

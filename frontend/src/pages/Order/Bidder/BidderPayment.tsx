@@ -23,11 +23,13 @@ import {
   AccountBalance,
   QrCode2,
   CheckCircle,
+  CreditCard,
 } from "@mui/icons-material";
 import {
   getOrderById,
   uploadPaymentProof,
   getOrderPayment,
+  createStripePaymentSession,
 } from "../../../api/order";
 import { uploadImageToCloudinary } from "../../../api/cloudinary";
 import { Order } from "../../../types/order";
@@ -44,6 +46,9 @@ interface PaymentInfo {
   paymentStatus: string;
   paymentProofUrl: string | null;
   buyerPaidAt: string | null;
+  sellerConfirmedAt: string | null;
+  stripeSessionId: string | null;
+  stripePaymentUrl: string | null;
   notes: string | null;
   createdAt: string;
 }
@@ -56,6 +61,7 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [creatingStripeSession, setCreatingStripeSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -147,6 +153,33 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
       setError(err.message || "Failed to submit payment proof.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handlePayWithStripe = async () => {
+    if (!order || !id) return;
+
+    try {
+      setCreatingStripeSession(true);
+      setError(null);
+
+      // Call API to create Stripe payment session
+      const response = await createStripePaymentSession(order.id);
+
+      if (response.paymentUrl) {
+        // Redirect to Stripe Checkout page
+        window.location.href = response.paymentUrl;
+      } else {
+        setError("Failed to get Stripe payment URL");
+      }
+    } catch (err: any) {
+      console.error("Failed to create Stripe session:", err);
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to create Stripe payment session."
+      );
+      setCreatingStripeSession(false);
     }
   };
 
@@ -271,16 +304,38 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                         variant="outlined"
                         sx={{
                           p: 1,
-                          opacity: 0.6,
-                          cursor: "not-allowed",
-                          backgroundColor: "#f5f5f5",
+                          borderColor:
+                            paymentMethod === "STRIPE" ? "#8B7355" : "divider",
+                          backgroundColor:
+                            paymentMethod === "STRIPE"
+                              ? "rgba(139, 115, 85, 0.04)"
+                              : "inherit",
                         }}
                       >
                         <FormControlLabel
-                          value="PAYPAL"
-                          disabled
-                          control={<Radio />}
-                          label="PayPal (Coming Soon)"
+                          value="STRIPE"
+                          control={
+                            <Radio
+                              sx={{
+                                color: "#8B7355",
+                                "&.Mui-checked": { color: "#8B7355" },
+                              }}
+                            />
+                          }
+                          label={
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <CreditCard sx={{ color: "#8B7355" }} />
+                              <Typography fontWeight={600}>
+                                Stripe Payment (Credit/Debit Card)
+                              </Typography>
+                            </Box>
+                          }
                           sx={{ width: "100%", m: 0 }}
                         />
                       </Paper>
@@ -400,6 +455,138 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                       </Box>
                       <Typography variant="caption" sx={{ mt: 1 }}>
                         Scan to Pay
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              )}
+
+              {/* Stripe Payment Section */}
+              {paymentMethod === "STRIPE" && (
+                <Paper sx={{ p: 3, borderRadius: 2, flex: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                    Pay with Stripe
+                  </Typography>
+
+                  <Box sx={{ textAlign: "center", py: 4 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 2,
+                        mb: 3,
+                      }}
+                    >
+                      <CreditCard sx={{ fontSize: 64, color: "#8B7355" }} />
+                    </Box>
+
+                    <Typography
+                      variant="h5"
+                      fontWeight={700}
+                      color="#2C1810"
+                      sx={{ mb: 1 }}
+                    >
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      }).format(orderAmount)}
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 4 }}
+                    >
+                      Order #{order?.id}
+                    </Typography>
+
+                    {/* {paymentInfo?.stripeSessionId && (
+                      <Alert
+                        severity="success"
+                        sx={{ mb: 3, textAlign: "left" }}
+                      >
+                        <Typography variant="body2" fontWeight={600}>
+                          ✓ Stripe payment session created
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          sx={{ mt: 0.5 }}
+                        >
+                          Session ID:{" "}
+                          {paymentInfo.stripeSessionId.substring(0, 20)}...
+                        </Typography>
+                        {paymentInfo.stripePaymentUrl && (
+                          <Button
+                            variant="text"
+                            size="small"
+                            onClick={() =>
+                              window.open(
+                                paymentInfo.stripePaymentUrl!,
+                                "_blank"
+                              )
+                            }
+                            sx={{ mt: 1, color: "#8B7355" }}
+                          >
+                            Reopen Payment Page
+                          </Button>
+                        )}
+                      </Alert>
+                    )} */}
+
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={handlePayWithStripe}
+                      disabled={
+                        creatingStripeSession ||
+                        paymentInfo?.paymentStatus === "CONFIRMED"
+                      }
+                      startIcon={
+                        creatingStripeSession ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : (
+                          <CreditCard />
+                        )
+                      }
+                      sx={{
+                        backgroundColor: "#635BFF", // Stripe brand color
+                        color: "#fff",
+                        px: 6,
+                        py: 1.5,
+                        borderRadius: "8px",
+                        fontSize: "1rem",
+                        fontWeight: 600,
+                        textTransform: "none",
+                        boxShadow: "0 4px 12px rgba(99, 91, 255, 0.3)",
+                        "&:hover": {
+                          backgroundColor: "#5146E5",
+                        },
+                        "&.Mui-disabled": {
+                          backgroundColor: "#ccc",
+                        },
+                      }}
+                    >
+                      {creatingStripeSession
+                        ? "Creating Session..."
+                        : paymentInfo?.paymentStatus === "CONFIRMED"
+                        ? "Payment Confirmed"
+                        : "Pay with Stripe"}
+                    </Button>
+
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        🔒 Secured by Stripe
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        color="text.secondary"
+                        sx={{ mt: 0.5 }}
+                      >
+                        Test Card: 4242 4242 4242 4242 | Expiry: 12/34 | CVC:
+                        123
                       </Typography>
                     </Box>
                   </Box>

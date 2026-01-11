@@ -44,6 +44,15 @@ user:
 assessment:
   minimum: 8.0
 
+# Stripe Configuration (Sandbox)
+stripe:
+  secret:
+    key: ${STRIPE_SECRET_KEY:sk_test_51QcnZmP6bC5EcGuhvP5dummy} # Thay bằng Stripe Test Secret Key của bạn
+  success:
+    url: ${STRIPE_SUCCESS_URL:http://localhost:5173/order/} # URL chuyển về sau khi thanh toán thành công
+  cancel:
+    url: ${STRIPE_CANCEL_URL:http://localhost:5173/order/} # URL chuyển về khi hủy thanh toán
+
 springdoc:
   # Thay doi duong dan vao giao dine Swagger UI
   # Mac dinh la /swagger-ui.html

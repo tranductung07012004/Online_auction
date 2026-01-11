@@ -87,6 +87,14 @@ export const getOrderPayment = async (orderId: number) => {
   return response.data.data;
 };
 
+// Create Stripe Payment Session (buyer)
+export const createStripePaymentSession = async (orderId: number) => {
+  const response = await apiClient.post(
+    `/api/main/order/${orderId}/payment/stripe/create-session`
+  );
+  return response.data.data; // Returns { sessionId, paymentUrl, message }
+};
+
 // Upload payment proof (buyer)
 export const uploadPaymentProof = async (
   orderId: number,

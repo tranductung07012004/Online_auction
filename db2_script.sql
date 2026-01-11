@@ -171,11 +171,14 @@ CREATE TABLE order_payments (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL UNIQUE,
     amount DECIMAL(15,5) NOT NULL,
-    payment_method VARCHAR(50) DEFAULT 'STRIPE', -- 'STRIPE', etc.
-    payment_status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROOF_UPLOADED', 'FAILED', 'REFUNDED'
+    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER', -- 'BANK_TRANSFER', 'STRIPE', etc.
+    payment_status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROOF_UPLOADED', 'CONFIRMED', 'FAILED', 'REFUNDED'
     payment_proof_url TEXT, -- URL ảnh chứng từ chuyển khoản
     buyer_paid_at TIMESTAMPTZ, -- Thời điểm buyer upload proof/thanh toán
-    notes TEXT, -- Lưu thêm thông tin về payment nếu cần
+    seller_confirmed_at TIMESTAMPTZ, -- Thời điểm seller xác nhận thanh toán
+    stripe_session_id TEXT, -- Stripe Checkout Session ID
+    stripe_payment_url TEXT, -- URL để redirect đến trang thanh toán Stripe
+    notes TEXT, -- Ghi chú từ buyer hoặc seller
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
