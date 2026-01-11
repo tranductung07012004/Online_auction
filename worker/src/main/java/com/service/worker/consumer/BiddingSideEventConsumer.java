@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.worker.constants.KafkaEventTypes;
 import com.service.worker.constants.KafkaTopics;
 import com.service.worker.dto.BlackListEvent;
+import com.service.worker.dto.CreateAnswerEvent;
+import com.service.worker.dto.CreateQuestionEvent;
 import com.service.worker.dto.KafkaMessage;
 import com.service.worker.dto.ProductEndedEvent;
+import com.service.worker.dto.UpdateProductDescriptionEvent;
 import com.service.worker.service.NotifyBiddingService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -71,6 +74,51 @@ public class BiddingSideEventConsumer {
 
                 logger.info("Successfully processed PRODUCT_ENDED_SECTION event for sellerId: {}, topBidderId: {}",
                         eventData.getSellerId(), eventData.getTopBidderId());
+            } else if (KafkaEventTypes.CREATE_QUESTION.equals(eventType)) {
+                CreateQuestionEvent eventData = objectMapper.convertValue(
+                        message.getPayload(),
+                        CreateQuestionEvent.class
+                );
+
+                logger.info("Processing CREATE_QUESTION event - ProductId: {}, BidderId: {}, SellerId: {}",
+                        eventData.getProductId(), eventData.getBidderId(), eventData.getSellerId());
+
+                this.notifyBiddingService.notifyQuestionCreated(eventData);
+
+                shouldAck = true;
+
+                logger.info("Successfully processed CREATE_QUESTION event for productId: {}, bidderId: {}",
+                        eventData.getProductId(), eventData.getBidderId());
+            } else if (KafkaEventTypes.CREATE_ANSWER.equals(eventType)) {
+                CreateAnswerEvent eventData = objectMapper.convertValue(
+                        message.getPayload(),
+                        CreateAnswerEvent.class
+                );
+
+                logger.info("Processing CREATE_ANSWER event - ProductId: {}, Users count: {}",
+                        eventData.getProductId(), eventData.getUsers() != null ? eventData.getUsers().size() : 0);
+
+                this.notifyBiddingService.notifyAnswerCreated(eventData);
+
+                shouldAck = true;
+
+                logger.info("Successfully processed CREATE_ANSWER event for productId: {}",
+                        eventData.getProductId());
+            } else if (KafkaEventTypes.UPDATE_PRODUCT_DESCRIPTION.equals(eventType)) {
+                UpdateProductDescriptionEvent eventData = objectMapper.convertValue(
+                        message.getPayload(),
+                        UpdateProductDescriptionEvent.class
+                );
+
+                logger.info("Processing UPDATE_PRODUCT_DESCRIPTION event - ProductId: {}, ProductName: {}, TopBidderEmail: {}",
+                        eventData.getProductId(), eventData.getProductName(), eventData.getTopBidderEmail());
+
+                this.notifyBiddingService.notifyProductDescriptionUpdated(eventData);
+
+                shouldAck = true;
+
+                logger.info("Successfully processed UPDATE_PRODUCT_DESCRIPTION event for productId: {}",
+                        eventData.getProductId());
             } else {
                 // Unknown event type, acknowledge to skip
                 logger.debug("Unknown event type: {}, skipping", eventType);

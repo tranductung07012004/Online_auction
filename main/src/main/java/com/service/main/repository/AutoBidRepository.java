@@ -23,4 +23,10 @@ public interface AutoBidRepository extends JpaRepository<AutoBid, Long> {
 
     @Query("SELECT a FROM AutoBid a WHERE a.productId = :productId AND a.bidderId != :excludeBidderId ORDER BY a.maxPrice DESC, a.createdAt ASC")
     List<AutoBid> findByProductIdExcludingBidderOrderByMaxPriceDesc(@Param("productId") Long productId, @Param("excludeBidderId") Long excludeBidderId);
+
+    @Query("SELECT a FROM AutoBid a WHERE a.productId = :productId")
+    List<AutoBid> findByProductIdReturnList(@Param("productId") Long productId);
+
+    @Query("SELECT a FROM AutoBid a WHERE a.productId = :productId AND a.bidderId NOT IN :excludedBidderIds")
+    Page<AutoBid> findByProductIdExcludingBidderIds(@Param("productId") Long productId, @Param("excludedBidderIds") List<Long> excludedBidderIds, Pageable pageable);
 }

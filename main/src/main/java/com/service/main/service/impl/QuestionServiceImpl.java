@@ -1,25 +1,41 @@
 package com.service.main.service.impl;
 
 import com.service.main.constants.ErrorCodes;
+import com.service.main.constants.KafkaEventTypes;
+import com.service.main.constants.KafkaTopics;
 import com.service.main.dto.*;
 import com.service.main.entity.Answer;
+import com.service.main.entity.Product;
 import com.service.main.entity.Question;
 import com.service.main.exception.ApplicationException;
 import com.service.main.repository.AnswerRepository;
+import com.service.main.repository.AutoBidRepository;
+import com.service.main.repository.BlackListRepository;
 import com.service.main.repository.ProductRepository;
 import com.service.main.repository.QuestionRepository;
+import com.service.main.service.KafkaProducerService;
 import com.service.main.service.QuestionService;
 import com.service.main.service.UserServiceClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.service.main.entity.AutoBid;
+import com.service.main.entity.BlackList;
 
 import static com.service.main.service.impl.ProductServiceImpl.formatUserInfo;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuestionServiceImpl implements QuestionService {
@@ -28,11 +44,14 @@ public class QuestionServiceImpl implements QuestionService {
     private final ProductRepository productRepository;
     private final UserServiceClient userServiceClient;
     private final AnswerRepository answerRepository;
+    private final KafkaProducerService kafkaProducerService;
+    private final AutoBidRepository autoBidRepository;
+    private final BlackListRepository blackListRepository;
 
 
     @Override
     public QuestionResponse createQuestion(CreateQuestionRequest request, Long currentUserId) {
-        this.productRepository.findById(request.getProductId())
+        Product product = this.productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -46,6 +65,42 @@ public class QuestionServiceImpl implements QuestionService {
                 .build();
 
         Question saved = questionRepository.save(question);
+
+        // Send event to worker after successfully creating question
+        try {
+            Long sellerId = product.getSellerId();
+            
+            // Get user emails
+            List<Long> userIds = new ArrayList<>();
+            userIds.add(currentUserId); // bidderId
+            userIds.add(sellerId); // sellerId
+            
+            List<UserEmailItemResponse> emailResponses = userServiceClient.getUserEmails(userIds);
+            Map<Long, String> emailMap = emailResponses.stream()
+                    .collect(Collectors.toMap(UserEmailItemResponse::getUserId, UserEmailItemResponse::getEmail));
+            
+            CreateQuestionEvent event = CreateQuestionEvent.builder()
+                    .productId(request.getProductId())
+                    .bidderId(currentUserId)
+                    .bidderEmail(emailMap.get(currentUserId))
+                    .sellerId(sellerId)
+                    .sellerEmail(emailMap.get(sellerId))
+                    .content(request.getContent().trim())
+                    .build();
+            
+            kafkaProducerService.sendMessage(
+                    KafkaTopics.BIDDING_PROCESS_SIDE_EVENT,
+                    KafkaEventTypes.CREATE_QUESTION,
+                    event
+            );
+            
+            log.info("Sent CREATE_QUESTION event for productId: {}, bidderId: {}, sellerId: {}",
+                    request.getProductId(), currentUserId, sellerId);
+        } catch (Exception e) {
+            log.error("Error sending CREATE_QUESTION event for productId: {}, bidderId: {}: {}",
+                    request.getProductId(), currentUserId, e.getMessage(), e);
+            // Don't throw exception, just log error - question creation is already successful
+        }
 
         return this.mapToQuestionResponse(saved);
     }
@@ -131,6 +186,63 @@ public class QuestionServiceImpl implements QuestionService {
         
         // Mask fullname before returning
         maskFullname(user);
+
+        // Send event to worker after successfully creating answer
+        try {
+            Long productId = question.getProductId();
+            
+            // Get userList1: Users who created auto-bid for this product (excluding blacklisted)
+            List<AutoBid> autoBids = autoBidRepository.findByProductIdReturnList(productId);
+            List<BlackList> blackLists = blackListRepository.findByProductIdReturnList(productId);
+            
+            Set<Long> blacklistedBidderIds = blackLists.stream()
+                    .map(BlackList::getBidderId)
+                    .collect(Collectors.toSet());
+            
+            List<Long> userList1 = autoBids.stream()
+                    .map(AutoBid::getBidderId)
+                    .filter(bidderId -> !blacklistedBidderIds.contains(bidderId))
+                    .collect(Collectors.toList());
+            
+            // Get userList2: Users who created questions for this product
+            List<Long> userList2 = questionRepository.findUserIdsByProductId(productId);
+            
+            // Merge and deduplicate
+            Set<Long> allUserIds = new HashSet<>(userList1);
+            allUserIds.addAll(userList2);
+            List<Long> mergedUserIds = new ArrayList<>(allUserIds);
+            
+            // Get emails for all users
+            List<UserEmailItemResponse> userEmails = userServiceClient.getUserEmails(mergedUserIds);
+            
+            // Get seller info to get fullname
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product id" + productId + "not found"));
+            Long sellerId = product.getSellerId();
+            UserInfo sellerInfo = userServiceClient.getUserInfoById(sellerId);
+            String sellerFullname = sellerInfo != null ? sellerInfo.getFullname() : "Seller name unknown";
+            
+            // Create and send event
+            CreateAnswerEvent event = CreateAnswerEvent.builder()
+                    .productId(productId)
+                    .sellerFullname(sellerFullname)
+                    .content(request.getContent().trim())
+                    .users(userEmails)
+                    .build();
+            
+            kafkaProducerService.sendMessage(
+                    KafkaTopics.BIDDING_PROCESS_SIDE_EVENT,
+                    KafkaEventTypes.CREATE_ANSWER,
+                    event
+            );
+            
+            log.info("Sent CREATE_ANSWER event for productId: {}, questionId: {}, total users: {}",
+                    productId, request.getQuestionId(), userEmails.size());
+        } catch (Exception e) {
+            log.error("Error sending CREATE_ANSWER event for questionId: {}: {}",
+                    request.getQuestionId(), e.getMessage(), e);
+            // Don't throw exception, just log error - answer creation is already successful
+        }
 
         return new AnswerResponse(saved, user);
     }

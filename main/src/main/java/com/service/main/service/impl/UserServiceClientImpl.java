@@ -94,7 +94,9 @@ public class UserServiceClientImpl implements UserServiceClient {
                 log.warn("No role found in authentication authorities");
             }
         } else {
-            log.warn("No authentication found in SecurityContext");
+            log.warn("No authentication found in SecurityContext - using internal service credentials");
+            headers.set("X-user-id", "0");
+            headers.set("X-user-role", "INTERNAL_SERVICE");
         }
         
         return headers;
@@ -184,6 +186,7 @@ public class UserServiceClientImpl implements UserServiceClient {
             String url = userServiceUrl + "/api/user/internal/emails";
             
             // Get authentication info from SecurityContext
+            // A dung roi, neu ma ko phai request thi cai nay se ko co security context
             HttpHeaders headers = createHeadersWithAuth();
             headers.set("Content-Type", "application/json");
             
