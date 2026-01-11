@@ -156,16 +156,101 @@ export default function SellerWaitingForDelivery({
               </Stack>
             </Paper>
           )}
-
-          {/* Info Alert */}
-          <Alert severity="success" sx={{ width: "100%", maxWidth: 500 }}>
-            <Typography variant="body2">
-              <strong>Good job!</strong> The item is on its way. Funds will be
-              released to you once the buyer confirms delivery.
-            </Typography>
-          </Alert>
         </Box>
       </Paper>
+
+      {/* Right Column - Order Summary */}
+      <Box>
+        {/* Order Summary */}
+        <Paper sx={{ p: 3, borderRadius: 2, mb: 3, bgcolor: "#fafafa" }}>
+          <Typography
+            variant="h6"
+            sx={{ mb: 2, color: "#2C1810", fontWeight: 600 }}
+          >
+            <AttachMoney sx={{ mr: 1, verticalAlign: "middle" }} />
+            Order Summary
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Stack spacing={2}>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography variant="body2" color="text.secondary">
+                Order ID:
+              </Typography>
+              <Chip label={`#${order.id}`} size="small" />
+            </Box>
+
+            <Divider />
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                p: 2,
+                bgcolor: "#8B7355",
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" sx={{ color: "white", fontWeight: 600 }}>
+                Total Paid:
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: "white",
+                  fontWeight: 700,
+                }}
+              >
+                {formatPrice(order.amount)}
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+
+        {/* Product Info */}
+        {order.product && (
+          <Paper sx={{ p: 3, borderRadius: 2 }}>
+            <Typography
+              variant="h6"
+              sx={{ mb: 2, color: "#2C1810", fontWeight: 600 }}
+            >
+              Product Information
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            <Card
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+                overflow: "hidden",
+                boxShadow: 2,
+                cursor: "pointer",
+                transition: "transform 0.2s",
+                "&:hover": {
+                  transform: "scale(1.02)",
+                },
+              }}
+              onClick={() => navigate(`/product-page/${order.product?.id}`)}
+            >
+              <CardMedia
+                component="img"
+                height="200"
+                image={order.product.thumbnailUrl || "/placeholder.jpg"}
+                alt={order.product.productName}
+                sx={{ objectFit: "cover" }}
+              />
+            </Card>
+
+            <Typography variant="body1" fontWeight={600} sx={{ mb: 1 }}>
+              {order.product.productName}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Final Price: {formatPrice(order.product.currentPrice)}
+            </Typography>
+          </Paper>
+        )}
+      </Box>
     </Box>
   );
 }

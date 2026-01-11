@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut,
@@ -49,58 +49,71 @@ export default function ProfileSidebar({
   }>({ type: "info", message: "", visible: false });
 
   const navigate = useNavigate();
-  const { clearAuth } = useAuthStore();
+  const { clearAuth, role } = useAuthStore();
 
-  const menuItems = [
-    {
-      id: "profile",
-      label: "My Profile",
-      icon: <User className="h-5 w-5" />,
-      path: "/profile",
-    },
-    {
-      id: "order-history",
-      label: "Order History",
-      icon: <ClipboardList className="h-5 w-5" />,
-      path: "/order-history",
-    },
-    {
-      id: "chat",
-      label: "Messages",
-      icon: <MessageCircle className="h-5 w-5" />,
-      path: "/chat",
-    },
-    {
-      id: "become-seller",
-      label: "Become Seller",
-      icon: <Store className="h-5 w-5" />,
-      path: "/become-seller",
-    },
-    {
-      id: "watchlist",
-      label: "Watch List",
-      icon: <Heart className="h-5 w-5" />,
-      path: "/watchlist",
-    },
-    {
-      id: "my-bids",
-      label: "My Bids",
-      icon: <Gavel className="h-5 w-5" />,
-      path: "/my-bids",
-    },
-    {
-      id: "my-products",
-      label: "My Products",
-      icon: <Boxes className="h-5 w-5" />,
-      path: "/my-products",
-    },
-    {
-      id: "create-product",
-      label: "Create Product",
-      icon: <PlusCircle className="h-5 w-5" />,
-      path: "/create-product",
-    },
-  ];
+  // Filter menu items based on user role
+  const menuItems = useMemo(() => {
+    const allMenuItems = [
+      {
+        id: "profile",
+        label: "My Profile",
+        icon: <User className="h-5 w-5" />,
+        path: "/profile",
+      },
+      {
+        id: "order-history",
+        label: "Order History",
+        icon: <ClipboardList className="h-5 w-5" />,
+        path: "/order-history",
+      },
+      {
+        id: "chat",
+        label: "Messages",
+        icon: <MessageCircle className="h-5 w-5" />,
+        path: "/chat",
+      },
+      {
+        id: "become-seller",
+        label: "Become Seller",
+        icon: <Store className="h-5 w-5" />,
+        path: "/become-seller",
+        // Only show for BIDDER role
+        showForRole: ["BIDDER"],
+      },
+      {
+        id: "watchlist",
+        label: "Watch List",
+        icon: <Heart className="h-5 w-5" />,
+        path: "/watchlist",
+      },
+      {
+        id: "my-bids",
+        label: "My Bids",
+        icon: <Gavel className="h-5 w-5" />,
+        path: "/my-bids",
+      },
+      {
+        id: "my-products",
+        label: "My Products",
+        icon: <Boxes className="h-5 w-5" />,
+        path: "/my-products",
+      },
+      {
+        id: "create-product",
+        label: "Create Product",
+        icon: <PlusCircle className="h-5 w-5" />,
+        path: "/create-product",
+      },
+    ];
+
+    // Filter menu items based on role
+    return allMenuItems.filter((item) => {
+      if (item.showForRole) {
+        return item.showForRole.includes(role || "");
+      }
+      return true;
+    });
+  }, [role]);
 
   const handleLogout = async () => {
     // clearAuth() từ authStore đã xử lý:
