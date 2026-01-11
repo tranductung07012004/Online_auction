@@ -57,7 +57,7 @@ export default function ProductPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const productsPerPage = 6; // Number of products per page
+  const productsPerPage = 2; // Number of products per page
 
   // Fetch products from API
   useEffect(() => {

@@ -14,6 +14,8 @@ import com.service.main.repository.ProductSyncEsLimitRepository;
 import com.service.main.service.KafkaProducerService;
 import com.service.main.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
 
     private final ProductRepository productRepository;
     private final CategoriesRepository categoriesRepository;
@@ -423,6 +427,44 @@ public class ProductServiceImpl implements ProductService {
                 .build();
 
         this.productDescriptionRepository.save(description);
+
+        // Early return if no topBidderId - no need to send event
+        if (product.getTopBidderId() == null) {
+            logger.info("Product id: " 
+            + productId 
+            + "has no top bidder id, will not send event UPDATE_PRODUCT_DESCRIPTION");
+            return;
+        }
+
+        // Send event to worker
+        try {
+            UserEmailResponse emailResponse = userServiceClient.getUserEmail(product.getTopBidderId());
+            if (emailResponse == null || emailResponse.getEmail() == null) {
+                logger.info("No email in response from user service with userId: " 
+                + product.getTopBidderId() 
+                + ", will return early");
+                return;
+            }
+
+            String topBidderEmail = emailResponse.getEmail();
+
+            UpdateProductDescriptionEvent eventPayload = UpdateProductDescriptionEvent.builder()
+                    .productId(productId)
+                    .productName(product.getProductName())
+                    .content(request.getDescriptionContent().trim())
+                    .createdAt(now)
+                    .topBidderEmail(topBidderEmail)
+                    .build();
+
+            kafkaProducerService.sendMessage(
+                    KafkaTopics.BIDDING_PROCESS_SIDE_EVENT,
+                    KafkaEventTypes.UPDATE_PRODUCT_DESCRIPTION,
+                    eventPayload
+            );
+        } catch (Exception e) {
+            logger.error("Failed to send UPDATE_PRODUCT_DESCRIPTION event for productId: {}", productId, e);
+            // Don't throw exception to avoid failing the request
+        }
     }
 
     private void validatePrices(createProductRequest request) {

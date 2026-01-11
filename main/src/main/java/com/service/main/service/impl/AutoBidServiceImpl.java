@@ -119,11 +119,12 @@ public class AutoBidServiceImpl implements AutoBidService {
     private BidUpdateResult handleBidCases(Product product, BigDecimal maxPrice, BigDecimal minBidStep, Long currentUserId, OffsetDateTime now) {
         Long currentTopBidderId = product.getTopBidderId();
         BigDecimal currentPrice = product.getCurrentPrice();
+        BigDecimal minimumBidStep = product.getMinimumBidStep();
 
         if (currentTopBidderId == null) {
             // Case 4: Bid đầu tiên
-            this.createBidHistory(product.getId(), currentUserId, maxPrice, now);
-            return new BidUpdateResult(maxPrice, currentUserId, 1);
+            this.createBidHistory(product.getId(), currentUserId, currentPrice.add(minimumBidStep), now);
+            return new BidUpdateResult(currentPrice.add(minimumBidStep), currentUserId, 1);
         }
 
         // Lấy top max price
@@ -395,7 +396,21 @@ public class AutoBidServiceImpl implements AutoBidService {
 
     @Override
     public Page<AutoBidResponse> getAutoBidsByProductId(Long productId, Pageable pageable) {
-        Page<AutoBid> autoBidPage = this.autoBidRepository.findByProductId(productId, pageable);
+        // Lấy danh sách bidderId trong blacklist cho product này
+        List<BlackList> blackLists = this.blackListRepository.findByProductIdReturnList(productId);
+        List<Long> blacklistedBidderIds = blackLists.stream()
+                .map(BlackList::getBidderId)
+                .collect(Collectors.toList());
+
+        Page<AutoBid> autoBidPage;
+        if (blacklistedBidderIds.isEmpty()) {
+            // Nếu không có blacklist, query bình thường
+            autoBidPage = this.autoBidRepository.findByProductId(productId, pageable);
+        } else {
+            // Nếu có blacklist, exclude các bidderId đó
+            autoBidPage = this.autoBidRepository.findByProductIdExcludingBidderIds(productId, blacklistedBidderIds, pageable);
+        }
+
         return autoBidPage.map(this::mapToResponse);
     }
 

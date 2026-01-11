@@ -32,7 +32,7 @@ public class QuestionController {
 
         Long currentUserId = Long.valueOf(authentication.getName());
 
-        QuestionResponse res = questionService.createQuestion(request, currentUserId);
+        QuestionResponse res = this.questionService.createQuestion(request, currentUserId);
 
         return ResponseEntity.status(201)
                 .body(new ApiResponse<>("Question created successfully", res));
@@ -49,7 +49,7 @@ public class QuestionController {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<QuestionResponse> questions = questionService.getQuestionsByProductId(productId, pageable);
+        Page<QuestionResponse> questions = this.questionService.getQuestionsByProductId(productId, pageable);
 
         return ResponseEntity
                 .status(200)
@@ -65,7 +65,7 @@ public class QuestionController {
 
         Long currentUserId = Long.valueOf(authentication.getName());
 
-        AnswerResponse res = questionService.createAnswer(request, currentUserId);
+        AnswerResponse res = this.questionService.createAnswer(request, currentUserId);
 
         return ResponseEntity
                 .status(201)
