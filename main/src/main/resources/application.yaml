@@ -49,9 +49,9 @@ stripe:
   secret:
     key: ${STRIPE_SECRET_KEY:sk_test_51QcnZmP6bC5EcGuhvP5dummy} # Thay bằng Stripe Test Secret Key của bạn
   success:
-    url: ${STRIPE_SUCCESS_URL:http://localhost:5173/order/} # URL chuyển về sau khi thanh toán thành công
+    url: ${STRIPE_SUCCESS_URL:http://localhost:5173/order/} # URL chuyển về sau khi thanh toán thành công (sẽ append orderId)
   cancel:
-    url: ${STRIPE_CANCEL_URL:http://localhost:5173/order/} # URL chuyển về khi hủy thanh toán
+    url: ${STRIPE_CANCEL_URL:http://localhost:5173/order/} # URL chuyển về khi hủy thanh toán (sẽ append orderId)
 
 springdoc:
   # Thay doi duong dan vao giao dine Swagger UI

@@ -124,9 +124,19 @@ export default function SellerWaitingScreen({
                 </Box>
               )}
 
-              {(order.status === "ADDRESS_PROVIDED" ||
-                order.status === "PAYMENT_PROOF_UPLOADED" ||
+              {(order.status === "PAYMENT_PROOF_UPLOADED" ||
                 order.status === "PAYMENT_CONFIRMED") && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <CheckCircle sx={{ color: "#4caf50" }} />
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>
+                      Payment Proof Uploaded
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {order.status === "ADDRESS_PROVIDED" && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <CheckCircle sx={{ color: "#4caf50" }} />
                   <Box>

@@ -62,17 +62,17 @@ function CustomStepIcon(props: any) {
   const { active, completed, className, icon } = props;
 
   // Icons mapping for steps 1 to 6
-  // Logic mismatch note: Steps in OrderProcess are 1-based index but logic uses them differently.
+  // Updated order: Payment before Shipping Address
   // Step 0: Confirmed (Just start)
-  // Step 1: Address
-  // Step 2: Pay
+  // Step 1: Payment - CHANGED
+  // Step 2: Address - CHANGED
   // Step 3/4: Ship/Deliver
   // Step 5: Review
 
   const icons: { [index: string]: React.ReactElement } = {
     1: <AssignmentTurnedIn />, // Order Confirmed
-    2: <Home />, // Shipping Address
-    3: <Payment />, // Deposit Payment
+    2: <Payment />, // Deposit Payment - CHANGED from Home
+    3: <Home />, // Shipping Address - CHANGED from Payment
     4: <LocalShipping />, // In Transit
     5: <CheckCircle />, // Delivered
     6: <RateReview />, // Review
@@ -93,11 +93,11 @@ interface OrderStepperProps {
   onStepClick?: (step: number) => void;
 }
 
-// Labels in English
+// Labels in English - Updated order: Payment before Shipping Address
 const steps = [
   "Order Confirmed",
-  "Shipping Address",
-  "Deposit Payment",
+  "Deposit Payment", // CHANGED - Payment is now step 1
+  "Shipping Address", // CHANGED - Address is now step 2
   "In Transit",
   "Delivered",
   "Review",

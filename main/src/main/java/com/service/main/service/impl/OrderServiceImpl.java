@@ -198,7 +198,7 @@ public class OrderServiceImpl implements OrderService {
         payment.setBuyerPaidAt(OffsetDateTime.now());
         orderPaymentRepository.save(payment);
         
-        // Update order status
+        // Update order status - changed: payment proof is uploaded BEFORE address
         order.setStatus("PAYMENT_PROOF_UPLOADED");
         orderRepository.save(order);
     }
@@ -298,7 +298,7 @@ public class OrderServiceImpl implements OrderService {
         shipping.setShippingAddress(request.getShippingAddress());
         orderShippingRepository.save(shipping);
         
-        // Update order status
+        // Update order status - changed: address is provided AFTER payment
         order.setStatus("ADDRESS_PROVIDED");
         orderRepository.save(order);
     }

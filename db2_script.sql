@@ -171,7 +171,7 @@ CREATE TABLE order_payments (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL UNIQUE,
     amount DECIMAL(15,5) NOT NULL,
-    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER', -- 'BANK_TRANSFER', 'STRIPE', etc.
+    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER', -- 'BANK_TRANSFER', 'STRIPE'.
     payment_status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PROOF_UPLOADED', 'CONFIRMED', 'FAILED', 'REFUNDED'
     payment_proof_url TEXT, -- URL ảnh chứng từ chuyển khoản
     buyer_paid_at TIMESTAMPTZ, -- Thời điểm buyer upload proof/thanh toán

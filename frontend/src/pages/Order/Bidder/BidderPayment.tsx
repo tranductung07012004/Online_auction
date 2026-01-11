@@ -30,6 +30,7 @@ import {
   uploadPaymentProof,
   getOrderPayment,
   createStripePaymentSession,
+  updateOrderStatus,
 } from "../../../api/order";
 import { uploadImageToCloudinary } from "../../../api/cloudinary";
 import { Order } from "../../../types/order";
@@ -163,14 +164,27 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
       setCreatingStripeSession(true);
       setError(null);
 
-      // Call API to create Stripe payment session
+      // 1. Create Stripe payment session
       const response = await createStripePaymentSession(order.id);
 
       if (response.paymentUrl) {
-        // Redirect to Stripe Checkout page
+        // 2. Update order status before redirecting
+        try {
+          await updateOrderStatus(order.id, "PAYMENT_PROOF_UPLOADED");
+        } catch (statusErr) {
+          console.warn(
+            "Failed to update order status, but continuing:",
+            statusErr
+          );
+          // Continue anyway - user can still complete payment
+        }
+
+        // 3. Redirect to Stripe Checkout page
+        // After payment, user will be redirected to /order/{orderId}
         window.location.href = response.paymentUrl;
       } else {
         setError("Failed to get Stripe payment URL");
+        setCreatingStripeSession(false);
       }
     } catch (err: any) {
       console.error("Failed to create Stripe session:", err);
@@ -236,272 +250,334 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
         }}
       >
         <Box sx={{ maxWidth: 1000, width: "100%" }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 4,
-              alignItems: "stretch",
-            }}
-          >
-            {/* Left Side: Payment Options & Instructions */}
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  Select Payment Method
-                </Typography>
-                <Divider sx={{ mb: 3 }} />
+          {/* Payment Method Selection */}
+          <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Select Payment Method
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
 
-                <FormControl component="fieldset" sx={{ width: "100%" }}>
-                  <RadioGroup
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  >
-                    <Stack spacing={2}>
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          p: 1,
-                          borderColor:
-                            paymentMethod === "BANK_TRANSFER"
-                              ? "#8B7355"
-                              : "divider",
-                          backgroundColor:
-                            paymentMethod === "BANK_TRANSFER"
-                              ? "rgba(139, 115, 85, 0.04)"
-                              : "inherit",
-                        }}
-                      >
-                        <FormControlLabel
-                          value="BANK_TRANSFER"
-                          control={
-                            <Radio
-                              sx={{
-                                color: "#8B7355",
-                                "&.Mui-checked": { color: "#8B7355" },
-                              }}
-                            />
-                          }
-                          label={
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <AccountBalance sx={{ color: "#8B7355" }} />
-                              <Typography fontWeight={600}>
-                                Bank Transfer (Manual Confirmation)
-                              </Typography>
-                            </Box>
-                          }
-                          sx={{ width: "100%", m: 0 }}
-                        />
-                      </Paper>
-
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          p: 1,
-                          borderColor:
-                            paymentMethod === "STRIPE" ? "#8B7355" : "divider",
-                          backgroundColor:
-                            paymentMethod === "STRIPE"
-                              ? "rgba(139, 115, 85, 0.04)"
-                              : "inherit",
-                        }}
-                      >
-                        <FormControlLabel
-                          value="STRIPE"
-                          control={
-                            <Radio
-                              sx={{
-                                color: "#8B7355",
-                                "&.Mui-checked": { color: "#8B7355" },
-                              }}
-                            />
-                          }
-                          label={
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <CreditCard sx={{ color: "#8B7355" }} />
-                              <Typography fontWeight={600}>
-                                Stripe Payment (Credit/Debit Card)
-                              </Typography>
-                            </Box>
-                          }
-                          sx={{ width: "100%", m: 0 }}
-                        />
-                      </Paper>
-                    </Stack>
-                  </RadioGroup>
-                </FormControl>
-              </Paper>
-
-              {/* Bank Transfer Details Section */}
-              {paymentMethod === "BANK_TRANSFER" && (
-                <Paper sx={{ p: 3, borderRadius: 2, flex: 1 }}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Transfer Details
-                  </Typography>
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    Please transfer the exact amount and upload your receipt
-                    below.
-                  </Alert>
-
-                  <Box
+            <FormControl component="fieldset" sx={{ width: "100%" }}>
+              <RadioGroup
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <Stack spacing={2}>
+                  <Paper
+                    variant="outlined"
                     sx={{
-                      display: "grid",
-                      gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" },
-                      gap: 2,
+                      p: 1,
+                      borderColor:
+                        paymentMethod === "BANK_TRANSFER"
+                          ? "#8B7355"
+                          : "divider",
+                      backgroundColor:
+                        paymentMethod === "BANK_TRANSFER"
+                          ? "rgba(139, 115, 85, 0.04)"
+                          : "inherit",
                     }}
                   >
+                    <FormControlLabel
+                      value="BANK_TRANSFER"
+                      control={
+                        <Radio
+                          sx={{
+                            color: "#8B7355",
+                            "&.Mui-checked": { color: "#8B7355" },
+                          }}
+                        />
+                      }
+                      label={
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <AccountBalance sx={{ color: "#8B7355" }} />
+                          <Typography fontWeight={600}>
+                            Bank Transfer (Manual Confirmation)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: "100%", m: 0 }}
+                    />
+                  </Paper>
+
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1,
+                      borderColor:
+                        paymentMethod === "STRIPE" ? "#8B7355" : "divider",
+                      backgroundColor:
+                        paymentMethod === "STRIPE"
+                          ? "rgba(139, 115, 85, 0.04)"
+                          : "inherit",
+                    }}
+                  >
+                    <FormControlLabel
+                      value="STRIPE"
+                      control={
+                        <Radio
+                          sx={{
+                            color: "#8B7355",
+                            "&.Mui-checked": { color: "#8B7355" },
+                          }}
+                        />
+                      }
+                      label={
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <CreditCard sx={{ color: "#8B7355" }} />
+                          <Typography fontWeight={600}>
+                            Stripe Payment (Credit/Debit Card)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: "100%", m: 0 }}
+                    />
+                  </Paper>
+                </Stack>
+              </RadioGroup>
+            </FormControl>
+          </Paper>
+
+          {/* Bank Transfer Details Section */}
+          {paymentMethod === "BANK_TRANSFER" && (
+            <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Transfer Details
+              </Typography>
+
+              <Divider sx={{ mb: 3 }} />
+
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Please transfer the exact amount and upload your receipt below.
+              </Alert>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" },
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Stack spacing={2}>
                     <Box>
-                      <Stack spacing={2}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            BANK NAME
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              bgcolor: "#f9f9f9",
-                              p: 1.5,
-                              borderRadius: 1,
-                            }}
-                          >
-                            <Typography fontWeight={600}>
-                              Vietcombank (VCB)
-                            </Typography>
-                            <IconButton
-                              onClick={() => copyToClipboard("Vietcombank")}
-                              size="small"
-                            >
-                              <ContentCopy fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            ACCOUNT NUMBER
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              bgcolor: "#f9f9f9",
-                              p: 1.5,
-                              borderRadius: 1,
-                            }}
-                          >
-                            <Typography fontWeight={600} color="#8B7355">
-                              1023456789
-                            </Typography>
-                            <IconButton
-                              onClick={() => copyToClipboard("1023456789")}
-                              size="small"
-                            >
-                              <ContentCopy fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
-                            AMOUNT TO PAY
-                          </Typography>
-                          <Box
-                            sx={{ bgcolor: "#f9f9f9", p: 1.5, borderRadius: 1 }}
-                          >
-                            <Typography
-                              fontWeight={700}
-                              variant="h6"
-                              color="#2C1810"
-                            >
-                              {new Intl.NumberFormat("en-US", {
-                                style: "currency",
-                                currency: "USD",
-                              }).format(orderAmount)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Stack>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
+                      <Typography variant="caption" color="text.secondary">
+                        BANK NAME
+                      </Typography>
                       <Box
                         sx={{
-                          p: 1,
-                          border: "1px solid #ddd",
-                          borderRadius: 2,
-                          bgcolor: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          bgcolor: "#f9f9f9",
+                          p: 1.5,
+                          borderRadius: 1,
                         }}
                       >
-                        <QrCode2 sx={{ fontSize: 160, color: "#2C1810" }} />
+                        <Typography fontWeight={600}>
+                          Vietcombank (VCB)
+                        </Typography>
+                        <IconButton
+                          onClick={() => copyToClipboard("Vietcombank")}
+                          size="small"
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
                       </Box>
-                      <Typography variant="caption" sx={{ mt: 1 }}>
-                        Scan to Pay
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        ACCOUNT NUMBER
                       </Typography>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          bgcolor: "#f9f9f9",
+                          p: 1.5,
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Typography fontWeight={600} color="#8B7355">
+                          1023456789
+                        </Typography>
+                        <IconButton
+                          onClick={() => copyToClipboard("1023456789")}
+                          size="small"
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        AMOUNT TO PAY
+                      </Typography>
+                      <Box sx={{ bgcolor: "#f9f9f9", p: 1.5, borderRadius: 1 }}>
+                        <Typography
+                          fontWeight={700}
+                          variant="h6"
+                          color="#2C1810"
+                        >
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: "USD",
+                          }).format(orderAmount)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Stack>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      p: 1,
+                      border: "1px solid #ddd",
+                      borderRadius: 2,
+                      bgcolor: "#fff",
+                    }}
+                  >
+                    <QrCode2 sx={{ fontSize: 160, color: "#2C1810" }} />
                   </Box>
-                </Paper>
-              )}
-
-              {/* Stripe Payment Section */}
-              {paymentMethod === "STRIPE" && (
-                <Paper sx={{ p: 3, borderRadius: 2, flex: 1 }}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Pay with Stripe
+                  <Typography variant="caption" sx={{ mt: 1 }}>
+                    Scan to Pay
                   </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          )}
 
-                  <Box sx={{ textAlign: "center", py: 4 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 2,
-                        mb: 3,
-                      }}
-                    >
-                      <CreditCard sx={{ fontSize: 64, color: "#8B7355" }} />
-                    </Box>
+          {/* Stripe Payment Section */}
+          {paymentMethod === "STRIPE" && (
+            <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Pay with Stripe
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
 
-                    <Typography
-                      variant="h5"
-                      fontWeight={700}
-                      color="#2C1810"
-                      sx={{ mb: 1 }}
-                    >
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      }).format(orderAmount)}
-                    </Typography>
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Pay instantly with your credit or debit card. Your payment will
+                be processed securely by Stripe.
+              </Alert>
 
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 4 }}
-                    >
-                      Order #{order?.id}
-                    </Typography>
+              {/* Payment Summary */}
+              <Box sx={{ mb: 4, p: 3, bgcolor: "#f9f9f9", borderRadius: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  PAYMENT SUMMARY
+                </Typography>
 
-                    {/* {paymentInfo?.stripeSessionId && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1.5,
+                  }}
+                >
+                  <Typography variant="body2">Order ID:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    #{order?.id}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1.5,
+                  }}
+                >
+                  <Typography variant="body2">Product Amount:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                    }).format(orderAmount)}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1.5,
+                  }}
+                >
+                  <Typography variant="body2">Processing Fee:</Typography>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    color="text.secondary"
+                  >
+                    Included
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={700}>
+                    Total Amount:
+                  </Typography>
+                  <Typography variant="h5" fontWeight={700} color="#635BFF">
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                    }).format(orderAmount)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ textAlign: "center", py: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 2,
+                    mb: 2,
+                  }}
+                >
+                  <CreditCard sx={{ fontSize: 48, color: "#635BFF" }} />
+                </Box>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 3 }}
+                >
+                  Click the button below to proceed to secure checkout
+                </Typography>
+
+                {/* {paymentInfo?.stripeSessionId && (
                       <Alert
                         severity="success"
                         sx={{ mb: 3, textAlign: "left" }}
@@ -535,84 +611,78 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                       </Alert>
                     )} */}
 
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={handlePayWithStripe}
-                      disabled={
-                        creatingStripeSession ||
-                        paymentInfo?.paymentStatus === "CONFIRMED"
-                      }
-                      startIcon={
-                        creatingStripeSession ? (
-                          <CircularProgress size={20} color="inherit" />
-                        ) : (
-                          <CreditCard />
-                        )
-                      }
-                      sx={{
-                        backgroundColor: "#635BFF", // Stripe brand color
-                        color: "#fff",
-                        px: 6,
-                        py: 1.5,
-                        borderRadius: "8px",
-                        fontSize: "1rem",
-                        fontWeight: 600,
-                        textTransform: "none",
-                        boxShadow: "0 4px 12px rgba(99, 91, 255, 0.3)",
-                        "&:hover": {
-                          backgroundColor: "#5146E5",
-                        },
-                        "&.Mui-disabled": {
-                          backgroundColor: "#ccc",
-                        },
-                      }}
-                    >
-                      {creatingStripeSession
-                        ? "Creating Session..."
-                        : paymentInfo?.paymentStatus === "CONFIRMED"
-                        ? "Payment Confirmed"
-                        : "Pay with Stripe"}
-                    </Button>
-
-                    <Box sx={{ mt: 3 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        🔒 Secured by Stripe
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        display="block"
-                        color="text.secondary"
-                        sx={{ mt: 0.5 }}
-                      >
-                        Test Card: 4242 4242 4242 4242 | Expiry: 12/34 | CVC:
-                        123
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Paper>
-              )}
-            </Box>
-
-            {/* Right Side: Upload Proof & Order Summary */}
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Stack spacing={3} sx={{ height: "100%" }}>
-                {/* Payment Proof Upload */}
-                <Paper
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handlePayWithStripe}
+                  disabled={
+                    creatingStripeSession ||
+                    paymentInfo?.paymentStatus === "CONFIRMED"
+                  }
+                  startIcon={
+                    creatingStripeSession ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : (
+                      <CreditCard />
+                    )
+                  }
                   sx={{
-                    p: 3,
-                    borderRadius: 2,
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
+                    backgroundColor: "#635BFF", // Stripe brand color
+                    color: "#fff",
+                    px: 6,
+                    py: 1.5,
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "0 4px 12px rgba(99, 91, 255, 0.3)",
+                    "&:hover": {
+                      backgroundColor: "#5146E5",
+                    },
+                    "&.Mui-disabled": {
+                      backgroundColor: "#ccc",
+                    },
                   }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Upload Payment Proof
-                  </Typography>
-                  <Divider sx={{ mb: 2 }} />
+                  {creatingStripeSession
+                    ? "Creating Session..."
+                    : paymentInfo?.paymentStatus === "CONFIRMED"
+                    ? "Payment Confirmed"
+                    : "Pay with Stripe"}
+                </Button>
 
-                  {/* Show payment status if proof already uploaded
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    🔒 Secured by Stripe • PCI DSS Compliant
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
+                    Your payment information is encrypted and secure
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
+          {/* Payment Proof Upload - Only for Bank Transfer */}
+          {paymentMethod === "BANK_TRANSFER" && (
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                mb: 3,
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Upload Payment Proof
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+
+              {/* Show payment status if proof already uploaded
                   {paymentInfo && paymentInfo.paymentProofUrl && (
                     <Alert
                       severity={
@@ -658,166 +728,157 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                     </Alert>
                   )} */}
 
+              <Box
+                sx={{
+                  border: "2px dashed #ddd",
+                  borderRadius: 2,
+                  p: 4,
+                  textAlign: "center",
+                  cursor: "pointer",
+                  position: "relative",
+                  minHeight: "200px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  "&:hover": {
+                    borderColor: "#8B7355",
+                    bgcolor: "rgba(139, 115, 85, 0.02)",
+                  },
+                }}
+                component="label"
+              >
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*,.pdf"
+                  onChange={handleFileChange}
+                  disabled={paymentInfo?.paymentStatus === "CONFIRMED"}
+                />
+
+                {previewUrl ? (
+                  <Box sx={{ width: "100%" }}>
+                    <img
+                      src={previewUrl}
+                      alt="Payment Proof"
+                      style={{
+                        width: "100%",
+                        maxHeight: "200px",
+                        objectFit: "contain",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    {paymentInfo?.paymentProofUrl ? (
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ mt: 2, color: "#8B7355", fontWeight: 600 }}
+                      >
+                        {paymentInfo.paymentStatus === "CONFIRMED"
+                          ? "✓ Payment proof submitted and confirmed"
+                          : "✓ Payment proof uploaded - Click to change"}
+                      </Typography>
+                    ) : (
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ mt: 2, color: "#8B7355", fontWeight: 600 }}
+                      >
+                        ✓ Image selected - Click to change
+                      </Typography>
+                    )}
+                  </Box>
+                ) : (
                   <Box
                     sx={{
-                      border: "2px dashed #ddd",
-                      borderRadius: 2,
-                      p: 4,
-                      textAlign: "center",
-                      cursor: "pointer",
-                      position: "relative",
-                      minHeight: "200px",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
-                      "&:hover": {
-                        borderColor: "#8B7355",
-                        bgcolor: "rgba(139, 115, 85, 0.02)",
-                      },
+                      gap: 1,
                     }}
-                    component="label"
                   >
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      disabled={paymentInfo?.paymentStatus === "CONFIRMED"}
-                    />
-
-                    {previewUrl ? (
-                      <Box sx={{ width: "100%" }}>
-                        <img
-                          src={previewUrl}
-                          alt="Payment Proof"
-                          style={{
-                            width: "100%",
-                            maxHeight: "200px",
-                            objectFit: "contain",
-                            borderRadius: "8px",
-                          }}
-                        />
-                        {paymentInfo?.paymentProofUrl ? (
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            sx={{ mt: 2, color: "#8B7355", fontWeight: 600 }}
-                          >
-                            {paymentInfo.paymentStatus === "CONFIRMED"
-                              ? "✓ Payment proof submitted and confirmed"
-                              : "✓ Payment proof uploaded - Click to change"}
-                          </Typography>
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            sx={{ mt: 2, color: "#8B7355", fontWeight: 600 }}
-                          >
-                            ✓ Image selected - Click to change
-                          </Typography>
-                        )}
-                      </Box>
-                    ) : (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 1,
-                        }}
-                      >
-                        <CloudUpload
-                          sx={{ fontSize: 64, color: "#bbb", mb: 1 }}
-                        />
-                        <Typography
-                          variant="body1"
-                          fontWeight={600}
-                          color="text.primary"
-                        >
-                          Click or Drag image to upload
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          JPG, PNG or PDF (Max 5MB)
-                        </Typography>
-                      </Box>
-                    )}
+                    <CloudUpload sx={{ fontSize: 64, color: "#bbb", mb: 1 }} />
+                    <Typography
+                      variant="body1"
+                      fontWeight={600}
+                      color="text.primary"
+                    >
+                      Click or Drag image to upload
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      JPG, PNG or PDF (Max 5MB)
+                    </Typography>
                   </Box>
+                )}
+              </Box>
 
-                  <TextField
-                    fullWidth
-                    label="Notes for Seller"
-                    placeholder="Enter transfer content or reference..."
-                    multiline
-                    rows={2}
-                    sx={{ mt: 3 }}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    disabled={paymentInfo?.paymentStatus === "CONFIRMED"}
-                    InputProps={{
-                      readOnly: paymentInfo?.paymentStatus === "CONFIRMED",
-                    }}
-                  />
-                </Paper>
-              </Stack>
-            </Box>
-          </Box>
-
-          {/* Big Action Button */}
-          {order && order.status === "ADDRESS_PROVIDED" && (
-            <Box sx={{ mt: 6, mb: 4, textAlign: "center" }}>
-              <Button
-                variant="contained"
-                size="large"
-                disabled={
-                  !selectedFile ||
-                  uploading ||
-                  paymentInfo?.paymentStatus === "CONFIRMED" ||
-                  paymentInfo?.paymentStatus === "PROOF_UPLOADED"
-                }
-                onClick={handleSubmit}
-                startIcon={
-                  uploading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    <CheckCircle />
-                  )
-                }
-                sx={{
-                  backgroundColor: "#8B7355",
-                  color: "#fff",
-                  px: 10,
-                  py: 2,
-                  borderRadius: "30px",
-                  fontSize: "1.2rem",
-                  fontWeight: 700,
-                  textTransform: "none",
-                  boxShadow: "0 4px 12px rgba(139, 115, 85, 0.3)",
-                  "&:hover": {
-                    backgroundColor: "#6D5940",
-                  },
-                  "&.Mui-disabled": {
-                    backgroundColor: "#ccc",
-                  },
+              <TextField
+                fullWidth
+                label="Notes for Seller"
+                placeholder="Enter transfer content or reference..."
+                multiline
+                rows={2}
+                sx={{ mt: 3 }}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={paymentInfo?.paymentStatus === "CONFIRMED"}
+                InputProps={{
+                  readOnly: paymentInfo?.paymentStatus === "CONFIRMED",
                 }}
-              >
-                {uploading
-                  ? "Submitting..."
-                  : paymentInfo?.paymentStatus === "CONFIRMED"
-                  ? "Payment Confirmed"
-                  : paymentInfo?.paymentStatus === "PROOF_UPLOADED"
-                  ? "Proof Already Submitted"
-                  : "I Have Transferred - Submit Proof"}
-              </Button>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                {paymentInfo?.paymentStatus === "CONFIRMED"
-                  ? "Your payment has been confirmed by the seller."
-                  : paymentInfo?.paymentStatus === "PROOF_UPLOADED"
-                  ? "Your payment proof is being verified by the seller."
-                  : "Your payment will be verified by the seller within 24 hours."}
-              </Typography>
-            </Box>
+              />
+            </Paper>
           )}
+
+          {/* Big Action Button - Only for Bank Transfer */}
+          {order &&
+            order.status === "CONFIRMED" &&
+            paymentMethod === "BANK_TRANSFER" && (
+              <Box sx={{ mt: 6, mb: 4, textAlign: "center" }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  disabled={
+                    !selectedFile ||
+                    uploading ||
+                    paymentInfo?.paymentStatus === "CONFIRMED" ||
+                    paymentInfo?.paymentStatus === "PROOF_UPLOADED"
+                  }
+                  onClick={handleSubmit}
+                  startIcon={
+                    uploading ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      <CheckCircle />
+                    )
+                  }
+                  sx={{
+                    backgroundColor: "#8B7355",
+                    color: "#fff",
+                    px: 10,
+                    py: 2,
+                    borderRadius: "30px",
+                    fontSize: "1.2rem",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    boxShadow: "0 4px 12px rgba(139, 115, 85, 0.3)",
+                    "&:hover": {
+                      backgroundColor: "#6D5940",
+                    },
+                    "&.Mui-disabled": {
+                      backgroundColor: "#ccc",
+                    },
+                  }}
+                >
+                  {uploading
+                    ? "Submitting..."
+                    : paymentInfo?.paymentStatus === "CONFIRMED"
+                    ? "Payment Confirmed"
+                    : paymentInfo?.paymentStatus === "PROOF_UPLOADED"
+                    ? "Proof Already Submitted"
+                    : "I Have Transferred - Submit Proof"}
+                </Button>
+              </Box>
+            )}
         </Box>
       </Box>
     </>

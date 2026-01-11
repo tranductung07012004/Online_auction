@@ -9,7 +9,7 @@ import {
   TextField,
   CircularProgress,
 } from "@mui/material";
-import { LocationOn, Payment } from "@mui/icons-material";
+import { LocationOn, LocalShipping } from "@mui/icons-material";
 import {
   getOrderById,
   updateShippingAddress,
@@ -28,7 +28,15 @@ interface OrderDetail {
     thumbnailUrl: string;
     currentPrice: number;
   } | null;
-  status: "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status:
+    | "PENDING"
+    | "CONFIRMED"
+    | "PAYMENT_PROOF_UPLOADED"
+    | "PAYMENT_CONFIRMED"
+    | "ADDRESS_PROVIDED"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
 }
 
 interface ShippingAddressProps {
@@ -315,48 +323,50 @@ export default function ShippingAddress({ onSuccess }: ShippingAddressProps) {
       </Box>
 
       {/* Action Button Area - Standing alone at the bottom */}
-      {order && order.status === "CONFIRMED" && (
-        <Box
-          sx={{
-            mt: 6,
-            mb: 4,
-            display: "flex",
-            justifyContent: "center",
-            width: "100%",
-          }}
-        >
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={
-              submitting ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <Payment />
-              )
-            }
-            onClick={handleSubmit}
-            disabled={submitting}
+      {order &&
+        (order.status === "PAYMENT_PROOF_UPLOADED" ||
+          order.status === "PAYMENT_CONFIRMED") && (
+          <Box
             sx={{
-              backgroundColor: "#8B7355",
-              color: "#fff",
-              px: 8,
-              py: 2,
-              borderRadius: "30px",
-              fontSize: "1.1rem",
-              fontWeight: 700,
-              textTransform: "none",
-              boxShadow: "0 4px 12px rgba(139, 115, 85, 0.3)",
-              "&:hover": {
-                backgroundColor: "#6D5940",
-                boxShadow: "0 6px 16px rgba(139, 115, 85, 0.4)",
-              },
+              mt: 6,
+              mb: 4,
+              display: "flex",
+              justifyContent: "center",
+              width: "100%",
             }}
           >
-            {submitting ? "Processing..." : "Confirm & Proceed to Payment"}
-          </Button>
-        </Box>
-      )}
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={
+                submitting ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <LocalShipping />
+                )
+              }
+              onClick={handleSubmit}
+              disabled={submitting}
+              sx={{
+                backgroundColor: "#8B7355",
+                color: "#fff",
+                px: 8,
+                py: 2,
+                borderRadius: "30px",
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                textTransform: "none",
+                boxShadow: "0 4px 12px rgba(139, 115, 85, 0.3)",
+                "&:hover": {
+                  backgroundColor: "#6D5940",
+                  boxShadow: "0 6px 16px rgba(139, 115, 85, 0.4)",
+                },
+              }}
+            >
+              {submitting ? "Processing..." : "Confirm Shipping Address"}
+            </Button>
+          </Box>
+        )}
     </>
   );
 }

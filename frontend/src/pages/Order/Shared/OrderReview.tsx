@@ -233,10 +233,6 @@ export default function OrderReview() {
             </Alert>
           ) : (
             <Stack spacing={3}>
-              <Alert severity="info">
-                Your honest feedback helps build trust in our community.
-              </Alert>
-
               {/* Rating with the other party */}
               {otherParty && (
                 <Box>
@@ -352,9 +348,6 @@ export default function OrderReview() {
                     },
                   }}
                 />
-                <Typography variant="caption" color="text.secondary">
-                  Be specific and constructive in your feedback
-                </Typography>
               </Box>
 
               {/* Guidelines */}
@@ -448,7 +441,6 @@ export default function OrderReview() {
               variant="h6"
               sx={{ mb: 2, color: "#2C1810", fontWeight: 600 }}
             >
-              <AttachMoney sx={{ mr: 1, verticalAlign: "middle" }} />
               Order Summary
             </Typography>
             <Divider sx={{ mb: 2 }} />
@@ -489,57 +481,8 @@ export default function OrderReview() {
                   {formatPrice(order.amount)}
                 </Typography>
               </Box>
-
-              <Chip
-                label="Transaction Completed"
-                color="success"
-                sx={{ fontWeight: 600 }}
-              />
             </Stack>
           </Paper>
-
-          {/* Product Info */}
-          {order.product && (
-            <Paper sx={{ p: 3, borderRadius: 2 }}>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, color: "#2C1810", fontWeight: 600 }}
-              >
-                Product Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Card
-                sx={{
-                  mb: 2,
-                  borderRadius: 2,
-                  overflow: "hidden",
-                  boxShadow: 2,
-                  cursor: "pointer",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "scale(1.02)",
-                  },
-                }}
-                onClick={() => navigate(`/product-page/${order.product?.id}`)}
-              >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={order.product.thumbnailUrl || "/placeholder.jpg"}
-                  alt={order.product.productName}
-                  sx={{ objectFit: "cover" }}
-                />
-              </Card>
-
-              <Typography variant="body1" fontWeight={600} sx={{ mb: 1 }}>
-                {order.product.productName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Final Price: {formatPrice(order.product.currentPrice)}
-              </Typography>
-            </Paper>
-          )}
         </Box>
       </Box>
     </>

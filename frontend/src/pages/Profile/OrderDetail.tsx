@@ -193,17 +193,67 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
                     icon={<Cancel />}
                     sx={{ fontWeight: 600 }}
                   />
+                ) : order.status === "CREATED" ? (
+                  <Chip
+                    label="Pending Confirmation"
+                    color="default"
+                    icon={<ShoppingCart />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "CONFIRMED" ? (
+                  <Chip
+                    label="Awaiting Payment"
+                    color="warning"
+                    icon={<Payment />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "PAYMENT_PROOF_UPLOADED" ? (
+                  <Chip
+                    label="Payment Under Review"
+                    color="info"
+                    icon={<Payment />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "PAYMENT_CONFIRMED" ? (
+                  <Chip
+                    label="Payment Confirmed"
+                    color="success"
+                    icon={<Payment />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "ADDRESS_PROVIDED" ? (
+                  <Chip
+                    label="Ready to Ship"
+                    color="info"
+                    icon={<LocalShipping />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "SHIPPED" ? (
+                  <Chip
+                    label="Shipped"
+                    color="primary"
+                    icon={<LocalShipping />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "DELIVERED" ? (
+                  <Chip
+                    label="Delivered"
+                    color="success"
+                    icon={<LocalShipping />}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ) : order.status === "REVIEWED" ? (
+                  <Chip
+                    label="Completed"
+                    color="success"
+                    icon={<LocalShipping />}
+                    sx={{ fontWeight: 600 }}
+                  />
                 ) : (
                   <Chip
-                    label={order.hasShippingAddress ? "Shipped" : "Processing"}
-                    color={order.hasShippingAddress ? "success" : "warning"}
-                    icon={
-                      order.hasShippingAddress ? (
-                        <LocalShipping />
-                      ) : (
-                        <ShoppingCart />
-                      )
-                    }
+                    label="Processing"
+                    color="warning"
+                    icon={<ShoppingCart />}
                     sx={{ fontWeight: 600 }}
                   />
                 )}
@@ -270,7 +320,7 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
                     <Typography
                       variant="h6"
                       sx={{
-                        mb: 2,
+                        mb: 1,
                         color: "#2C1810",
                         fontWeight: 600,
                         cursor: "pointer",
@@ -282,6 +332,22 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
                     >
                       {order.product.productName}
                     </Typography>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Product ID:
+                      </Typography>
+                      <Typography variant="body2">
+                        #{order.product.id}
+                      </Typography>
+                    </Box>
+
+                    <Divider sx={{ my: 1 }} />
 
                     <Box
                       sx={{ display: "flex", flexDirection: "column", gap: 1 }}
@@ -315,21 +381,6 @@ export default function OrderDetail({ onProceedToNext }: OrderDetailProps) {
                           color="primary"
                         >
                           {formatPrice(order.product.currentPrice)}
-                        </Typography>
-                      </Box>
-                      <Divider sx={{ my: 1 }} />
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Product ID:
-                        </Typography>
-                        <Typography variant="body2">
-                          #{order.product.id}
                         </Typography>
                       </Box>
                     </Box>

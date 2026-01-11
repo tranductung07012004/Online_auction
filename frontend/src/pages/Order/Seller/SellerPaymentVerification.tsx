@@ -173,7 +173,7 @@ export default function SellerPaymentVerification({
                       <Typography
                         variant="body1"
                         fontWeight={600}
-                        color="#4caf50"
+                        color="#8B7355"
                       >
                         {formatPrice(payment.amount)}
                       </Typography>
@@ -316,7 +316,7 @@ export default function SellerPaymentVerification({
               onClick={handleApprovePayment}
               disabled={submitting || !payment?.paymentProofUrl}
               sx={{
-                bgcolor: "#4caf50",
+                bgcolor: "#8B7355",
                 "&:hover": {
                   bgcolor: "#388e3c",
                 },

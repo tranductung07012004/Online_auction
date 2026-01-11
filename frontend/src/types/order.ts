@@ -70,7 +70,7 @@ export const OrderStatus = {
   SHIPPED: "SHIPPED",
   DELIVERED: "DELIVERED",
   REVIEWED: "REVIEWED",
-  CANCELLED: "CANCELLED"
+  CANCELLED: "CANCELLED",
 } as const;
 
 // Payment Status Constants

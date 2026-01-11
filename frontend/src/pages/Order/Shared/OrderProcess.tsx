@@ -128,11 +128,11 @@ export default function OrderProcess() {
   // const isSeller = role === "SELLER" || (Number(userId) === order.sellerId);
 
   // --- LOGIC TO DETERMINE PROGRESS BASED ON STATUS -----
-  // Step Mapping:
+  // Step Mapping (UPDATED - Payment before Address):
   // 0: Order Detail (CREATED / CANCELLED)
-  // 1: Shipping Address (CONFIRMED)
-  // 2: Payment (ADDRESS_PROVIDED)
-  // 3: In Transit / Wait (PAYMENT_PROOF_UPLOADED / PAYMENT_CONFIRMED)
+  // 1: Payment (CONFIRMED) - CHANGED: Payment first
+  // 2: Shipping Address (PAYMENT_PROOF_UPLOADED / PAYMENT_CONFIRMED) - CHANGED: Address after payment
+  // 3: In Transit / Wait (ADDRESS_PROVIDED)
   // 4: Delivery Confirmation (SHIPPED)
   // 5: Review (DELIVERED / REVIEWED)
 
@@ -141,14 +141,14 @@ export default function OrderProcess() {
 
     switch (order.status) {
       case OrderStatus.CREATED:
-        return 0; // Show Order Detail (Wait for user to confirm/pay?) - Assuming user said CREATED = OrderDetail
+        return 0; // Show Order Detail (Wait for user to confirm/pay?)
       case OrderStatus.CONFIRMED:
-        return 1; // Show Shipping Address Form
-      case OrderStatus.ADDRESS_PROVIDED:
-        return 2; // Show Payment Form
+        return 1; // Show Payment Form - CHANGED from Shipping Address
       case OrderStatus.PAYMENT_PROOF_UPLOADED:
       case OrderStatus.PAYMENT_CONFIRMED:
-        return 3; // Processing / In Transit (Waiting for Shipment)
+        return 2; // Show Shipping Address Form - CHANGED from Payment
+      case OrderStatus.ADDRESS_PROVIDED:
+        return 3; // Processing / In Transit (Waiting for Shipment) - CHANGED from step 3
       case OrderStatus.SHIPPED:
         return 4; // Delivery Confirmation
       case OrderStatus.DELIVERED:
@@ -183,19 +183,19 @@ export default function OrderProcess() {
         };
       case 1:
         // Status: CONFIRMED
-        // View: Shipping Address
-        return {
-          component: <ShippingAddress onSuccess={refreshData} />,
-        };
-      case 2:
-        // Status: ADDRESS_PROVIDED
-        // View: Payment
+        // View: Payment - CHANGED from Shipping Address
         return {
           component: <OrderPaymentPage onSuccess={refreshData} />,
         };
-      case 3:
+      case 2:
         // Status: PAYMENT_PROOF_UPLOADED / PAYMENT_CONFIRMED
-        // View: Waiting / In Transit
+        // View: Shipping Address - CHANGED from Payment
+        return {
+          component: <ShippingAddress onSuccess={refreshData} />,
+        };
+      case 3:
+        // Status: ADDRESS_PROVIDED
+        // View: Waiting / In Transit - CHANGED position
         return {
           component: <BuyerDeliveryConfirmation onSuccess={refreshData} />,
         };
@@ -222,7 +222,7 @@ export default function OrderProcess() {
 
   // Override for Seller View - NEW ENHANCED FLOW
   if (!isBuyer) {
-    // SELLER VIEW - Follows buyer's progress with specific actions
+    // SELLER VIEW - Follows buyer's progress with specific actions (UPDATED ORDER)
     switch (order.status) {
       case OrderStatus.CREATED:
         // Step 0: Waiting for buyer to confirm order
@@ -236,18 +236,7 @@ export default function OrderProcess() {
         break;
 
       case OrderStatus.CONFIRMED:
-        // Step 1: Buyer is providing shipping address
-        finalComponent = (
-          <SellerWaitingScreen
-            order={order}
-            message="Buyer is providing shipping address"
-            icon="address"
-          />
-        );
-        break;
-
-      case OrderStatus.ADDRESS_PROVIDED:
-        // Step 2: Buyer is uploading payment proof
+        // Step 1: Buyer is making payment - CHANGED from shipping address
         finalComponent = (
           <SellerWaitingScreen
             order={order}
@@ -258,7 +247,7 @@ export default function OrderProcess() {
         break;
 
       case OrderStatus.PAYMENT_PROOF_UPLOADED:
-        // Step 3: SELLER ACTION REQUIRED - Verify payment proof
+        // Step 2: SELLER ACTION REQUIRED - Verify payment proof - CHANGED position
         finalComponent = (
           <SellerPaymentVerification
             order={order}
@@ -270,7 +259,18 @@ export default function OrderProcess() {
         break;
 
       case OrderStatus.PAYMENT_CONFIRMED:
-        // Step 4: SELLER ACTION REQUIRED - Ship item
+        // Step 3: Buyer is providing shipping address - CHANGED from shipping
+        finalComponent = (
+          <SellerWaitingScreen
+            order={order}
+            message="Waiting for buyer to provide shipping address"
+            icon="address"
+          />
+        );
+        break;
+
+      case OrderStatus.ADDRESS_PROVIDED:
+        // Step 4: SELLER ACTION REQUIRED - Ship item - CHANGED position
         finalComponent = (
           <SellerShipping
             order={order}
