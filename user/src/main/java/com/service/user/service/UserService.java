@@ -30,4 +30,6 @@ public interface UserService {
     UserProfileResponse getUserProfile(Long userId);
     
     void updateReviewStats(UpdateReviewStatsRequest request, Long currentUserId);
+    
+    void deleteUser(Long userId);
 }

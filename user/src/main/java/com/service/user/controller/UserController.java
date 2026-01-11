@@ -133,4 +133,14 @@ public class UserController {
                 .status(200)
                 .body(new ApiResponse<>("Update review stats successfully", null));
     }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<?> deleteUser(
+            @PathVariable Long userId
+    ) {
+        userService.deleteUser(userId);
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("Delete user successfully", null));
+    }
 }

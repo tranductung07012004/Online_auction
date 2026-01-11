@@ -314,6 +314,24 @@ public class UserServiceImpl implements UserService {
         this.userDetailsRepo.save(userDetails);
     }
 
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() ->
+                        new ApplicationException(
+                                ErrorCodes.USER_NOT_FOUND,
+                                "User not found"
+                        )
+                );
+        
+        // Delete user details first (if exists)
+        userDetailsRepo.findByUserId(userId).ifPresent(userDetailsRepo::delete);
+        
+        // Then delete user
+        userRepo.delete(user);
+    }
+
     private String maskEmail(String email) {
         if (email == null || email.isEmpty()) {
             return email;
