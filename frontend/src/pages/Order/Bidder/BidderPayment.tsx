@@ -6,7 +6,6 @@ import {
   Paper,
   Divider,
   Button,
-  Grid,
   Radio,
   RadioGroup,
   FormControlLabel,
@@ -207,14 +206,16 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
         }}
       >
         <Box sx={{ maxWidth: 1000, width: "100%" }}>
-          <Grid container spacing={4} sx={{ alignItems: "stretch" }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+              gap: 4,
+              alignItems: "stretch",
+            }}
+          >
             {/* Left Side: Payment Options & Instructions */}
-            <Grid
-              item
-              xs={12}
-              md={6}
-              sx={{ display: "flex", flexDirection: "column" }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
               <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Select Payment Method
@@ -302,8 +303,14 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                     below.
                   </Alert>
 
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={8}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" },
+                      gap: 2,
+                    }}
+                  >
+                    <Box>
                       <Stack spacing={2}>
                         <Box>
                           <Typography variant="caption" color="text.secondary">
@@ -375,11 +382,8 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                           </Box>
                         </Box>
                       </Stack>
-                    </Grid>
-                    <Grid
-                      item
-                      xs={12}
-                      sm={4}
+                    </Box>
+                    <Box
                       sx={{
                         display: "flex",
                         flexDirection: "column",
@@ -400,19 +404,14 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                       <Typography variant="caption" sx={{ mt: 1 }}>
                         Scan to Pay
                       </Typography>
-                    </Grid>
-                  </Grid>
+                    </Box>
+                  </Box>
                 </Paper>
               )}
-            </Grid>
+            </Box>
 
             {/* Right Side: Upload Proof & Order Summary */}
-            <Grid
-              item
-              xs={12}
-              md={6}
-              sx={{ display: "flex", flexDirection: "column" }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
               <Stack spacing={3} sx={{ height: "100%" }}>
                 {/* Payment Proof Upload */}
                 <Paper
@@ -577,8 +576,8 @@ export default function OrderPayment({ onSuccess }: OrderPaymentProps) {
                   />
                 </Paper>
               </Stack>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           {/* Big Action Button */}
           {order && order.status === "ADDRESS_PROVIDED" && (

@@ -30,7 +30,7 @@ interface OrderChatProps {
 const OrderChat: React.FC<OrderChatProps> = ({
   orderId,
   buyerId,
-  sellerId,
+  sellerId: _sellerId,
 }) => {
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,6 +55,16 @@ const OrderChat: React.FC<OrderChatProps> = ({
 
     sendMessage(inputMessage);
     setInputMessage("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (inputMessage.trim() && isConnected) {
+        sendMessage(inputMessage);
+        setInputMessage("");
+      }
+    }
   };
 
   const formatMessageTime = (timestamp: string) => {
@@ -106,13 +116,19 @@ const OrderChat: React.FC<OrderChatProps> = ({
   return (
     <Paper
       elevation={3}
-      sx={{ height: "600px", display: "flex", flexDirection: "column" }}
+      sx={{
+        height: "600px",
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 2,
+        overflow: "hidden",
+      }}
     >
       {/* Header */}
       <Box
         sx={{
-          p: 2,
-          bgcolor: "primary.main",
+          p: 2.5,
+          bgcolor: "#C3937C",
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -121,7 +137,12 @@ const OrderChat: React.FC<OrderChatProps> = ({
       >
         <Typography
           variant="h6"
-          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            fontWeight: 600,
+          }}
         >
           💬 Chat Đơn Hàng #{orderId}
         </Typography>
@@ -129,7 +150,11 @@ const OrderChat: React.FC<OrderChatProps> = ({
           label={isConnected ? "Đã kết nối" : "Mất kết nối"}
           color={isConnected ? "success" : "error"}
           size="small"
-          sx={{ bgcolor: isConnected ? "#4caf50" : "#f44336", color: "white" }}
+          sx={{
+            bgcolor: isConnected ? "#4caf50" : "#f44336",
+            color: "white",
+            fontWeight: 500,
+          }}
         />
       </Box>
 
@@ -145,11 +170,11 @@ const OrderChat: React.FC<OrderChatProps> = ({
         sx={{
           flex: 1,
           overflowY: "auto",
-          p: 2,
-          bgcolor: "#f5f5f5",
+          p: 2.5,
+          bgcolor: "#fdfcf9",
           display: "flex",
           flexDirection: "column",
-          gap: 1.5,
+          gap: 2,
         }}
       >
         {messages.length === 0 ? (
@@ -185,9 +210,10 @@ const OrderChat: React.FC<OrderChatProps> = ({
                 {/* Avatar */}
                 <Avatar
                   sx={{
-                    bgcolor: isBuyer ? "primary.main" : "secondary.main",
-                    width: 36,
-                    height: 36,
+                    bgcolor: isBuyer ? "#C3937C" : "#A67C5A",
+                    width: 40,
+                    height: 40,
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                   }}
                 >
                   {isBuyer ? (
@@ -213,6 +239,7 @@ const OrderChat: React.FC<OrderChatProps> = ({
                       color: "text.secondary",
                       mb: 0.5,
                       px: 1,
+                      fontWeight: 500,
                     }}
                   >
                     {isBuyer ? "Người mua" : "Người bán"}
@@ -223,10 +250,13 @@ const OrderChat: React.FC<OrderChatProps> = ({
                     elevation={1}
                     sx={{
                       p: 1.5,
-                      bgcolor: isMe ? "primary.main" : "white",
+                      bgcolor: isMe ? "#C3937C" : "white",
                       color: isMe ? "white" : "text.primary",
                       borderRadius: 2,
                       wordBreak: "break-word",
+                      boxShadow: isMe
+                        ? "0 2px 8px rgba(195, 147, 124, 0.3)"
+                        : "0 2px 8px rgba(0,0,0,0.08)",
                     }}
                   >
                     <Typography variant="body1">{msg.message}</Typography>
@@ -258,10 +288,11 @@ const OrderChat: React.FC<OrderChatProps> = ({
         component="form"
         onSubmit={handleSendMessage}
         sx={{
-          p: 2,
+          p: 2.5,
           display: "flex",
-          gap: 1,
+          gap: 1.5,
           bgcolor: "white",
+          borderTop: "1px solid #e0e0e0",
         }}
       >
         <TextField
@@ -270,6 +301,7 @@ const OrderChat: React.FC<OrderChatProps> = ({
           placeholder="Nhập tin nhắn..."
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
+          onKeyDown={handleKeyPress}
           disabled={!isConnected}
           size="small"
           multiline
@@ -277,21 +309,40 @@ const OrderChat: React.FC<OrderChatProps> = ({
           sx={{
             "& .MuiOutlinedInput-root": {
               borderRadius: 3,
+              bgcolor: "#fdfcf9",
+              "&:hover": {
+                bgcolor: "#f5f0eb",
+              },
+              "&.Mui-focused": {
+                bgcolor: "white",
+              },
+              "& fieldset": {
+                borderColor: "#e0e0e0",
+              },
+              "&:hover fieldset": {
+                borderColor: "#C3937C",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "#C3937C",
+                borderWidth: 2,
+              },
             },
           }}
         />
         <IconButton
           type="submit"
-          color="primary"
           disabled={!isConnected || !inputMessage.trim()}
           sx={{
-            bgcolor: "primary.main",
+            bgcolor: "#C3937C",
             color: "white",
+            width: 48,
+            height: 48,
             "&:hover": {
-              bgcolor: "primary.dark",
+              bgcolor: "#A67C5A",
             },
             "&:disabled": {
-              bgcolor: "action.disabledBackground",
+              bgcolor: "#e0e0e0",
+              color: "#9e9e9e",
             },
           }}
         >

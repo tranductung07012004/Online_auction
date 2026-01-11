@@ -112,17 +112,18 @@ const ChatDetailPage: React.FC = () => {
             <IconButton
               onClick={handleBack}
               sx={{
-                bgcolor: "background.paper",
-                boxShadow: 1,
+                bgcolor: "#C3937C",
+                color: "white",
+                boxShadow: 2,
                 "&:hover": {
-                  bgcolor: "action.hover",
+                  bgcolor: "#A67C5A",
                 },
               }}
             >
               <ArrowBack />
             </IconButton>
             <Box>
-              <Typography variant="h5" fontWeight={600}>
+              <Typography variant="h5" fontWeight={600} sx={{ color: "#333" }}>
                 Chat Đơn Hàng #{order.id}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -132,7 +133,7 @@ const ChatDetailPage: React.FC = () => {
           </Box>
 
           {/* Chat Component */}
-          <Paper elevation={2}>
+          <Paper elevation={3} sx={{ borderRadius: 2 }}>
             <OrderChat
               orderId={order.id}
               buyerId={order.buyerId}

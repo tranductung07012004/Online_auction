@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Container, Box, Typography, Paper } from "@mui/material";
-import { Message } from "@mui/icons-material";
+import { Chat as ChatIcon } from "@mui/icons-material";
 import Header from "../../components/header";
 import Footer from "../../components/footer";
-import Sidebar from "./profile/sidebar";
+import ProfileSidebar from "./profile/sidebar";
 import ChatList from "../../components/Chat/ChatList";
 import { getAllConversations, ChatConversation } from "../../api/chat";
 import { useAuthStore } from "../../stores/authStore";
 
 const ChatPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { userId, username } = useAuthStore();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { userId, username } = useAuthStore();
 
   useEffect(() => {
+    if (!userId) {
+      navigate("/signin");
+      return;
+    }
+
     loadConversations();
-  }, []);
+  }, [userId, navigate]);
 
   const loadConversations = async () => {
     try {
@@ -35,33 +42,40 @@ const ChatPage: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4, minHeight: "70vh" }}>
+      <Container maxWidth="lg" sx={{ py: 4, minHeight: "70vh" }}>
         <Box display="flex" gap={3}>
           {/* Sidebar */}
           <Box sx={{ width: 280, flexShrink: 0 }}>
-            <Sidebar activeTab="chat" userName={username || "User"} />
+            <ProfileSidebar
+              activeTab="chat"
+              userName={username || ""}
+              userImage=""
+            />
           </Box>
 
           {/* Main Content */}
           <Box flex={1}>
-            <Paper elevation={2} sx={{ p: 3 }}>
+            <Paper elevation={2} sx={{ overflow: "hidden", borderRadius: 2 }}>
               {/* Header */}
               <Box
-                display="flex"
-                alignItems="center"
-                gap={2}
-                mb={3}
-                pb={2}
-                borderBottom="2px solid"
-                borderColor="divider"
+                sx={{
+                  p: 3,
+                  bgcolor: "#C3937C",
+                  color: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                }}
               >
-                <Message sx={{ fontSize: 32, color: "primary.main" }} />
+                <ChatIcon sx={{ fontSize: 32 }} />
                 <Box>
                   <Typography variant="h5" fontWeight={600}>
                     Tin nhắn
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Quản lý các cuộc trò chuyện của bạn
+                  <Typography variant="body2" sx={{ opacity: 0.95 }}>
+                    {conversations.length} cuộc trò chuyện
                   </Typography>
                 </Box>
               </Box>

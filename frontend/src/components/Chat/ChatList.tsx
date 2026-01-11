@@ -9,7 +9,6 @@ import {
   CircularProgress,
   Alert,
 } from "@mui/material";
-import { Store as StoreIcon, Person as PersonIcon } from "@mui/icons-material";
 import { ChatConversation } from "../../api/chat";
 
 interface ChatListProps {
@@ -23,7 +22,6 @@ const ChatList: React.FC<ChatListProps> = ({
   conversations,
   loading,
   error,
-  currentUserId,
 }) => {
   const navigate = useNavigate();
 
@@ -73,20 +71,19 @@ const ChatList: React.FC<ChatListProps> = ({
   }
 
   return (
-    <Box>
+    <Box sx={{ bgcolor: "#fdfcf9" }}>
       {conversations.map((conversation, index) => {
-        const isSeller = conversation.otherUserId !== currentUserId;
-
         return (
           <React.Fragment key={conversation.orderId}>
             <Paper
               elevation={0}
               sx={{
-                p: 2,
+                p: 2.5,
                 cursor: "pointer",
                 transition: "all 0.2s",
+                bgcolor: "transparent",
                 "&:hover": {
-                  bgcolor: "action.hover",
+                  bgcolor: "#f5f0eb",
                   transform: "translateX(4px)",
                 },
               }}
@@ -97,7 +94,12 @@ const ChatList: React.FC<ChatListProps> = ({
                 <Avatar
                   src={conversation.productThumbnail}
                   variant="rounded"
-                  sx={{ width: 60, height: 60 }}
+                  sx={{
+                    width: 70,
+                    height: 70,
+                    borderRadius: 2,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  }}
                 />
 
                 {/* Chat Info */}
@@ -116,7 +118,7 @@ const ChatList: React.FC<ChatListProps> = ({
 
                   {/* Other User */}
                   <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                    <Avatar
+                    {/* <Avatar
                       sx={{
                         width: 20,
                         height: 20,
@@ -128,7 +130,7 @@ const ChatList: React.FC<ChatListProps> = ({
                       ) : (
                         <PersonIcon sx={{ fontSize: 12 }} />
                       )}
-                    </Avatar>
+                    </Avatar> */}
                     <Typography variant="body2" color="text.secondary" noWrap>
                       {conversation.otherUserName}
                     </Typography>
@@ -139,18 +141,25 @@ const ChatList: React.FC<ChatListProps> = ({
                     <Typography
                       variant="caption"
                       color="text.secondary"
-                      sx={{ fontFamily: "monospace" }}
+                      sx={{
+                        fontFamily: "monospace",
+                        bgcolor: "#f5f5f5",
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                      }}
                     >
                       #ORDER-{conversation.orderId}
                     </Typography>
                     <Typography
                       variant="caption"
-                      color="text.secondary"
                       sx={{
-                        px: 1,
-                        py: 0.25,
+                        px: 1.5,
+                        py: 0.5,
                         borderRadius: 1,
-                        bgcolor: "action.selected",
+                        bgcolor: "#C3937C",
+                        color: "white",
+                        fontWeight: 500,
                       }}
                     >
                       {conversation.orderStatus}

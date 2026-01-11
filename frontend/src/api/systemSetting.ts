@@ -1,4 +1,4 @@
-import api from './apiClient';
+import api from "./apiClient";
 
 export interface SystemSettingValue {
   time: number;
@@ -20,10 +20,11 @@ export interface SystemSettingApiResponse {
   data: SystemSettingResponse;
 }
 
-export const getSystemSettingByKey = async (key: string): Promise<SystemSettingApiResponse> => {
-  const response = await api.get('/api/main/system-settings', {
+export const getSystemSettingByKey = async (
+  key: string
+): Promise<SystemSettingApiResponse> => {
+  const response = await api.get("/api/main/system-settings", {
     params: { key },
   });
   return response.data;
 };
-
