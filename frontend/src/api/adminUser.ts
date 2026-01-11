@@ -77,4 +77,4 @@ export const updateUserVerification = (
 
 // Delete user
 export const deleteUser = (userId: number) =>
-  api.delete<ApiResponse<null>>(`/api/user/admin/${userId}`);
+  api.delete<ApiResponse<null>>(`/api/user/internal/${userId}`);

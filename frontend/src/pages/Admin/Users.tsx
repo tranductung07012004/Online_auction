@@ -202,7 +202,8 @@ const Users: React.FC = () => {
   };
 
   const handleDeleteUser = async (id: number) => {
-    const userToDeleteName = users.find((u) => u.id === id)?.email || "";
+    const user = users.find((u) => u.id === id);
+    const userToDeleteName = user?.fullname || user?.email || "this user";
     setUserToDelete(id);
     setUserNameToDelete(userToDeleteName);
     setDeleteDialogOpen(true);
