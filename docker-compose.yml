@@ -38,6 +38,7 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
     container_name: kibana
+    mem_limit: 1g
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     ports:
@@ -61,6 +62,7 @@ services:
   db1:
     image: postgres:15-alpine
     container_name: db1
+    mem_limit: 512m
     restart: unless-stopped
     environment:
       POSTGRES_DB: db1
@@ -77,6 +79,7 @@ services:
   db2:
     image: postgres:15-alpine
     container_name: db2
+    mem_limit: 512m
     restart: unless-stopped
     environment:
       POSTGRES_DB: db2
@@ -94,6 +97,7 @@ services:
     image: apache/kafka:3.9.1
     hostname: broker
     container_name: broker
+    mem_limit: 1g
     ports:
       - "9092:9092"
     environment:
@@ -117,70 +121,71 @@ services:
     networks:
       - backend
 
-  # gateway:
-  #   build: ./gateway
-  #   container_name: gateway
-  #   env_file:
-  #     - ./gateway/.env.docker
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - user
-  #     - main
-  #   networks:
-  #     - backend
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    env_file:
+      - ./gateway/.env.docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user
+      - main
+    networks:
+      - backend
 
-  # main:
-  #   build: ./main
-  #   container_name: main
-  #   env_file:
-  #     - ./main/.env.docker
-  #   ports:
-  #     - "8082:8082"
-  #   volumes:
-  #     - ./logs_from_docker/main:/logs
-  #   depends_on:
-  #     - db2
-  #     - elasticsearch
-  #     - broker
-  #   networks:
-  #     - backend
+  main:
+    build: ./main
+    container_name: main
+    env_file:
+      - ./main/.env.docker
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./logs_from_docker/main:/logs
+    depends_on:
+      - db2
+      - elasticsearch
+      - broker
+    networks:
+      - backend
 
-  # user:
-  #   build: ./user
-  #   container_name: user
-  #   env_file:
-  #     - ./user/.env.docker
-  #   ports:
-  #     - "8081:8081"
-  #   volumes:
-  #     - ./logs_from_docker/user:/logs
-  #   depends_on:
-  #     - db1
-  #     - broker
-  #   networks:
-  #     - backend
+  user:
+    build: ./user
+    container_name: user
+    env_file:
+      - ./user/.env.docker
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./logs_from_docker/user:/logs
+    depends_on:
+      - db1
+      - broker
+    networks:
+      - backend
 
-  # worker:
-  #   build: ./worker
-  #   container_name: worker
-  #   env_file:
-  #     - ./worker/.env.docker
-  #   ports:
-  #     - "8083:8083"
-  #   volumes:
-  #     - ./logs_from_docker/worker:/logs
-  #   depends_on:
-  #     - main
-  #     - db2
-  #     - elasticsearch
-  #     - broker
-  #   networks:
-  #     - backend
+  worker:
+    build: ./worker
+    container_name: worker
+    env_file:
+      - ./worker/.env.docker
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./logs_from_docker/worker:/logs
+    depends_on:
+      - main
+      - db2
+      - elasticsearch
+      - broker
+    networks:
+      - backend
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.11.0
     container_name: filebeat
+    mem_limit: 512m
     user: root
     volumes:
       - ./logs_from_docker/user:/var/log/app/user:ro
