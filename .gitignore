@@ -3,3 +3,7 @@ user.zip
 .vscode/
 .DS_Store
 node_modules/
+logs_from_docker
+main/logs
+user/logs
+worker/logs
