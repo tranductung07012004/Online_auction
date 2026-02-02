@@ -9,7 +9,7 @@ import com.service.user.repository.OtpCodeRepository;
 import com.service.user.repository.RefreshTokenRepository;
 import com.service.user.repository.UserDetailsRepository;
 import com.service.user.repository.UserRepository;
-import com.service.user.security.JwtUtil;
+import com.service.user.utils.JwtUtil;
 import com.service.user.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

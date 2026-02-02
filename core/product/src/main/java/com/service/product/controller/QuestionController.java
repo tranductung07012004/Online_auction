@@ -1,0 +1,75 @@
+package com.service.product.controller;
+
+import com.service.product.dto.question.request.CreateAnswerRequest;
+import com.service.product.dto.question.request.CreateQuestionRequest;
+import com.service.product.dto.question.response.AnswerResponse;
+import com.service.product.dto.question.response.QuestionResponse;
+import com.service.product.service.QuestionService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import com.service.common.dto.ApiResponse;
+
+@RestController
+@RequestMapping("/api/main/questions")
+@RequiredArgsConstructor
+public class QuestionController {
+
+    private final QuestionService questionService;
+
+
+    @PostMapping
+    public ResponseEntity<?> createQuestion(
+            @Valid @RequestBody CreateQuestionRequest request
+    ) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Long currentUserId = Long.valueOf(authentication.getName());
+
+        QuestionResponse res = this.questionService.createQuestion(request, currentUserId);
+
+        return ResponseEntity.status(201)
+                .body(new ApiResponse<>("Question created successfully", res));
+    }
+
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<?> getQuestionsByProductId(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int size,
+            @RequestParam(defaultValue = "endAt,asc", required = false) String sort
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<QuestionResponse> questions = this.questionService.getQuestionsByProductId(productId, pageable);
+
+        return ResponseEntity
+                .status(200)
+                .body(new ApiResponse<>("Questions retrieved successfully", questions));
+    }
+
+    @PostMapping("/answers")
+    public ResponseEntity<ApiResponse<AnswerResponse>> createAnswer(
+            @Valid @RequestBody CreateAnswerRequest request
+    ) {
+        System.out.print("11111111111111111111111111111");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Long currentUserId = Long.valueOf(authentication.getName());
+
+        AnswerResponse res = this.questionService.createAnswer(request, currentUserId);
+
+        return ResponseEntity
+                .status(201)
+                .body(new ApiResponse<>("Answer created successfully", res));
+    }
+}

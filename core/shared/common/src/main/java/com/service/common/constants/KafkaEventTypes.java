@@ -1,0 +1,13 @@
+package com.service.common.constants;
+
+public class KafkaEventTypes {
+    public static final String CREATE_PRODUCT = "CREATE_PRODUCT";
+    public static final String UPDATE_PRODUCT_END_AT = "UPDATE_PRODUCT_END_AT";
+    public static final String UPDATE_PRODUCT_CURRENT_PRICE = "UPDATE_PRODUCT_CURRENT_PRICE";
+    public static final String BLACK_LIST = "BLACK_LIST";
+    public static final String PRODUCT_ENDED_SECTION = "PRODUCT_ENDED_SECTION";
+    public static final String CREATE_QUESTION = "CREATE_QUESTION";
+    public static final String CREATE_ANSWER = "CREATE_ANSWER";
+    public static final String UPDATE_PRODUCT_DESCRIPTION = "UPDATE_PRODUCT_DESCRIPTION";
+}
+

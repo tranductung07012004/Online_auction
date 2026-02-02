@@ -4,6 +4,6 @@ user.zip
 .DS_Store
 node_modules/
 logs_from_docker
-main/logs
+core/main/logs
 user/logs
 worker/logs
