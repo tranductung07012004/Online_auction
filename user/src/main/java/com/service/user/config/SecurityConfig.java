@@ -1,6 +1,6 @@
 package com.service.user.config;
 
-import com.service.user.security.HeaderAuthenticationFilter;
+import com.service.user.filter.HeaderAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

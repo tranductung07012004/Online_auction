@@ -4,7 +4,6 @@ import com.service.user.dto.*;
 import com.service.user.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.Cookie;
@@ -13,9 +12,12 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user/auth")
-@RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
 
     // Tao 1 endpoint de verify otp code gui len kem gmail
     @PostMapping("/verify-otp")

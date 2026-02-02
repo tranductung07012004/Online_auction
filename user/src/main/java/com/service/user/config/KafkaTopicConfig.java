@@ -32,13 +32,5 @@ public class KafkaTopicConfig {
                 .replicas(1)    // Số replicas (vì chỉ có 1 broker nên để 1)
                 .build();
     }
-
-    // @Bean
-    // public NewTopic authorEventsTopic() {
-    //     return TopicBuilder.name(KafkaTopics.AUTHOR_EVENTS)
-    //             .partitions(3)
-    //             .replicas(1)
-    //             .build();
-    // }
 }
 
