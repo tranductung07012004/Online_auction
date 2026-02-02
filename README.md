@@ -180,11 +180,3 @@ npm run lint
 cd main
 ./mvnw test
 ```
-
-## 📄 License
-
-This project is developed for educational purposes.
-
-## 👥 Contributors
-
-Group 5 - Final Project - Online Auction System
