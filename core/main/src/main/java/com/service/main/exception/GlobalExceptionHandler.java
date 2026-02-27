@@ -1,7 +1,8 @@
 package com.service.main.exception;
 
-import ApiResponse;
+import com.service.common.dto.ApiResponse;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.service.common.exception.ApplicationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;

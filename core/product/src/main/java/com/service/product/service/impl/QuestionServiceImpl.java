@@ -5,22 +5,22 @@ import com.service.common.dto.UserInfo;
 import com.service.common.constants.ErrorCodes;
 import com.service.common.constants.KafkaEventTypes;
 import com.service.common.constants.KafkaTopics;
+import com.service.product.dto.question.event.CreateAnswerEvent;
 import com.service.product.dto.question.event.CreateQuestionEvent;
 import com.service.product.dto.question.request.CreateAnswerRequest;
 import com.service.product.dto.question.request.CreateQuestionRequest;
 import com.service.product.dto.question.response.AnswerResponse;
 import com.service.product.dto.question.response.QuestionResponse;
-import com.service.product.entity.Answer;
-import com.service.common.entity.AutoBid;
+import com.service.product.entity.*;
+import com.service.product.entity.AutoBidInProduct;
 import com.service.common.exception.ApplicationException;
 
-import com.service.product.entity.Product;
-import com.service.product.entity.Question;
-import com.service.product.entity.BlackList;
+import com.service.product.entity.ProductInProduct;
+import com.service.product.entity.BlackListInProduct;
 import com.service.product.repository.AnswerRepository;
-import com.service.product.repository.AutoBidRepository;
-import com.service.product.repository.BlackListRepository;
-import com.service.product.repository.ProductRepository;
+import com.service.product.repository.AutoBidRepositoryInProduct;
+import com.service.product.repository.BlackListRepositoryInProduct;
+import com.service.product.repository.ProductRepositoryInProduct;
 import com.service.product.repository.QuestionRepository;
 import com.service.product.service.QuestionService;
 import com.service.integration.userclient.UserServiceClient;
@@ -48,17 +48,17 @@ import com.service.common.utils.FormatUserDto;
 public class QuestionServiceImpl implements QuestionService {
 
     private final QuestionRepository questionRepository;
-    private final ProductRepository productRepository;
+    private final ProductRepositoryInProduct productRepository;
     private final UserServiceClient userServiceClient;
     private final AnswerRepository answerRepository;
     private final KafkaProducerService kafkaProducerService;
-    private final AutoBidRepository autoBidRepository;
-    private final BlackListRepository blackListRepository;
+    private final AutoBidRepositoryInProduct autoBidRepository;
+    private final BlackListRepositoryInProduct blackListRepository;
 
 
     @Override
     public QuestionResponse createQuestion(CreateQuestionRequest request, Long currentUserId) {
-        Product product = this.productRepository.findById(request.getProductId())
+        ProductInProduct product = this.productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -189,7 +189,7 @@ public class QuestionServiceImpl implements QuestionService {
         Answer saved = answerRepository.save(answer);
 
         com.service.common.dto.UserInfoResponse userRes = userServiceClient.getUserBasicInfo(currentUserId);
-        UserInfo user = formatUserInfo(userRes);
+        UserInfo user = FormatUserDto.formatUserInfo(userRes);
         
         // Mask fullname before returning
         maskFullname(user);
@@ -199,15 +199,15 @@ public class QuestionServiceImpl implements QuestionService {
             Long productId = question.getProductId();
             
             // Get userList1: Users who created auto-bid for this product (excluding blacklisted)
-            List<AutoBid> autoBids = autoBidRepository.findByProductIdReturnList(productId);
-            List<BlackList> blackLists = blackListRepository.findByProductIdReturnList(productId);
+            List<AutoBidInProduct> autoBids = autoBidRepository.findByProductIdReturnList(productId);
+            List<BlackListInProduct> blackLists = blackListRepository.findByProductIdReturnList(productId);
             
             Set<Long> blacklistedBidderIds = blackLists.stream()
-                    .map(BlackList::getBidderId)
+                    .map(BlackListInProduct::getBidderId)
                     .collect(Collectors.toSet());
             
             List<Long> userList1 = autoBids.stream()
-                    .map(AutoBid::getBidderId)
+                    .map(AutoBidInProduct::getBidderId)
                     .filter(bidderId -> !blacklistedBidderIds.contains(bidderId))
                     .collect(Collectors.toList());
             
@@ -223,7 +223,7 @@ public class QuestionServiceImpl implements QuestionService {
             List<UserEmailItemResponse> userEmails = userServiceClient.getUserEmails(mergedUserIds);
             
             // Get seller info to get fullname
-            Product product = productRepository.findById(productId)
+            ProductInProduct product = productRepository.findById(productId)
                     .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product id" + productId + "not found"));
             Long sellerId = product.getSellerId();
             UserInfo sellerInfo = userServiceClient.getUserInfoById(sellerId);

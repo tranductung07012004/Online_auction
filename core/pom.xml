@@ -16,11 +16,12 @@
 	<description>Online auction root core project</description>
 
 	<modules>
-	    <module>shared</module>
 		<module>product</module>
 		<module>auction</module>
 		<module>admin</module>
 		<module>main</module>
+		<module>common</module>
+		<module>integration-spring-boot-starter</module>
 	</modules>
 
 </project>

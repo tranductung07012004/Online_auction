@@ -1,7 +1,7 @@
 package com.service.product.dto.question.response;
 
 import com.service.common.dto.UserInfo;
-import com.service.main.entity.Answer;
+import com.service.product.entity.Answer;
 import lombok.Data;
 
 import java.time.OffsetDateTime;

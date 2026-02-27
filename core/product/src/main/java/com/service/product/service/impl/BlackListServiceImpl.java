@@ -8,13 +8,13 @@ import com.service.product.dto.blacklist.response.BlackListResponse;
 import com.service.common.dto.UserEmailResponse;
 import com.service.common.dto.UserInfo;
 import com.service.common.dto.UserInfoResponse;
-import com.service.common.entity.AutoBid;
-import com.service.product.entity.BlackList;
-import com.service.product.entity.Product;
+import com.service.product.entity.AutoBidInProduct;
+import com.service.product.entity.BlackListInProduct;
+import com.service.product.entity.ProductInProduct;
 import com.service.common.exception.ApplicationException;
-import com.service.product.repository.AutoBidRepository;
-import com.service.product.repository.BlackListRepository;
-import com.service.product.repository.ProductRepository;
+import com.service.product.repository.AutoBidRepositoryInProduct;
+import com.service.product.repository.BlackListRepositoryInProduct;
+import com.service.product.repository.ProductRepositoryInProduct;
 import com.service.product.service.BlackListService;
 
 import org.springframework.data.domain.Page;
@@ -32,17 +32,17 @@ import com.service.common.utils.FormatUserDto;
 @Service
 public class BlackListServiceImpl implements BlackListService {
 
-    private final BlackListRepository blackListRepository;
+    private final BlackListRepositoryInProduct blackListRepository;
     private final UserServiceClient userServiceClient;
-    private final ProductRepository productRepository;
-    private final AutoBidRepository autoBidRepository;
+    private final ProductRepositoryInProduct productRepository;
+    private final AutoBidRepositoryInProduct autoBidRepository;
     private final KafkaProducerService kafkaProducerService;
 
     public BlackListServiceImpl(
-            BlackListRepository blRepo,
+            BlackListRepositoryInProduct blRepo,
             UserServiceClient uSClient,
-            ProductRepository poRepo,
-            AutoBidRepository abRepo,
+            ProductRepositoryInProduct poRepo,
+            AutoBidRepositoryInProduct abRepo,
             KafkaProducerService kPService) {
         this.blackListRepository = blRepo;
         this.productRepository = poRepo;
@@ -53,7 +53,7 @@ public class BlackListServiceImpl implements BlackListService {
 
     @Override
     public Page<BlackListResponse> getBlackListsByProductId(Long productId, Pageable pageable) {
-        Page<BlackList> blackListPage = this.blackListRepository.findByProductId(productId, pageable);
+        Page<BlackListInProduct> blackListPage = this.blackListRepository.findByProductId(productId, pageable);
         return blackListPage.map(this::mapToResponse);
     }
 
@@ -65,7 +65,7 @@ public class BlackListServiceImpl implements BlackListService {
             throw new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "User not found");
         }
 
-        Product product = productRepository.findById(productId)
+        ProductInProduct product = productRepository.findById(productId)
                 .orElseThrow(() -> new ApplicationException(ErrorCodes.RESOURCE_NOT_FOUND, "Product not found"));
 
         // Check if auction has ended
@@ -82,11 +82,11 @@ public class BlackListServiceImpl implements BlackListService {
         // Check if user being blocked is the top bidder, can check lai xu li logic cua cai nay
         if (product.getTopBidderId() != null && product.getTopBidderId().equals(userId)) {
             // Find the second highest auto bid (excluding the blocked user)
-            List<AutoBid> autoBids = autoBidRepository.findByProductIdExcludingBidderOrderByMaxPriceDesc(productId, userId);
+            List<AutoBidInProduct> autoBids = autoBidRepository.findByProductIdExcludingBidderOrderByMaxPriceDesc(productId, userId);
             
             if (!autoBids.isEmpty()) {
                 // Get the first one (highest max price after excluding the blocked user)
-                AutoBid secondHighestAutoBid = autoBids.get(0);
+                AutoBidInProduct secondHighestAutoBid = autoBids.get(0);
                 product.setTopBidderId(secondHighestAutoBid.getBidderId());
                 product.setCurrentPrice(secondHighestAutoBid.getMaxPrice());
                 this.productRepository.save(product);
@@ -98,14 +98,14 @@ public class BlackListServiceImpl implements BlackListService {
             }
         }
 
-        BlackList blackList = BlackList.builder()
+        BlackListInProduct blackList = BlackListInProduct.builder()
                 .bidderId(userId)
                 .productId(productId)
                 .createdBy(createdBy)
                 .createdAt(now)
                 .build();
 
-        BlackList savedBlackList = this.blackListRepository.save(blackList);
+        BlackListInProduct savedBlackList = this.blackListRepository.save(blackList);
         
         // Get bidder email and send Kafka event
         String bidderEmail = null;
@@ -135,7 +135,7 @@ public class BlackListServiceImpl implements BlackListService {
         return mapToResponse(savedBlackList);
     }
 
-    private BlackListResponse mapToResponse(BlackList blackList) {
+    private BlackListResponse mapToResponse(BlackListInProduct blackList) {
         UserInfoResponse bidderInfoRes = userServiceClient.getUserBasicInfo(blackList.getBidderId());
         UserInfo bidder = FormatUserDto.formatUserInfo(bidderInfoRes);
 

@@ -1,6 +1,6 @@
 package com.service.main.config;
 
-import com.service.main.constants.KafkaTopics;
+import com.service.common.constants.KafkaTopics;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;

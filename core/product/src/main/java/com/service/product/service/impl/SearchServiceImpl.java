@@ -8,6 +8,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import com.service.common.dto.UserInfo;
 import com.service.product.dto.product.response.ProductResponse;
 import com.service.product.elasticsearch.document.ProductEsDocument;
+import com.service.product.entity.CategoriesInProduct;
+import com.service.product.entity.ProductInProduct;
 import com.service.product.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,9 +21,7 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.Query;
-import com.service.product.entity.Product;
-import com.service.common.entity.Categories;
-import com.service.product.repository.ProductRepository;
+import com.service.product.repository.ProductRepositoryInProduct;
 
 import com.service.integration.userclient.UserServiceClient;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
     private final ElasticsearchOperations elasticsearchOperations;
-    private final ProductRepository productRepository;
+    private final ProductRepositoryInProduct productRepository;
     private final UserServiceClient userServiceClient;
 
     @Override
@@ -102,15 +102,15 @@ public class SearchServiceImpl implements SearchService {
                 .map(hit -> hit.getContent().getId())
                 .toList();
 
-        List<Product> productsFromDB = this.productRepository.findByIdIn(productIdsFromES);
+        List<ProductInProduct> productsFromDB = this.productRepository.findByIdIn(productIdsFromES);
 
         // Trick, tao map de lat nua query theo kieu O(1) thay vi O(n)
-        Map<Long, Product> productMapFromDB = productsFromDB.stream()
-                .collect(Collectors.toMap(Product::getId, p -> p));
+        Map<Long, ProductInProduct> productMapFromDB = productsFromDB.stream()
+                .collect(Collectors.toMap(ProductInProduct::getId, p -> p));
 
         List<ProductResponse> productResponses = productIdsFromES.stream()
                 .map(productId -> {
-                    Product productDB = productMapFromDB.get(productId);
+                    ProductInProduct productDB = productMapFromDB.get(productId);
                     ProductEsDocument esDoc = productEsMap.get(productId);
                     if (productDB == null || esDoc == null) {
                         return null; // Filter out nếu product không tồn tại trong DB hoặc ES
@@ -140,11 +140,11 @@ public class SearchServiceImpl implements SearchService {
                 .toList();
     }
 
-    private ProductResponse mapToProductResponse(Product product, ProductEsDocument esDoc) {
+    private ProductResponse mapToProductResponse(ProductInProduct product, ProductEsDocument esDoc) {
         // Map categories
         List<ProductResponse.CategoryInfo> categories = product.getProductCategories().stream()
                 .map(pc -> {
-                    Categories cat = pc.getCategory();
+                    CategoriesInProduct cat = pc.getCategory();
                     return new ProductResponse.CategoryInfo(
                             cat.getId(),
                             cat.getName(),

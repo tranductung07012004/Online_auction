@@ -1,9 +1,9 @@
 package com.service.admin.controller;
 
-import com.service.main.dto.ApiResponse;
-import com.service.main.dto.SystemSettingCreateRequest;
-import com.service.main.dto.SystemSettingResponse;
-import com.service.main.service.SystemSettingService;
+import com.service.common.dto.ApiResponse;
+import com.service.admin.dto.SystemSettingCreateRequest;
+import com.service.admin.dto.SystemSettingResponse;
+import com.service.admin.service.SystemSettingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

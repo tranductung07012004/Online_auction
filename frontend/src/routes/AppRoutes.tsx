@@ -21,11 +21,6 @@ const UserReview = lazy(() => import("../pages/Profile/UserReview"));
 const PublicUserReview = lazy(() => import("../pages/Public/PublicUserReview"));
 const CreateProduct = lazy(() => import("../pages/Seller/CreateProduct"));
 
-// Order Flow
-const OrderProcess = lazy(() => import("../pages/Order/Shared/OrderProcess"));
-
-const SearchOverlay = lazy(() => import("../pages/Search/SearchOverlay"));
-
 // Admin Components
 const Dashboard = lazy(() => import("../pages/Admin/Dashboard"));
 const Products = lazy(() => import("../pages/Admin/Products"));
@@ -174,7 +169,6 @@ const AppRoutes = () => {
     // { path: "/product-page", element: <PDP /> },
     { path: "/product-page/:id", element: <PDP /> },
     { path: "/pcp", element: <PCP /> },
-    { path: "/search", element: <SearchOverlay /> },
     {
       path: "/reviews/user/:userId",
       element: (
@@ -278,7 +272,6 @@ const AppRoutes = () => {
       element: <ProfilePage />,
     },
     { path: "/order-history", element: <OrderHistory /> },
-    { path: "/order/:id", element: <OrderProcess /> },
     { path: "/watchlist", element: <WatchList /> },
     { path: "/my-bids", element: <MyBids /> },
     { path: "/user-review", element: <UserReview /> },

@@ -55,6 +55,3 @@ springdoc:
   api-docs:
     path: /main/api-docs/v3/api-docs
 
-logging:
-  file:
-    path: ${LOG_PATH:logs}

@@ -1,9 +1,9 @@
 package com.service.product.controller;
 
-import com.service.main.dto.ApiResponse;
-import com.service.main.dto.CreateReviewRequest;
-import com.service.main.dto.ReviewResponse;
-import com.service.main.service.ReviewService;
+import com.service.common.dto.ApiResponse;
+import com.service.product.dto.review.request.CreateReviewRequest;
+import com.service.product.dto.review.response.ReviewResponse;
+import com.service.product.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

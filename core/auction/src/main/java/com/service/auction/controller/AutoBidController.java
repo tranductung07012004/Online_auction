@@ -1,9 +1,9 @@
 package com.service.auction.controller;
 
-import com.service.main.dto.ApiResponse;
-import com.service.main.dto.AutoBidResponse;
-import com.service.main.dto.CreateAutoBidRequest;
-import com.service.main.service.AutoBidService;
+import com.service.common.dto.ApiResponse;
+import com.service.auction.dto.AutoBidResponse;
+import com.service.auction.dto.CreateAutoBidRequest;
+import com.service.auction.service.AutoBidService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

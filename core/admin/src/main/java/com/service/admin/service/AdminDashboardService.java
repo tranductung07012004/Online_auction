@@ -1,7 +1,7 @@
 package com.service.admin.service;
 
-import com.service.main.dto.AdminDashboardStats;
-import com.service.main.dto.RecentProductDTO;
+import com.service.admin.dto.AdminDashboardStats;
+import com.service.admin.dto.RecentProductDTO;
 
 import java.util.List;
 
