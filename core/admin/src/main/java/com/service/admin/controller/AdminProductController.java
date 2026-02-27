@@ -1,7 +1,8 @@
 package com.service.admin.controller;
 
 import com.service.admin.dto.*;
-import com.service.main.service.AdminProductService;
+import com.service.common.dto.ApiResponse;
+import com.service.admin.service.AdminProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

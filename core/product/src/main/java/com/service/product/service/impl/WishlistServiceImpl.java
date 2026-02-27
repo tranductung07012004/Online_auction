@@ -5,7 +5,7 @@ import com.service.common.dto.UserInfo;
 import com.service.common.dto.UserInfoResponse;
 import com.service.common.exception.ApplicationException;
 
-import com.service.product.repository.ProductRepository;
+import com.service.product.repository.ProductRepositoryInProduct;
 import com.service.product.repository.WishlistRepository;
 import com.service.product.dto.wishlist.response.WishlistResponse;
 import com.service.product.entity.Wishlist;
@@ -21,16 +21,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.service.integration.userclient.UserServiceClient;
+import com.service.common.utils.FormatUserDto;
+
 @Service
 public class WishlistServiceImpl implements WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final ProductRepository productRepository;
+    private final ProductRepositoryInProduct productRepository;
     private final UserServiceClient userServiceClient;
 
     public WishlistServiceImpl(
         WishlistRepository wlRepo,
-        ProductRepository proRepo,
+        ProductRepositoryInProduct proRepo,
         UserServiceClient uSClient
     ) {
         this.productRepository = proRepo;
@@ -117,7 +119,7 @@ public class WishlistServiceImpl implements WishlistService {
 
     private WishlistResponse mapToResponse(Wishlist wishlist) {
         UserInfoResponse userInfoRes = userServiceClient.getUserBasicInfo(wishlist.getUserId());
-        UserInfo user = formatUserInfo(userInfoRes);
+        UserInfo user = FormatUserDto.formatUserInfo(userInfoRes);
 
         WishlistResponse response = new WishlistResponse();
         response.setId(wishlist.getId());

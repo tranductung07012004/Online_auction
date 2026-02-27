@@ -134,15 +134,15 @@ services:
     networks:
       - backend
 
-  main:
-    build: ./main
-    container_name: main
+  core:
+    build: ./core
+    container_name: core
     env_file:
-      - ./main/.env.docker
+      - ./core/.env.docker
     ports:
       - "8082:8082"
     volumes:
-      - ./logs_from_docker/main:/logs
+      - ./logs_from_docker/core:/logs
     depends_on:
       - db2
       - elasticsearch

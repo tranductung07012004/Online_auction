@@ -1,9 +1,9 @@
 package com.service.auction.controller;
 
-import com.service.main.dto.ApiResponse;
-import com.service.main.dto.BidRequestResponse;
-import com.service.main.dto.VerifyBidRequestRequest;
-import com.service.main.service.BidRequestService;
+import com.service.common.dto.ApiResponse;
+import com.service.auction.dto.BidRequestResponse;
+import com.service.auction.dto.VerifyBidRequestRequest;
+import com.service.auction.service.BidRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

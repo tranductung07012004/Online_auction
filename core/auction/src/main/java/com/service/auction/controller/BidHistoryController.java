@@ -1,8 +1,8 @@
 package com.service.auction.controller;
 
-import com.service.main.dto.ApiResponse;
-import com.service.main.dto.BidHistoryResponse;
-import com.service.main.service.BidHistoryService;
+import com.service.common.dto.ApiResponse;
+import com.service.auction.dto.BidHistoryResponse;
+import com.service.auction.service.BidHistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

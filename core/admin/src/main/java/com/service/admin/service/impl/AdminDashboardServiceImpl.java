@@ -2,9 +2,9 @@ package com.service.admin.service.impl;
 
 import com.service.admin.dto.AdminDashboardStats;
 import com.service.admin.dto.RecentProductDTO;
-import com.service.common.entity.Product;
-import com.service.main.repository.CategoriesRepository;
-import com.service.main.repository.ProductRepository;
+import com.service.admin.entity.ProductInAdmin;
+import com.service.admin.repository.CategoriesRepositoryInAdmin;
+import com.service.admin.repository.ProductRepositoryInAdmin;
 import com.service.admin.service.AdminDashboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AdminDashboardServiceImpl implements AdminDashboardService {
 
-    private final ProductRepository productRepo;
-    private final CategoriesRepository categoriesRepo;
+    private final ProductRepositoryInAdmin productRepo;
+    private final CategoriesRepositoryInAdmin categoriesRepo;
 
     @Override
     public AdminDashboardStats getDashboardStats() {
@@ -68,7 +68,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     @Override
     public List<RecentProductDTO> getRecentProducts(int limit) {
         OffsetDateTime now = OffsetDateTime.now();
-        List<Product> recentProducts = productRepo.findTop10ByOrderByCreatedAtDesc();
+        List<ProductInAdmin> recentProducts = productRepo.findTop10ByOrderByCreatedAtDesc();
 
         return recentProducts.stream()
                 .limit(limit)

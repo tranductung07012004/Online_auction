@@ -9,9 +9,6 @@ import java.util.List;
 
 public interface AnswerRepository extends JpaRepository<Answer, Long> {
 
-    @Query("SELECT a FROM Answer a WHERE a.question.id = :questionId ORDER BY a.createdAt ASC")
-    List<Answer> findByQuestionId(@Param("questionId") Long questionId);
-
     @Query("SELECT COUNT(a) FROM Answer a WHERE a.question.id = :questionId")
     long countByQuestionId(@Param("questionId") Long questionId);
 }

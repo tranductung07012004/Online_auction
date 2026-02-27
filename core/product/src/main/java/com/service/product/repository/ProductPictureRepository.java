@@ -1,9 +1,9 @@
 package com.service.product.repository;
 
-import com.service.product.entity.ProductPicture;
+import com.service.product.entity.ProductPictureInProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ProductPictureRepository extends JpaRepository<ProductPicture, Integer> {
+public interface ProductPictureRepository extends JpaRepository<ProductPictureInProduct, Integer> {
 }
 
 

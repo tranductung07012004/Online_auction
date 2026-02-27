@@ -1,0 +1,3 @@
+com.service.integration.autoconfigure.MessagingAutoConfiguration
+com.service.integration.autoconfigure.UserclientAutoConfiguration
+com.service.integration.autoconfigure.TransactionConfigAutoConfiguration
